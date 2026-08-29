@@ -483,7 +483,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.57';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.58';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -6373,12 +6373,31 @@ function hailEnemy(e){
   if(typeof isSaint9==='function'&&isSaint9()){
     // the white does not bribe, threaten, deceive, or fake a surrender — it offers peace, plainly
     opts9.push({label:'OFFER PEACE — ask them to lower their guns (a plea, no weapon in it)',col:'#1c2a3a',tcol:'#cfe8ff',fn:()=>{
+        // The white always asks. But a boss or capital cannot be neutralized by one roll of a
+        // dialog, any more than it can be bribed or frightened off. She still has a road here:
+        // her hand cannot kill, so fighting one down DISABLES it rather than destroying it.
+        if(unbowed9(e)){
+          say('\u2726 You ask, and it hears you, and it does not care. Some things out here have to be met, not asked. Your lances still cannot kill \u2014 fight it down and it will go dark, not dead.','#8899bb');
+          closeEnc();return;
+        }
         const odds9=Math.min(.85,Math.max(.15,.30+(((S.standing||50)-50)/220)+((typeof grace9==='function'?(grace9().grace||0):0)/300)));
         if(Math.random()<odds9){e.holdFire=true;e.neutral9=true;e.disarmed=true;e.fire=999;e.vx=Math.cos(e.ang||0)*44;e.vy=Math.sin(e.ang||0)*44;try{mercySpare9();}catch(er){}try{graceGain9(8);}catch(er){}gainStanding(1);
           say('✦ You ask, plainly, with no weapon in your voice. A long silence — then their guns go cold and they come about for home. (+mercy toward the white road)','#cfe8ff');}
         else say('They hear you out and do not believe the white flies unarmed. Their guns stay up. Some peace has to be earned twice.','#8899bb');
         closeEnc();}});
     opts9.push({label:'Withdraw — leave them to their own heading',col:'#2a281a',tcol:'#e8dfa0',fn:()=>{closeEnc();}});
+  } else if(unbowed9(e)){
+    // A boss or capital will hear you out and be unmoved. No bribe, no threat, no story makes
+    // this hull turn around, so those options are not offered at all.
+    opts9.push({label:'TAUNT — tell them exactly what you think of them',col:'#2a2418',tcol:'#ffd86b',fn:()=>{
+        gainStanding(1);
+        say('You say your piece. They do not blink, and they do not slow down. Your crew, however, stand a little straighter.','#ffd86b');
+        closeEnc();}});
+    opts9.push({label:'FALSE SURRENDER — lure them close (dishonorable)',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
+        e.duped=true;S.standing=Math.max(0,(S.standing||50)-4);addInfamy(12);
+        say('You strike your colors. They close to finish it. Your gunner\'s hands are very steady. (Next lance hit ×2.5)','#c9d46a');
+        closeEnc();}});
+    opts9.push({label:'Close the channel',col:'#2a281a',tcol:'#e8dfa0',fn:()=>{closeEnc();}});
   } else {
     opts9.push(
     {label:'BRIBE — '+toll+' cr to forget they saw you',fn:()=>{
@@ -6410,7 +6429,8 @@ function hailEnemy(e){
   }
   showEnc('CHANNEL OPEN \u2014 '+(e.idKnown?(CLS[e.type]||e.nm):'UNKNOWN VESSEL'),
     beaten9?'Their hull is venting and their guns are half-dark. The face on the viewer is doing the arithmetic of survival. This one you could let live.'
-           :'A hostile face fills the viewer, weighing you like salvage. Words are still cheaper than torpedoes. Barely.',
+           :(unbowed9(e)?'The channel opens and something enormous looks back, entirely unhurried. Whatever this is, it did not come out here to be talked out of anything.'
+           :'A hostile face fills the viewer, weighing you like salvage. Words are still cheaper than torpedoes. Barely.'),
     opts9);
 }
 function fleetShipMenu(fs){
@@ -21047,6 +21067,10 @@ addEventListener('wheel',e=>{
 const TRACTOR_HP=.25; // at a quarter hull her weapons die and the beam can grip — a narrow window before she runs at 18%
 const CAPITAL_BAYS=.30, CAPITAL_GUNS=.15; // capitals die harder: bays first, then guns
 function isCapital(e){return !!(e&&e.et&&e.et.deploys);}
+// Ships that cannot be talked off the board. Same class the Purge Wave cannot touch ("the capitals
+// and bosses ride it out") and the same ships that never flee. Words do not delete these; you fight
+// them, board them, or leave.
+function unbowed9(e){return !!(e&&(e.boss||e.unique9||(e.et&&e.et.beh==='boss')||isCapital(e)||(e.et&&e.et.noSurrender)));}
 function isBeast9(e){return !!(e&&e.et&&e.et.beast);} // energy field / organism / automaton — no hull to grip, no airlock to board
 const CAPITAL_TOUGH=3; // she is three ships in one hull — and worth three ships to take
 function tractorThresh(e){return isCapital(e)?CAPITAL_GUNS:TRACTOR_HP;}
