@@ -139,20 +139,31 @@ function touchAbilities9(){
       if(S.fireBreath9)out.push({k:'v',l:'DRAGON'});
       if(S.qUnlocked)out.push({k:'q',l:'BECOME ORSON'});
     }
+    // Actions every captain has that previously existed ONLY as keyboard keys, so they were
+    // invisible on a phone: the fighter wing [F], the mission journal [J], and the shield
+    // repulsor [R] the game tells you to press when a parasite latches onto the hull.
+    if(ship.hangar)out.push({k:'f',l:pFighters.length?(saint?'RECALL DRONES':'RECALL WING'):(saint?'LAUNCH DRONES':'LAUNCH WING')});
+    if(S.missions&&S.missions.length)out.push({k:'j',l:'JOURNAL'});
+    if(!S.repul&&!(saint&&S.canonized9)&&enemies.some(e9=>e9&&e9.alive&&e9.attached))out.push({k:'r',l:'REPULSOR'});
   }catch(e){}
   return out;
 }
 function touchCtx(){
-  if(S.screen!=='space')return null;
-  if(nearStation())return['DOCK','d'];
+  // Returns a LIST, because orbit legitimately offers two things at once. It used to return a
+  // single action, so in orbit you got LAND only when an away mission was waiting in this system,
+  // and TRADE otherwise. That hid the ordinary landing expedition from touch players entirely
+  // (keyboard [L] always works in orbit) and made LAND and TRADE mutually exclusive.
+  if(S.screen!=='space')return[];
+  if(nearStation())return[['DOCK','d']];
   if(S.orbit){
-    const aw9=S.missions.some(m2=>m2.def.ty==='away'&&edef(m2).sys===ship.sys);
-    if(aw9&&!enemies.some(e9=>e9.alive))return['LAND','l'];
-    return['TRADE','t'];
+    const out9=[];
+    if(S.noLand!==ship.sys)out9.push(['LAND','l']);   // the world itself may refuse a landing
+    out9.push(['TRADE','t']);
+    return out9;                                      // both, matching what the keyboard can do
   }
-  if(S.orbitReady||touchOrbitNear9())return['ORBIT','o'];
-  if(touchHailNear9())return['HAIL','h'];
-  return['SCAN','s'];
+  if(S.orbitReady||touchOrbitNear9())return[['ORBIT','o']];
+  if(touchHailNear9())return[['HAIL','h']];
+  return[['SCAN','s']];
 }
 function clearStickKeys(){keys['arrowleft']=keys['arrowright']=keys['arrowup']=keys['arrowdown']=false;}
 // ==== GLYPH CAST: on touch, trace an ability's letter to fire it ($1 unistroke recognizer) ====
@@ -281,13 +292,15 @@ function drawTouch(){
         {k:'m',l:'MAP',x:W-40,y:H-300,r:26},
         {k:'i',l:'SHIP',x:W-40,y:H-364,r:26},
         {k:'escape',l:'MENU',x:W-40,y:H-428,r:26}];
-    const c9=touchCtx();
-    if(c9)B9.push({k:c9[1],l:c9[0],x:W-92,y:H-208,r:46,cx9:true});
+    const cs9=touchCtx()||[];
+    if(cs9[0])B9.push({k:cs9[0][1],l:cs9[0][0],x:W-92,y:H-208,r:46,cx9:true});
+    if(cs9[1])B9.push({k:cs9[1][1],l:cs9[1][0],x:W-196,y:H-232,r:38,cx9:true});
   } else {
     B9=[{k:'fire',l:'FIRE',x:W-74,y:H-84,r:46,hold:true},
         {k:'s',l:(AW&&AW.stun)?'STUN':'KILL',x:W-172,y:H-56,r:30},
         {k:'e',l:'ABLTY',x:W-190,y:H-146,r:28},
-        {k:'b',l:'RECALL',x:W-80,y:H-198,r:30}];
+        {k:'b',l:'RECALL',x:W-80,y:H-198,r:30},
+        {l:'DODGE',x:W-40,y:H-262,r:28,act9:()=>{keys['j']=true;setTimeout(()=>{keys['j']=false;},130);}}];
   }
   for(const b9 of B9){
     touchRects.push(b9);
@@ -470,7 +483,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.55';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.57';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -9666,7 +9679,7 @@ function startAway(extDef){
 }
 function beginAway(d,mRef,compIdx){
   if(S.arena9&&!(d&&d.arena9))S.arena9=null;   // a new mission is not the arena
-  hint('away','Ground rules: arrows move the team, [SPACE] fires, [S] toggles STUN/KILL, [E] companion ability, [B] beams up.');
+  hint('away',IS_TOUCH?'Ground rules: drag the left side to move the team, FIRE shoots, STUN/KILL toggles your setting, ABLTY is your companion, DODGE rolls while moving, RECALL beams you up.':'Ground rules: arrows move the team, [SPACE] fires, [S] toggles STUN/KILL, [E] companion ability, [J] dodge, [B] beams up.');
   AW.active=true;AW.def=d;AW.missionRef=mRef;AW.boarding=!!d.boarding;AW.outT=0;AW.outOk=false;
   BC('beginAway '+(d.boarding?'BOARD':'GROUND')+' obj='+(d.obj||'?')+' tier='+(d.tier||1)+(S.childQ?' quest='+S.childQ.type:''));
   {const bio9=(typeof PLANET!=='undefined'&&PLANET&&PLANET.biome)||SYSTEMS[ship.sys].biome;
@@ -17040,7 +17053,7 @@ function drawHud(){
     const awayHere=S.missions.some(m2=>m2.def.ty==='away'&&edef(m2).sys===ship.sys);
     const clear=!enemies.some(e=>e.alive);
     if(SYSTEMS[ship.sys].base&&clear&&!S.orbit){
-      if(nearStation())txt('STATION IN RANGE — PRESS D TO DOCK',14,hudLineY9(),'#7fd98a',13);
+      if(nearStation())txt(IS_TOUCH?'STATION IN RANGE — TAP DOCK':'STATION IN RANGE — PRESS D TO DOCK',14,hudLineY9(),'#7fd98a',13);
       else{txt('STARBASE '+(STATION.x>ship.x?'→':'←')+' '+Math.round(Math.hypot(STATION.x-ship.x,STATION.y-ship.y))+' — slow under 95 to dock',14,hudLineY9(),'#8fd0ff',12);
         if(Math.hypot(STATION.x-ship.x,STATION.y-ship.y)<440)hint('dock','Your starbase. Slow under 95 and press [D] to dock — missions, repairs, upgrades, trade.');}
     }
@@ -17048,15 +17061,15 @@ function drawHud(){
       const pd=Math.hypot(PLANET.x-ship.x,PLANET.y-ship.y);
       const spd3=Math.hypot(ship.vx,ship.vy);
       const bandOK=pd>150&&pd<260,vOK=spd3>30&&spd3<110;
-      txt(S.orbitReady?'ORBIT READY — PRESS [O]':('ORBIT: ring '+(bandOK?'OK':(pd>=260?'closer':'back off'))+' • velocity '+(vOK?'OK':(spd3<=30?'speed up':'slow down'))),
+      txt(S.orbitReady?(IS_TOUCH?'ORBIT READY — TAP ORBIT':'ORBIT READY — PRESS [O]'):('ORBIT: ring '+(bandOK?'OK':(pd>=260?'closer':'back off'))+' • velocity '+(vOK?'OK':(spd3<=30?'speed up':'slow down'))),
         14,hudLineY9(),S.orbitReady?'#7fd98a':'#8fd0ff',13);
     } else if(S.orbit&&clear){
-      if(atBase())txt('IN ORBIT — T: exchange  •  the STARBASE docks separately [D near station]',14,hudLineY9(),'#7fd98a',12);
-      else if(awayHere)txt('IN ORBIT of '+PLANET.name+((PLANET.idx!==undefined&&S.awayPlanetIdx!=null&&PLANET.idx!==S.awayPlanetIdx)?(' — mission is at '+(PLANETS[S.awayPlanetIdx]?PLANETS[S.awayPlanetIdx].name:'another world')):' — L: land / beam down')+'  •  T: exchange',14,hudLineY9(),'#7fd98a',13);
-      else if(civ&&civ.kind==='trader'&&Math.hypot(civ.x-ship.x,civ.y-ship.y)<240)txt('Press H to hail '+civ.name,14,hudLineY9(),'#8fd0ff',13);
-      else txt('IN ORBIT — L: land  •  T: exchange',14,hudLineY9(),'#8fd0ff',13);
+      if(atBase())txt(IS_TOUCH?'IN ORBIT — tap TRADE for the exchange  •  the STARBASE docks separately':'IN ORBIT — T: exchange  •  the STARBASE docks separately [D near station]',14,hudLineY9(),'#7fd98a',12);
+      else if(awayHere)txt('IN ORBIT of '+PLANET.name+((PLANET.idx!==undefined&&S.awayPlanetIdx!=null&&PLANET.idx!==S.awayPlanetIdx)?(' — mission is at '+(PLANETS[S.awayPlanetIdx]?PLANETS[S.awayPlanetIdx].name:'another world')):(IS_TOUCH?' — tap LAND to beam down':' — L: land / beam down'))+(IS_TOUCH?'  •  TRADE for the exchange':'  •  T: exchange'),14,hudLineY9(),'#7fd98a',13);
+      else if(civ&&civ.kind==='trader'&&Math.hypot(civ.x-ship.x,civ.y-ship.y)<240)txt((IS_TOUCH?'Tap HAIL to reach ':'Press H to hail ')+civ.name,14,hudLineY9(),'#8fd0ff',13);
+      else txt(IS_TOUCH?'IN ORBIT — tap LAND or TRADE':'IN ORBIT — L: land  •  T: exchange',14,hudLineY9(),'#8fd0ff',13);
     } else if(civ&&civ.kind==='trader'&&Math.hypot(civ.x-ship.x,civ.y-ship.y)<240){
-      txt('Press H to hail '+civ.name,14,hudLineY9(),'#8fd0ff',13);
+      txt((IS_TOUCH?'Tap HAIL to reach ':'Press H to hail ')+civ.name,14,hudLineY9(),'#8fd0ff',13);
     }
   }
   if(ship.hangar){const ang9=(typeof isSaint9==='function'&&isSaint9());
@@ -17098,7 +17111,7 @@ function drawHud(){
    }}
   const latchedN=enemies.filter(e=>e.alive&&e.attached).length;
   if(S.repul&&(!latchedN||S.t-S.repul.t0>8))S.repul=null; // the pulse discharges itself if the threat (or the ship) is gone
-  if(latchedN&&!S.repul)txtFit('⚠ '+latchedN+' PARASITE'+(latchedN>1?'S':'')+' ON THE HULL — [R] shield repulsor',W/2,H-92,'#ffb56b',13,W-80,'center');
+  if(latchedN&&!S.repul)txtFit('⚠ '+latchedN+' PARASITE'+(latchedN>1?'S':'')+' ON THE HULL — '+(IS_TOUCH?'tap REPULSOR':'[R] shield repulsor'),W/2,H-92,'#ffb56b',13,W-80,'center');
   if(S.repul){
     const px6=Math.sin((S.t-S.repul.t0)*4.2);
     rr(W/2-160,H-112,320,26,8,'rgba(6,10,18,.9)');
