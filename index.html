@@ -483,7 +483,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.58';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.59';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -1900,6 +1900,29 @@ function vorSeed9(){
   }
 }
 function unmakerHere9(){try{return enemies.some(e9=>e9&&e9.alive&&e9.type==='vorlanship');}catch(e){return false;}}
+// Something big enough that the lanes empty out: the Unmaker, any boss or unique hull, a capital
+// that launches its own wings, or the Leviathan. Freighters and couriers do not work a sky like that.
+function bossHere9(){
+  try{
+    if(typeof levi!=='undefined'&&levi&&(levi.hp==null||levi.hp>0))return true;
+    return enemies.some(e9=>e9&&e9.alive&&(e9.boss||e9.unique9||e9.type==='vorlanship'||
+      (e9.et&&e9.et.beh==='boss')||(typeof isCapital==='function'&&isCapital(e9))));
+  }catch(e){return false;}
+}
+// Civilians clear out under their own power, so the player sees them go rather than having them
+// blink out of existence. A stranded hull cannot run: her drive is cold, which is the whole point of her.
+function clearLanes9(){
+  try{
+    if(civ&&!civ.stranded&&!civ.saved){
+      try{riftStreak(civ.x,civ.y,Math.atan2(civ.vy||0,civ.vx||1),'#c9d46a','out');}catch(e){}
+      try{sfx.rift();}catch(e){}
+      say(civ.name+' does not wait to be told \u2014 she lights her core and rifts for open space.','#c9d46a');
+      try{enemies.forEach(e9=>{if(e9&&e9.civTgt===civ)e9.civTgt=null;});}catch(e){}
+      civ=null;
+    }
+    if(typeof traffic!=='undefined'&&traffic&&traffic.length)traffic.length=0;
+  }catch(e){}
+}
 function missionInSys9(sys9){try{return (S.missions||[]).some(m2=>{const d2=(typeof edef==='function'?edef(m2):(m2&&m2.def))||(m2&&m2.def)||{};return d2.sys===sys9||(d2.syss&&d2.syss.includes(sys9));});}catch(e){return false;}}
 function vorHunt9(){
   // he returns between one and three jumps after you last put him away
@@ -1928,6 +1951,7 @@ function vorHunt9(){
     enemies=enemies.filter(e8=>e8&&e8.type==='vorlanship');
     if(typeof traffic!=='undefined'&&traffic)traffic.length=0;
     if(typeof defFleet!=='undefined'&&defFleet)defFleet.length=0;
+    try{clearLanes9();}catch(e8){}
     civ=null;ally=null;friendly=null;
     S.echoes=[];if(S.dir)S.dir.noev=0;
   }catch(err){}
@@ -4123,7 +4147,7 @@ function cloakFx9(x,y,appear){
 let roids=[],hazard=null;
 // ---- civilian traffic: traders to hail, distress calls to answer (or betray) ----
 function spawnCiv(kind){
-  if(typeof unmakerHere9==='function'&&unmakerHere9())return;
+  if(typeof bossHere9==='function'&&bossHere9())return;
   const names=['SS BOUNTIFUL','SS MERIDIAN ROSE','SS LONG HAUL','SS KOBOLD','SS PATIENT STAR','SS WANDERING JOY',
     'SS SECOND MORTGAGE','SS RUSTBUCKET ROYALE','SS PROVIDENCE','SS FAR HORIZON','SS LUCKY LADY LUCK','SS IRON PETAL',
     'SS QUIET FORTUNE','SS DAWNRUNNER','SS OLD DEBTS','SS CARELESS WHISPER','SS THE MARGIN','SS HALF-TRUTH'];
@@ -4738,6 +4762,7 @@ const CGEN=(()=>{
   return out;
 })();
 function spawnTraffic(free){
+  if(typeof bossHere9==='function'&&bossHere9())return;   // the lanes are closed while something that size is out there
   if(free){ // a courier just passing through this system
     const v=Math.random()<.5;
     const a={x:v?rnd(0,ARENA):(Math.random()<.5?-60:ARENA+60),y:v?(Math.random()<.5?-60:ARENA+60):rnd(0,ARENA)};
@@ -7029,8 +7054,10 @@ function fireLance(){
       if(tg.hits===1){say('Careless shot across a courier\'s bow — she rocks but flies on. Watch your fire, Captain.','#ffd86b');}
       else{
         tg.hp=(tg.hp==null?16:tg.hp)-10;
-        S.standing=Math.max(0,(S.standing||50)-6);
-        if(!S.secCalled){S.secCalled=true;
+        if(!(typeof bossHere9==='function'&&bossHere9()))S.standing=Math.max(0,(S.standing||50)-6);
+        // Local security does not fly into a boss engagement to write you a ticket. While something
+        // that size is in the system they stay docked, and the incident is not logged against you.
+        if(!S.secCalled&&!(typeof bossHere9==='function'&&bossHere9())){S.secCalled=true;
           const n2=2+Math.floor(rnd(0,2));
           for(let i2=0;i2<n2;i2++){const e3=spawnEnemy(SYSTEMS[ship.sys].base?'fed_escort':'orion_raider',{noTier:true});e3.detected=true;}
           alarm('LOCAL SECURITY RESPONDING — weapons fire on civilian traffic!');}
@@ -9107,6 +9134,7 @@ function updateSpace(dt){
     }
   }
   // civilian traffic
+  if(civ&&!civ.stranded&&!civ.saved&&typeof bossHere9==='function'&&bossHere9())clearLanes9();
   if(civ){
     civ.x=clamp(civ.x+civ.vx*dt,60,ARENA-60);
     civ.y=clamp(civ.y+civ.vy*dt,60,ARENA-60);
@@ -15089,14 +15117,16 @@ function drawStory(){
           txt('DELETE SLOT '+(i9+1)+'?',sx9+75,637,'#ff9a9a',10,'center');
           txt('click the X again to erase • click elsewhere to keep',sx9+75,652,'#c98a8a',7,'center','normal');
         } else {
-          txt('SLOT '+(i9+1)+' — '+f9.nm,sx9+70,637,'#8fd0ff',10,'center');
-          txt(f9.cr+' cr • '+f9.ms+' msn'+(f9.ts?' • '+new Date(f9.ts).toLocaleDateString():''),sx9+70,653,'#8899bb',8,'center','normal');
+          txtFit('SLOT '+(i9+1)+' — '+f9.nm,sx9+66,637,'#8fd0ff',10,108,'center');
+          {const d9=f9.ts?new Date(f9.ts):null;
+           const ds9=d9?(' • '+(d9.getMonth()+1)+'/'+d9.getDate()):'';
+           txtFit(f9.cr+' cr • '+f9.ms+' msn'+ds9,sx9+70,655,'#8899bb',8,138,'center','normal');}
         }
         rr(sx9+128,622,20,20,6,asking9?'#8a2020':'#22344c');
         txt('✕',sx9+138,636,asking9?'#fff':'#8899bb',10,'center');
       } else txt('EMPTY SLOT '+(i9+1),sx9+75,646,'#445',9,'center','normal');
     }
-    if(IS_TOUCH){rr(W/2-80,582,160,30,9,'#12324a');txt('IMPORT SAVE',W/2,602,'#8fd0ff',12,'center');window.storyPortRects9.push({x:W/2-80,y:582,w:160,h:30,m:'import'});}
+    if(IS_TOUCH){rr(W/2+244,620,150,44,10,'#12324a');txtFit('IMPORT SAVE',W/2+319,647,'#8fd0ff',12,138,'center');window.storyPortRects9.push({x:W/2+244,y:620,w:150,h:44,m:'import'});}
     txt('[C] continue latest • click a slot • ✕ delete • [B] step BACK one save • [E] export • [I] import',W/2,676,'#667',10,'center','normal');
   } else {
     txt('choose your command to begin',W/2,624,'#667',12,'center','normal');
@@ -16074,6 +16104,11 @@ function rwSaveOverlay9(mode){
 function exportPilot9(){ rwSaveOverlay9('export'); }
 function importPilot9(){ rwSaveOverlay9('import'); }
 function newGame(){
+  // Keep the captain the player just built; wipe everything the previous pilot left behind.
+  const cptn9=S.cptn;
+  resetPilot9();
+  S.cptn=cptn9||null;
+  if(cptn9&&cptn9.name&&crew[0])crew[0].name=cptn9.name;
   curSeed=((Date.now()&0xffffff)^Math.floor(Math.random()*0x7fffffff))>>>0;
   initGalaxy(curSeed);
   curSlot=pickSlot();
@@ -23962,6 +23997,56 @@ function frame(n9x){try{frameInner(n9x);}catch(e9x){
   try{localStorage.setItem('captain_err',(((e9x&&e9x.stack)?String(e9x.stack):String(e9x)).slice(0,300))+' @frame:'+S.screen);}catch(e2x){}
   try{for(let i9x=0;i9x<12;i9x++)ctx.restore();ctx.setTransform(CURDPR,0,0,CURDPR,0,0);ctx.globalAlpha=1;}catch(e3x){}
 }}
+// ── PRISTINE STATE SNAPSHOT ──────────────────────────────────────────────
+// Taken at load, before any save is read. newGame() used to reset almost nothing: it picked a new
+// seed and slot and called beginGame(). So starting a NEW pilot in a browser session where another
+// pilot had been played inherited that captain's ship, hull skin, credits, upgrades, missions,
+// standing and story flags. It only became visible once saves started persisting (GitHub Pages),
+// because before that a reload wiped everything anyway.
+const PRISTINE9=(function(){
+  const cl=(o)=>{
+    if(o instanceof Set)return{__set9:[...o].map(cl)};
+    if(o instanceof Map)return{__map9:[...o].map(([k,v])=>[k,cl(v)])};
+    if(Array.isArray(o))return o.map(cl);
+    if(o&&typeof o==='object'){const r={};for(const k in o)r[k]=cl(o[k]);return r;}
+    return o;
+  };
+  try{return{S:cl(S),ship:cl(ship),crew:cl(crew),Q:cl(QSTATE)};}catch(e){return null;}
+})();
+function revive9(v){
+  if(v&&typeof v==='object'&&v.__set9)return new Set(v.__set9.map(revive9));
+  if(v&&typeof v==='object'&&v.__map9)return new Map(v.__map9.map(([k,x])=>[k,revive9(x)]));
+  if(Array.isArray(v))return v.map(revive9);
+  if(v&&typeof v==='object'){const r={};for(const k in v)r[k]=revive9(v[k]);return r;}
+  return v;
+}
+function restoreInto9(target,snap){
+  const fresh=revive9(snap);
+  if(Array.isArray(target)){target.length=0;fresh.forEach(x=>target.push(x));return;}
+  for(const k in target)delete target[k];
+  for(const k in fresh)target[k]=fresh[k];
+}
+// Wipe the previous captain out of memory so a new pilot truly starts clean.
+function resetPilot9(){
+  if(!PRISTINE9)return;
+  try{
+    restoreInto9(S,PRISTINE9.S);
+    restoreInto9(ship,PRISTINE9.ship);
+    restoreInto9(crew,PRISTINE9.crew);
+    restoreInto9(QSTATE,PRISTINE9.Q);
+    enemies.length=0;bolts.length=0;torpedoes.length=0;booms.length=0;
+    parts.length=0;pickups.length=0;mines.length=0;
+    try{pFighters.length=0;}catch(e){}
+    try{BUFF9=null;}catch(e){}
+    try{levi=null;}catch(e){}
+    try{friendly=null;ally=null;civ=null;hazard=null;}catch(e){}
+    try{AW.active=false;}catch(e){}
+    try{CF=null;}catch(e){}
+    try{AR=null;}catch(e){}
+    try{ENC=null;}catch(e){}
+    try{S.tao9=null;}catch(e){}
+  }catch(e){}
+}
 requestAnimationFrame(frame);
 })();
 </script>
