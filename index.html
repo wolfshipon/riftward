@@ -492,7 +492,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.62';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.63';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -17183,15 +17183,23 @@ function drawHud(){
     txtFit(at9,W/2,27,'#fff',13,bw9-28,'center');
   }
   // ship-log messages: mid-LEFT, clear of the touch thumbstick (bottom-left) and the FIRE buttons (bottom-right)
-  {// On touch the ability pills own the upper-left column. Squeezing the log vertically above them
-   // stopped working once a full kit (Saint at tier 5) reached FOUR rows, whose bottom sits below
-   // the log's own first line, so the first message always landed on the last pill. The log now
-   // steps to the RIGHT of the pill column instead, which removes the whole class of collision.
-   let mx9=14, mw9=Math.min(500,Math.round(W*0.44));
+  {// The touch ability pills own the upper-left column, so the log has to keep clear of them.
+   // How it keeps clear depends on how tall the grid actually is, which is the part I got wrong
+   // twice: a fixed vertical squeeze breaks for a big kit, and a fixed sideways step shoves the
+   // log into the middle of the play area when there are only one or two pills.
+   //   grid bottom = 326 + (rows-1)*48; the log's first line sits at H*0.68 (462) and builds UP.
+   //   1-2 rows  -> the log stays on the left and simply stops above the pills (still 4+ lines).
+   //   3+ rows   -> too little headroom for more than one line, so it steps to the right instead.
+   let mx9=14, mw9=Math.min(500,Math.round(W*0.44)), mstop9=70;
    if(IS_TOUCH&&S.screen==='space'&&!S.qmode){try{
-     if(touchAbilities9().length){mx9=12+2*152+12;mw9=Math.min(470,Math.round(W*0.43));}
+     const na9=touchAbilities9().length;
+     if(na9){
+       const rows9=Math.ceil(na9/2), gb9=326+(rows9-1)*48;
+       if(rows9<=2)mstop9=gb9+12;
+       else{mx9=12+2*152+12;mw9=Math.min(470,Math.round(W*0.43));}
+     }
    }catch(e9){}}
-   drawMsgs9(mx9,Math.round(H*0.68),'left',mw9,12,70);}
+   drawMsgs9(mx9,Math.round(H*0.68),'left',mw9,12,mstop9);}
   if(S.hitFlash>0){
     ctx.fillStyle='rgba(255,40,40,'+S.hitFlash*.5+')';ctx.fillRect(0,0,W,H);
   }
