@@ -492,7 +492,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.63';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.65';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -1032,6 +1032,15 @@ const TRACKS={
    {inst:'bass',vol:.24,seq:[['Ab1',.5],['Ab1',.5],['G1',.5],['G1',.5],['Gb1',.5],['Gb1',.5],['F1',1]]},
    {inst:'saw',vol:.10,seq:[['Ab3+C4+Eb4',2],['G3+B3+D4',2],['Gb3+Bb3+Db4',2],['F3+A3+C4',2]]},
    {inst:'pluck',vol:.05,seq:[['Ab5',.5],['G5',.5],['Gb5',.5],['F5',1.5]]}]}]},
+ riders9:{movements:[
+  {bpm:76,len:40,dr:{k:1,h:1,c:0,vol:.14},layers:[ // hoofbeats you hear before you see anything
+   {inst:'bass',vol:.24,seq:[['D1',.5],['D1',.25],['D1',.25],['R',.5],['D1',.5],['C1',.5],['C1',.25],['C1',.25],['R',.5],['Bb1',.5]]},
+   {inst:'saw',vol:.09,seq:[['D3+F3+A3',3],['Db3+F3+Ab3',3],['C3+Eb3+G3',3],['B2+D3+F3',3]]},
+   {inst:'square',vol:.035,seq:[['A5',1],['R',.5],['Ab5',1],['R',.5],['G5',1],['R',.5],['F5',1.5]]}]},
+  {bpm:84,len:34,dr:{k:1,h:1,c:1,vol:.16},layers:[ // and then they are all around you
+   {inst:'bass',vol:.25,seq:[['Bb1',.5],['Bb1',.25],['Bb1',.25],['A1',.5],['A1',.5],['Ab1',.5],['Ab1',.5],['G1',1]]},
+   {inst:'saw',vol:.10,seq:[['Bb2+Db3+F3',2],['A2+C3+E3',2],['Ab2+B2+Eb3',2],['G2+Bb2+D3',2]]},
+   {inst:'pluck',vol:.05,seq:[['F5',.5],['E5',.5],['Eb5',.5],['D5',1.5]]}]}]},
  vor_dock:{movements:[
   {bpm:52,len:48,dr:{k:1,h:0,c:0,vol:.05},layers:[ // they take your money and say nothing
    {inst:'bass',vol:.16,seq:[['A1',6],['Ab1',6],['G1',6],['Gb1',6]]},
@@ -1838,7 +1847,7 @@ function vorCycle9(){
   S.vorRestart9--;
   if(S.vorRestart9>0)return;
   S.vorRestart9=null;S.vorDone9=false;
-  S.vorlanCaught9=0;S.vorCd9=1;S.wantedCaptive=false;S.vorlanTalked=false;
+  S.vorlanCaught9=0;S.vorCd9=1;S.wantedCaptive=false;S.vorlanTalked=false;S.vorHunt9=false;
   S.boardPrize=null;S.vorSeeded9=false;S.vorSeedGrace9=null;S.vorlanLeft=false;S.vorlanDead=false;
   if(S.vorSucc9){
     say('\u2620 Freeport traffic reports the cold-sleep pod moving between couriers again \u2014 the one you carried, the one you set down. It is dreaming for someone new. \u2620','#c9b7e8');
@@ -3223,6 +3232,7 @@ const TRACKTITLES9={
   saint_calling:'The Calling',saint_stole:'The Stole',saint_peace:'A World at Peace',saint_mend:'Mending',saint_veil:'The Veil',saint_charm:'Come About',saint_grief:'Something Left',saint_freed:'Through the Gate',saint_renounce:'Giving It Back',
   vor_space:'The Rift Emperor',vor_space2:'The Cold Procession',vor_space3:'What Kneels Below',vor_space4:'The Throne at Rest',vor_space5:'The Weight of the Crown',vor_space6:'A Galaxy That Obeys',vor_space7:'Nothing Left to Conquer',vor_space8:'The Dark Is Patient',
   vor_boss:'The Unmaker',vor_boss2:'The Unmaking',vor_boss3:'The Throne Descends',
+  riders9:'The Cold Riders',
   vor_away:'A Lost World',vor_away2:'A World That Knelt',vor_away3:'Ashes Underfoot',vor_board:'He Does Not Knock',vor_dock:'The Seat of the Reign',vor_quiet:'The Cold Below',
   casino2:'The Velvet Hour',casino3:'The Lucky Lady Orchestra',casino4:'After the Last Hand',casino_chase:'The Lady Turns'
 };
@@ -7323,6 +7333,7 @@ function hurtEnemy(e,dmg){
     if(typeof isCapital==='function'&&isCapital(e)&&!e.liner&&e.type!=='starliner'&&
        !e.friendly9&&!e.neutral9&&!e.bork9&&!(e.type&&e.type.slice(0,4)==='fed_')){
       award(7500);
+      S.capCd9=Math.max(S.capCd9||0,S.t+420);   // a wreck bounty is small, so the quiet is short
       say('\u2605 CAPITAL HULL DESTROYED \u2014 the prize courts pay 7,500 cr on the wreck alone. Boarding one pays a great deal more. \u2605','#ffd86b');
     }
     if(e.type&&e.type.slice(0,4)==='fed_'){
@@ -8510,12 +8521,12 @@ function updateSpace(dt){
     if(!civ&&ship.outlawT<=0&&Math.random()<.22){const r6=Math.random();spawnCiv(r6<.35?'distress':(r6<.62?'trader':'cruiser'));}
     if(here.danger&&!defBusy9&&(S.prizeGrace9||0)<=S.t&&enemies.filter(e=>e.alive).length<cap&&!S.invasion&&!S.noHostiles&&!(S.t<75&&S.completed.size===0&&!(S.ng>0))){
       let sp=factionHull9(here.danger);
-      if(here.danger==='klingon_bop'&&(S.heat||0)>70&&Math.random()<.35)sp='klingon_flag';
+      if(here.danger==='klingon_bop'&&(S.heat||0)>70&&Math.random()<.35&&capSpawnOk9())sp='klingon_flag';
       {const heat9=(S.heat||0),notor9=Math.max(S.infamy||0,(S.standing||50)-40);
        // a carrier is a response to YOU: the louder your name, the more likely the fleet sends one.
        let odds9=.05+Math.min(.20,heat9/600)+Math.min(.10,notor9/400);
        if(S.citadel)odds9*=.4;                       // you already own one; they get careful
-       if(!hasM&&Math.random()<odds9)sp=factionFlag9(here.danger);}   // the faction's own flagship, not a generic carrier — never during a mission   // no carriers during a mission fight
+       if(!hasM&&Math.random()<odds9&&capSpawnOk9())sp=factionFlag9(here.danger);}   // the faction's own flagship, not a generic carrier — never during a mission   // no carriers during a mission fight
       spawnEnemy(sp,{noTier:!hasM});
     }
     else if(!here.danger&&!defBusy9&&(S.heat||0)>60&&Math.random()<.6&&enemies.filter(e=>e.alive).length<3&&!S.invasion){
@@ -9523,6 +9534,10 @@ const AWE={
  blacksapper:{hp:150,dmg:19,spd:96, rng:190,rate:2.0,r:12,col:'#1a1c24',draw:'person',human:true,pcol:'#1a1c24',proj:'bomb'},
  blackcaptain:{hp:300,dmg:18,spd:70,rng:200,rate:1.5,r:13,col:'#20222c',draw:'person',human:true,pcol:'#20222c'},
  vorlan:     {hp:520,dmg:13,spd:96,rng:150,rate:1.9,r:14,col:'#6a1020',draw:'person',human:true,pcol:'#6a1020',mech:'enrage'},
+ // A COLD RIDER: one of the Unmaker's outriders. Mounted, faster than a running away team
+ // (the captain does 185, or 345 for the fraction of a second a dodge lasts), lightly built, and
+ // the danger is not the blade. It is the cold that comes off them.
+ coldrider:  {hp:58,dmg:9,spd:205,rng:32,rate:1.4,r:13,col:'#141020',draw:'rider'},
  // ship's security automation — it decides whether you are a trespasser or a threat
  securitybot:{hp:130,dmg:11,spd:55,rng:190,rate:1.6,r:12,col:'#5a6a8a',draw:'drone',robot:true},
  heavybot:   {hp:260,dmg:17,spd:40,rng:210,rate:2.0,r:14,col:'#8a6a3a',draw:'drone',robot:true,proj:'bolt'}
@@ -9747,6 +9762,7 @@ function beginAway(d,mRef,compIdx){
   if(S.arena9&&!(d&&d.arena9))S.arena9=null;   // a new mission is not the arena
   hint('away',IS_TOUCH?'Ground rules: drag the left side to move the team, FIRE shoots, STUN/KILL toggles your setting, ABLTY is your companion, DODGE rolls while moving, RECALL beams you up.':'Ground rules: arrows move the team, [SPACE] fires, [S] toggles STUN/KILL, [E] companion ability, [J] dodge, [B] beams up.');
   AW.active=true;AW.def=d;AW.missionRef=mRef;AW.boarding=!!d.boarding;AW.outT=0;AW.outOk=false;
+  AW.riders9=false;AW.coldT9=0;AW.coldSay9=0;   // AW persists between missions: a stale flag here rode along to every later drop
   BC('beginAway '+(d.boarding?'BOARD':'GROUND')+' obj='+(d.obj||'?')+' tier='+(d.tier||1)+(S.childQ?' quest='+S.childQ.type:''));
   {const bio9=(typeof PLANET!=='undefined'&&PLANET&&PLANET.biome)||SYSTEMS[ship.sys].biome;
    const bt=BIOME_THEME[bio9]||['jungle'];
@@ -9874,6 +9890,28 @@ function beginAway(d,mRef,compIdx){
       st:'idle',stT:rnd(0,3),wx:0,wy:0,face:-1,walk:0,cool:rnd(0,1),dieT:0,pacified:false,vseed:Math.random(),
       officer:true,disp:'territorial'});
   }
+  if(d.capital){
+    // A flagship's crew is uniformed, and that is the point: they read as ONE ship's company, not
+    // a mixed boarding-action grab bag. Applied here rather than in AWE so no species is recoloured
+    // anywhere else in the game. The clone matters: AWE entries are shared by reference.
+    const CAPCOL9='#181a22', CAPTRIM9='#c8a83a';
+    AW.foes.forEach(f9=>{if(f9.a)f9.a=Object.assign({},f9.a,{col:CAPCOL9,pcol:CAPCOL9,trim:CAPTRIM9});});
+  }
+  // THE COLD RIDERS. Ground away missions only: not a boarding (nothing rides a corridor), not the
+  // arena, the bazaar, a vignette, a casino floor or a tiny extraction. One mission in ten while the
+  // Unmaker is loose. Three of them, dropped at random across the map, and they come straight at you.
+  if(S.vorHunt9 && !d.boarding && !d.vignette && !d.tiny && !d.arena9 && !AW.bazaar
+     && !S.boardPrize && !(typeof isVorlan9==='function'&&isVorlan9()) && Math.random()<.10){
+    AW.riders9=true;
+    for(let ri9=0;ri9<3;ri9++){
+      const rs9=spot(),ra9=AWE.coldrider;
+      AW.foes.push({tp:'coldrider',a:ra9,x:rs9.x,y:rs9.y,
+        hp:ra9.hp*MODE.give0,maxHp:ra9.hp*MODE.give0,
+        st:'aggro',stT:0,wx:0,wy:0,face:-1,walk:rnd(0,6),cool:rnd(0,1),dieT:0,
+        pacified:false,vseed:Math.random(),disp:'predator',rider9:true});
+    }
+    AW.msg='THREE RIDERS ON THE FIELD. They are faster than you and the cold travels with them. Put them down.';
+  }
   if(AW.bazaar){
     const stalls9=[[0,'SALVAGE BROKER'],[1,'RELIC DEALER'],[2,'TORPEDO WRIGHT'],[3,'CRYSTAL MONGER'],[4,'ODDITIES STALL']];
     for(let s9b=stalls9.length-1;s9b>0;s9b--){const j9b=Math.floor(rnd(0,s9b+1));const t9b=stalls9[s9b];stalls9[s9b]=stalls9[j9b];stalls9[j9b]=t9b;}
@@ -9998,7 +10036,9 @@ function beginAway(d,mRef,compIdx){
   }
   awUnblock([].concat(AW.props.filter(o=>o.kind!=='rock'),AW.foes||[],[AW.node,AW.leader].filter(Boolean))); // nothing interactive may spawn sealed off
   AW.world=bakeAwayWorld();
-  S.screen='away';setMusic(d.boarding?'board':'away');sfx.transporter();
+  S.screen='away';setMusic(AW.riders9?'riders9':(d.boarding?'board':'away'));sfx.transporter();
+  if(AW.riders9){try{alarm('THE UNMAKER SENDS RIDERS');sfx.alert();}catch(e9){}
+    say('\u2744 Hoofbeats, on a world with no horses. Three hooded riders come out of the dark at a gallop, and the temperature drops as they close. VORLAN SENDS HIS RIDERS TO IMPEDE YOU. \u2744','#a8dcff');}
   say('Away team energized: you and '+cc.name+'. Watch your spacing, Captain.','#8be8c8');
 }
 function vorAwayRevive9(){
@@ -10209,10 +10249,12 @@ function endAwayNow(success){
       const takePrize=()=>{
         const prize9=(typeof capitalValue9==='function'?capitalValue9():150000);
         ship.credits+=prize9;
+        try{capClaimed9();}catch(e9){}   // the reward is claimed: the lanes go quiet for a long while
         if(fedSide){gainStanding(10);say('\u2605\u2605 The fleet wires a capital-prize bounty: +'+prize9+' cr, and the Admiralty asks for your name in writing. \u2605\u2605','#ffd86b');}
         else{S.fcred=Math.min(100,fcv()+10);addInfamy(30);say('\u2605\u2605 Every freeport in the sector pays the capital-prize purse: +'+prize9+' cr, and your name goes up behind the bar. \u2605\u2605','#e86ad9');}
       };
       const takeHull=()=>{
+        try{S.capLocked9=capitalValue9();capClaimed9();}catch(e9){}  // lock her value, then quiet the lanes
         if(typeof isVorlan9==='function'&&isVorlan9()){
           S.hullSkin=throneSkin9();S.vorHull9=S.hullSkin;S.citadel=false;
           ship.hangar=true;S.wingWounds=0;ship.fighters=wingSize();
@@ -10269,9 +10311,18 @@ function endAwayNow(success){
         else{ship.curios.push({name:['Corsair-King\'s Crown (dented)','Pre-Accord Ship\'s Bell','Weeping Opal of the Deep Rift'][Math.floor(rnd(0,3))],value:300+tier8*250+Math.floor(rnd(0,300))});say('\u2605 The vault holds one impossible thing, wrapped in silk. Yours now. \u2605','#ffd86b');}
       }
       else if(jack8<.10){ // some prizes are BAIT for something much bigger
-        const mb=spawnEnemy(Math.random()<.5?'klingon_flag':'fed_dread',{noTier:true,boss:true,nm:'THE MOTHERSHIP'});
-        mb.hp*=2.5;mb.maxHp*=2.5;mb.detected=true;mb.idKnown=true;mb.bounty=1800+Math.floor(rnd(0,900));
-        alarm('HER MOTHERSHIP HAS COME \u2014 and she is INSANELY well-armed. Bounty if you take her: '+mb.bounty+' cr.');
+        // The mothership is a CAPITAL, and it arrives the instant a boarding ends. That made it the
+        // second engine of the harvest, feeding a fresh flagship straight back into the sky. It now
+        // answers to the same governor as every other capital; when the lanes are quiet, the ambush
+        // still happens, it just sends escorts instead of another prize.
+        if(capSpawnOk9()){
+          const mb=spawnEnemy(Math.random()<.5?'klingon_flag':'fed_dread',{noTier:true,boss:true,nm:'THE MOTHERSHIP'});
+          mb.hp*=2.5;mb.maxHp*=2.5;mb.detected=true;mb.idKnown=true;mb.bounty=1800+Math.floor(rnd(0,900));
+          alarm('HER MOTHERSHIP HAS COME \u2014 and she is INSANELY well-armed. Bounty if you take her: '+mb.bounty+' cr.');
+        } else {
+          for(let mi9=0;mi9<2;mi9++){const es9=spawnEnemy(SYSTEMS[ship.sys].danger||'orion_raider',{noTier:true});if(es9){es9.detected=true;es9.idKnown=true;}}
+          alarm('IT WAS BAIT \u2014 her escorts come out of the dark for you.');
+        }
       }
       if(Math.random()<.14){ // her nav computer gives up its secrets
         const cr9=Math.random();
@@ -10455,15 +10506,29 @@ function qPlanetOffer(){
     AW.cap.hp=crewMaxHp(crew[0]);AW.comp.hp=crewMaxHp(crew[AW.comp.idx]);crew.forEach(c9=>c9.hp=crewMaxHp(c9));
     if(ship.credits>=100)ship.credits-=100;
     say('ORSON: "DONE. I collect desserts as FUTURES, you understand." Your team knits back together.','#ff8ce8');sfx.heal();closeEnc();}});
-  if(AW.boarding)opts.push({label:'"Make their officer fold."',fn:()=>{
+  const capBoard9=!!(AW.def&&AW.def.capital);
+  // Since a flagship's own crew can no longer be bribed into standing down, ORSON is the ONLY
+  // route to a bloodless capital. That is the point: it makes his appearance worth something.
+  // It is also why it has a real price, or it is the same exploit behind a dice roll.
+  if(AW.boarding)opts.push({label:capBoard9?'"Make a FLAGSHIP fold." (\u221210 standing, and half her prize)':'"Make their officer fold."',orsonCap9:capBoard9,fn:()=>{
     AW.foes.forEach(f9=>{if(f9.hp>0&&f9.a&&f9.a.human){f9.st='yield';f9.pacified=true;}});
-    S.standing=Math.max(0,(S.standing||50)-2);checkClear();
-    say('ORSON snaps his fingers. Their officer suddenly remembers urgent paperwork elsewhere. The crew stands down, embarrassed for him. (-standing: the fleet hears who did your fighting)','#ff8ce8');closeEnc();}});
+    if(capBoard9){
+      S.standing=Math.max(0,(S.standing||50)-10);S.orsonFold9=true;
+      try{addInfamy(8);}catch(e9){}
+      checkClear();
+      say('ORSON spreads his hands and a flagship\'s entire chain of command forgets what it was for. Hundreds of weapons hit the deck at once. Her security machines, having no pride to wound, keep coming. (\u221210 standing, and the prize court will halve her \u2014 everyone knows who really took that ship)','#ff8ce8');
+    } else {
+      S.standing=Math.max(0,(S.standing||50)-2);checkClear();
+      say('ORSON snaps his fingers. Their officer suddenly remembers urgent paperwork elsewhere. The crew stands down, embarrassed for him. (-standing: the fleet hears who did your fighting)','#ff8ce8');
+    }
+    closeEnc();}});
   opts.push({label:'"No deals, ORSON." (decline everything)',col:'#2a281a',tcol:'#e8dfa0',fn:()=>{
     say('ORSON: "Integrity again! It\'s like a rash with you."','#ff8ce8');closeEnc();}});
   // offer three ridiculous things + decline
   const pool9=opts.slice(0,opts.length-1);
-  const pickN=pool9.sort(()=>Math.random()-.5).slice(0,3).concat([opts[opts.length-1]]);
+  // On a flagship the fold is the whole reason his arrival matters. Never let the shuffle bury it.
+  const pin9=pool9.filter(o9=>o9.orsonCap9), rest9=pool9.filter(o9=>!o9.orsonCap9);
+  const pickN=pin9.concat(rest9.sort(()=>Math.random()-.5)).slice(0,3).concat([opts[opts.length-1]]);
   showEnc('AN OMNIPOTENT NUISANCE APPEARS',
     'Orson leans on empty air as if it were a bar. "Captain! Marvelous timing. I was JUST thinking how much better this hike would be with stakes. Pick a door."',
     pickN,'away');
@@ -11243,6 +11308,16 @@ function hitFoe(f,dmg,lethal9){
   if(f.st!=='fleeing'&&f.st!=='fled'){f.st='aggro';f.pacified=false;} // a raised white flag survives being shot at
 }
 function parleyDemand(f){
+  // A flagship's crew does not negotiate and cannot be bought. The mission text already promises
+  // this ("nobody folds on a flagship") and officerDown already enforces it. parleyDemand never
+  // learned the rule, which let a player buy a 75,000+ cr capital prize for a few hundred credits.
+  if(AW.def&&AW.def.capital){
+    f.st='aggro';f.pacified=false;
+    AW.foes.forEach(f2=>{if(f2.hp>0&&Math.hypot(f2.x-f.x,f2.y-f.y)<260&&f2.st!=='fled'&&f2.st!=='beamout')f2.st='aggro';});
+    if((AW.capNoTalk9||0)<S.t){AW.capNoTalk9=S.t+9;
+      say('Nobody aboard a flagship is authorised to deal with you. They close instead.','#ffb56b');}
+    return;
+  }
   f.st='calm';
   const calmNear=()=>{AW.dealt=true;AW.foes.forEach(f2=>{if(f2.hp>0){f2.pacified=true;f2.st='calm';f2.wp=null;}});checkClear();say('Word travels fast — weapons lower across the whole site.','#8fd0ff');};
   const fight={label:'Refuse (FIGHT)',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
@@ -11298,6 +11373,10 @@ function parleyDemand(f){
   }
 }
 function vpodOpen9(o){
+  // The moment you look at his face, the sector knows. His outriders start hunting your away teams
+  // and do not stop until he is delivered or confirmed dead. Re-sealing the pod does NOT call them
+  // off: you opened it, and something was already listening.
+  S.vorHunt9=true;
   const talkOdds=Math.min(.72,.18+crew[2].lvl*.08+(hasTrait('talk')?.15:0)+((S.standing||50)>=70?.1:0)+(S.mercy||0)*.01);
   showEnc('THE POD OPENS',
         'The seal cracks under your hands and the cold comes out first. Then he does. VORLAN THE UNMAKER stands up out of nine years of sleep, unhurried, and looks at your crew the way a man looks at weather. "You woke me. That was the whole mistake, and you have already made it."',
@@ -11446,6 +11525,35 @@ function updateAway(dt){
     AW.dustT=(AW.dustT||0)+dt;
     if(AW.dustT>.13){AW.dustT=0;AW.dust.push({x:cap.x-Math.cos(cap.ang)*10,y:cap.y+2,life:.45});}
     if(mvx)cap.face=mvx>0?1:-1;
+  }
+  // THE COLD. Not a touch attack: it comes off them, so you cannot simply out-dance it, and it
+  // pushes you to kill them rather than kite. Capped in total so three of them stacked is pressure
+  // rather than an execution: worst case is about nine HP a second, and a full-health captain has
+  // roughly seven seconds in the middle of all three.
+  if(AW.riders9){
+    let drain9=0,near9=null,nd9=1e9;
+    for(const r9 of AW.foes){
+      if(!r9||!r9.rider9||r9.hp<=0||r9.st==='fled')continue;
+      const d9=Math.hypot(r9.x-cap.x,r9.y-cap.y);
+      if(d9<nd9){nd9=d9;near9=r9;}
+      if(d9<110)drain9+=4.2*(1-d9/110);
+    }
+    drain9=Math.min(9,drain9);
+    if(drain9>0){
+      cap.hp-=drain9*dt;
+      if(AW.comp)AW.comp.hp-=drain9*.45*dt;
+      AW.coldT9=(AW.coldT9||0)+dt;
+      if((AW.coldSay9||0)<S.t){AW.coldSay9=S.t+7;
+        say(nd9<55?'A cold comes over you. It is not the air, and it is not fear.'
+                  :'A cold comes over you.','#a8dcff');}
+      // frost on the screen edge of the team, so the drain is visible and not just a number falling
+      if(Math.random()<dt*9)parts.push({x:cap.x+rnd(-14,14),y:cap.y+rnd(-26,4),vx:rnd(-8,8),vy:rnd(-22,-6),life:.55,col:'#a8dcff',r:2});
+    }
+    if(!AW.foes.some(r9=>r9&&r9.rider9&&r9.hp>0&&r9.st!=='fled')){
+      AW.riders9=false;
+      try{setMusic(AW.boarding?'board':'away');}catch(e9){}
+      say('\u2744 The last rider comes apart into frost and the cold goes out of the ground. Whatever that was, it knew your name.','#a8dcff');
+    }
   }
   if(keys[' ']&&!S.qmAway){
     if(AW.qNoLance&&S.t<AW.qNoLance){
@@ -12104,7 +12212,7 @@ function updateAway(dt){
         const r2=Math.random();
         if(f.disp==='predator')f.st='aggro';
         else if(f.disp==='timid'&&r2<.6+secFear){f.st='fled';say('It wants no part of you \u2014 it flees.','#8899bb');}
-        else if(humanoid&&r2<.3+sciBonus){f.st='approach';}
+        else if(humanoid&&r2<.3+sciBonus&&!(AW.def&&AW.def.capital)){f.st='approach';}
         else if(humanoid&&r2<.42+sciBonus+secFear){f.st='beamout';f.stT=1.1;say('They signal their ship \u2014 transporter shimmer!','#8fd0ff');}
         else if(f.disp==='curious'&&r2<.75){f.st='watch';f.stT=rnd(3,5);}
         else if(!humanoid&&r2<.15+secFear){f.st='fled';say('It bolts into the terrain.','#8899bb');}
@@ -12116,12 +12224,12 @@ function updateAway(dt){
       else parleyDemand(f);
     }
     else if(f.st==='aggro'&&!f.pacified){
-      if(((f.a&&f.a.human)||f.tp==='drone')&&f.hp<f.maxHp*.4&&Math.random()<dt*.14){
+      if(!f.rider9&&((f.a&&f.a.human)||f.tp==='drone')&&f.hp<f.maxHp*.4&&Math.random()<dt*.14){
         f.st='beamout';f.stT=1;say('Losing the fight, they call for emergency transport!','#8fd0ff');
       }
       // wild things can be BAITED — kite the monster into the guards and step aside
       const mech9=/drone|sentry|bot|unit|servit|automat|construct|mech|turret|wisp|frostwraith/i.test(''+(f.tp||''));
-      const wild=(f.a&&!f.a.human&&!mech9&&!AW.boarding);   // machines do not hunt, and nothing hunts indoors
+      const wild=(f.a&&!f.a.human&&!mech9&&!AW.boarding&&!f.rider9);   // machines do not hunt, nothing hunts indoors, and a rider wants only you
       if(wild){
         if(f.preyF&&(f.preyF.hp<=0||f.preyF.st==='stunned')){
           f.preyF=null;f.st='fled';f.wp=null;
@@ -14304,6 +14412,7 @@ addEventListener('keydown',e=>{
       S.freeMode=!!SYSTEMS[ship.sys].freeport;
       if(S.wantedCaptive){
         S.wantedCaptive=false;sfx.fanfare();QSTATE.flash=2;
+        if(S.vorHunt9){S.vorHunt9=false;say('The cold goes out of the sector the moment the cell door shuts. His riders will not come again for a while.','#a8dcff');}
         const cold9=S.vorlanCold,talked9=S.vorlanTalked;
         S.vorlanCold=false;S.vorlanTalked=false;
         const bonus9=talked9?2000:(cold9?0:1500); // taken awake and alive is the hard way, and it pays
@@ -14320,6 +14429,7 @@ addEventListener('keydown',e=>{
       }
       if(S.vorlanDead){
         S.vorlanDead=false;sfx.fanfare();
+        if(S.vorHunt9){S.vorHunt9=false;say('Wherever his riders were, they are not there now. Whatever held them together has let go.','#a8dcff');}
         const pay8=S.freeMode?5000:2500;ship.credits+=pay8;
         if(S.freeMode){addInfamy(80);S.fcred=Math.min(100,fcv()+10);say('\u2605 Proof of death, verified in a back room: +'+pay8+' cr. The freeports drink to whoever you are. \u2605','#e86ad9');}
         else{gainStanding(10);say('\u2605 Kill confirmed on VORLAN THE UNMAKER: +'+pay8+' cr. The paperwork is longer than the fight was. \u2605','#ffd86b');}
@@ -17581,6 +17691,17 @@ function spPerson(o){
   ctx.fillStyle=tg;
   ctx.beginPath();ctx.roundRect(-9,-34,18,20,5);ctx.fill();
   ctx.strokeStyle=O;ctx.lineWidth=2;ctx.stroke();
+  if(o.trim){ // a uniformed crew: gold placket, shoulder boards and belt over the black
+    // NOT a shoulder yoke: the floating HP bar sits exactly across the shoulders and hides it.
+    // The vertical placket is the one line on this body nothing else draws over.
+    ctx.save();
+    ctx.fillStyle=o.trim;
+    ctx.fillRect(-0.9,-32.4,1.8,13.6);      // placket, collar to belt
+    ctx.fillRect(-8.6,-19.6,17.2,2.6);      // belt
+    ctx.fillRect(-8.4,-33.2,3.4,2.0);       // shoulder boards
+    ctx.fillRect(5.0,-33.2,3.4,2.0);
+    ctx.restore();
+  }
   // arms
   ctx.strokeStyle=shade2(col,.9);ctx.lineWidth=4.5;
   if(o.gun){
@@ -17883,92 +18004,334 @@ function spBeastForm(f,F9){
     for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*5,-22);ctx.lineTo(i*5,-30-Math.abs(i));ctx.stroke();}}
   ctx.restore();
 }
-function spBrute(f){
-  const fd=f.face||-1,ph=f.walk||0,wob=Math.sin(ph)*3,O='rgba(12,14,20,.8)';
-  const c=f.a.col,vs=f.vseed==null?.5:f.vseed;
-  ctx.save();ctx.scale(fd*(1+vs*.1),1+vs*.1);
-  if(f.hp<=0||f.st==='stunned'){ctx.rotate(1.2);ctx.globalAlpha*=.85;}
-  spShadow(24);
-  // knuckle arms
-  ctx.strokeStyle=shade2(c,.6);ctx.lineWidth=9;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(-14,-30);ctx.lineTo(-22-wob,-2);ctx.moveTo(14,-30);ctx.lineTo(22+wob,-2);ctx.stroke();
-  ctx.fillStyle=shade2(c,.75);
-  ctx.beginPath();ctx.arc(-23-wob,-2,6,0,TAU);ctx.arc(23+wob,-2,6,0,TAU);ctx.fill();
-  // legs
-  ctx.strokeStyle=shade2(c,.5);ctx.lineWidth=8;
-  ctx.beginPath();ctx.moveTo(-7,-12);ctx.lineTo(-8+wob,0);ctx.moveTo(7,-12);ctx.lineTo(8-wob,0);ctx.stroke();
-  // torso slab
-  const bg=ctx.createLinearGradient(0,-44,0,-10);
-  bg.addColorStop(0,shade2(c,1.3));bg.addColorStop(1,shade2(c,.6));
-  ctx.fillStyle=bg;
-  ctx.beginPath();
-  ctx.moveTo(-19,-42);ctx.quadraticCurveTo(0,-48,19,-42);
-  ctx.lineTo(14,-10);ctx.quadraticCurveTo(0,-6,-14,-10);ctx.closePath();ctx.fill();
-  ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
-  // back plates
-  ctx.strokeStyle=shade2(c,.45);ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(0,-30,14,Math.PI*1.15,Math.PI*1.85);ctx.stroke();
-  ctx.beginPath();ctx.arc(0,-24,15,Math.PI*1.15,Math.PI*1.85);ctx.stroke();
-  // head low between shoulders + tusks from jaw
-  ctx.fillStyle=shade2(c,1.1);
-  ctx.beginPath();ctx.ellipse(fd>0?10:-10,-40,8,6.5,0,0,TAU);ctx.fill();
+// ===== the heavy bodies =====
+// One ape body used to serve a crystal golem, a horned charger and a walking boulder, and at size
+// it read as a rounded box with no head. There are three bodies now, chosen by species:
+//   heavy  — a SHIELDED HEAVY: helmeted, carrying a torn slab of deck plate. Things that carry gear.
+//   prism  — a REARED CARAPACE with a glowing dorsal spine. The crystal and ice things.
+//   shell  — a SHELL CRAB, one wide carapace over everything. The stone things.
+function bruteBody9(tp){
+  if(tp==='crystalhulk'||tp==='glaciermaw')return 'prism';
+  if(tp==='rockmimic'||tp==='boulderback')return 'shell';
+  return 'heavy';
+}
+function bplate9(x,y,w,h,c,rivets){        // a torn slab of hull plate, carried
+  ctx.fillStyle=shade2(c,.5);
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y+3);ctx.lineTo(x+w+2,y+h);ctx.lineTo(x+2,y+h+3);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(12,14,20,.8)';ctx.lineWidth=2.6;ctx.stroke();
+  ctx.strokeStyle=shade2(c,1.6);ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(x+4,y+7);ctx.lineTo(x+w-3,y+9);ctx.moveTo(x+4,y+h*.55);ctx.lineTo(x+w-2,y+h*.55+2);ctx.stroke();
+  if(rivets){ctx.fillStyle=shade2(c,1.9);
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(x+5,y+9+i*(h*.4),1.6,0,TAU);ctx.fill();}}
+}
+function spHeavy9(f,c,wob){
+  const O='rgba(12,14,20,.8)',md=shade2(c,.72),dk=shade2(c,.42),K=f.tp;
+  spShadow(25);
+  ctx.fillStyle=dk;
+  ctx.beginPath();ctx.roundRect(-15,-25,11,25,4);ctx.fill();
+  ctx.beginPath();ctx.roundRect(4,-25,11,25,4);ctx.fill();
   ctx.strokeStyle=O;ctx.lineWidth=2;ctx.stroke();
-  ctx.strokeStyle='#efe6cc';ctx.lineWidth=2.6;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(fd>0?14:-14,-37);ctx.quadraticCurveTo(fd>0?18:-18,-40,fd>0?17:-17,-44);ctx.stroke();
-  ctx.fillStyle=f.disp==='predator'?'#ff4c4c':'#ffe9a0';
-  ctx.beginPath();ctx.arc(fd>0?12:-12,-41,1.6,0,TAU);ctx.fill();
-  spBruteKit(f,fd,c,wob);
+  ctx.fillStyle=shade2(c,.55);ctx.fillRect(-15,-14,11,3);ctx.fillRect(4,-14,11,3);
+  const bg=ctx.createLinearGradient(0,-50,0,-19);
+  bg.addColorStop(0,shade2(c,1.3));bg.addColorStop(1,shade2(c,.55));
+  ctx.fillStyle=bg;
+  ctx.beginPath();ctx.moveTo(-21,-49);ctx.lineTo(21,-49);ctx.lineTo(15,-20);ctx.lineTo(-15,-20);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.4;ctx.stroke();
+  ctx.strokeStyle=shade2(c,1.55);ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(0,-47);ctx.lineTo(0,-30);ctx.stroke();
+  ctx.fillStyle=shade2(c,.5);ctx.fillRect(-17,-28,34,4);
+  ctx.strokeStyle=shade2(c,.5);ctx.lineWidth=9;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-16,-43);ctx.lineTo(-26-wob*.4,-15);ctx.stroke();
+  ctx.fillStyle=shade2(c,.5);ctx.beginPath();ctx.arc(-27-wob*.4,-13,6,0,TAU);ctx.fill();
+  if(K==='alphabrute'){                 // a mane that means rank: a RUFF around the collar, not
+    ctx.fillStyle=shade2(c,1.55);       // spikes, which read as antennae at size
+    ctx.beginPath();
+    ctx.moveTo(-22,-48);
+    for(let i=0;i<=8;i++){const t=i/8,x=-22+t*44,d=(i%2?5.5:2.5);
+      ctx.lineTo(x,-52-d-Math.sin(t*Math.PI)*4+wob*.2);}
+    ctx.lineTo(22,-46);ctx.lineTo(-22,-46);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(12,14,20,.8)';ctx.lineWidth=1.8;ctx.stroke();
+  }
+  // helmet: always a lit visor, so the head can never vanish at size
+  ctx.fillStyle=shade2(c,1.02);
+  if(K==='craghorn'){                   // two forward horns off the helm, built for the charge
+    ctx.beginPath();ctx.moveTo(-9,-63);ctx.lineTo(10,-63);ctx.lineTo(12,-50);ctx.lineTo(-8,-50);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
+    ctx.fillStyle='#e8dcc0';ctx.strokeStyle=O;ctx.lineWidth=1.5;
+    for(const sy of[0,5]){
+      ctx.beginPath();ctx.moveTo(10,-62+sy);ctx.quadraticCurveTo(25,-62+sy,27,-51+sy);
+      ctx.quadraticCurveTo(19,-56+sy,10,-56+sy);ctx.closePath();ctx.fill();ctx.stroke();}
+  } else if(K==='alphabrute'){          // a crest, and a scar
+    ctx.beginPath();ctx.roundRect(-9,-64,18,16,5);ctx.fill();
+    ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
+    ctx.fillStyle=shade2(c,.45);
+    ctx.beginPath();ctx.moveTo(-7,-64);ctx.lineTo(0,-74);ctx.lineTo(7,-64);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=O;ctx.lineWidth=1.8;ctx.stroke();
+    ctx.strokeStyle='#f0d0c0';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(9,-61);ctx.lineTo(13,-52);ctx.stroke();
+  } else {
+    ctx.beginPath();ctx.roundRect(-9,-63,18,15,5);ctx.fill();
+    ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
+    ctx.fillStyle=shade2(c,.5);ctx.fillRect(-9,-54,4,6);ctx.fillRect(5,-54,4,6);
+  }
+  const glow9=(f.enraged||f.disp==='predator')?'#ff5c5c':'#ffe9a0';
+  ctx.save();ctx.shadowColor=glow9;ctx.shadowBlur=f.enraged?12:5;
+  ctx.fillStyle=glow9;ctx.fillRect(-6,-57,12,3.2);ctx.restore();
+  bplate9(22,-56,17,42,c,true);
+  ctx.strokeStyle=md;ctx.lineWidth=11;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(18,-43);ctx.lineTo(26+wob*.3,-33);ctx.stroke();
+  ctx.fillStyle=md;ctx.beginPath();ctx.arc(27+wob*.3,-32,6.5,0,TAU);ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2;ctx.stroke();
+}
+function bclamps9(c,y,reach,open,wob){
+  const O='rgba(12,14,20,.8)';
+  for(const s of [[-4,1],[4,-1]]){
+    ctx.strokeStyle=s[1]>0?shade2(c,.75):shade2(c,.42);ctx.lineWidth=8;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(19,y+s[0]);ctx.lineTo(19+reach,y+s[0]+2);ctx.stroke();
+    ctx.fillStyle=s[1]>0?shade2(c,.88):shade2(c,.42);
+    const x=18+reach,o=(open+wob*.3)*s[1];
+    ctx.beginPath();ctx.moveTo(x,y+s[0]-5);ctx.lineTo(x+14,y+s[0]-7+o);ctx.lineTo(x+15,y+s[0]-2+o);ctx.lineTo(x,y+s[0]+3);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=O;ctx.lineWidth=1.9;ctx.stroke();
+  }
+}
+function bwedge9(c,x,y,glow){
+  const O='rgba(12,14,20,.8)';
+  ctx.fillStyle=shade2(c,1.05);ctx.beginPath();
+  ctx.moveTo(x,y);ctx.lineTo(x+15,y+2);ctx.lineTo(x+14,y+11);ctx.lineTo(x,y+11);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
+  ctx.save();ctx.shadowColor=glow;ctx.shadowBlur=6;ctx.fillStyle=glow;ctx.fillRect(x+3,y+4,9,2.8);ctx.restore();
+}
+function spPrism9(f,c,wob){              // crystalhulk, glaciermaw
+  const O='rgba(12,14,20,.8)',K=f.tp;
+  spShadow(27);
+  ctx.strokeStyle=shade2(c,.4);ctx.lineWidth=5;ctx.lineCap='round';
+  for(let i=0;i<4;i++){const x=-26+i*10;
+    ctx.beginPath();ctx.moveTo(x,-14);ctx.lineTo(x-4+(i%2?wob:-wob),-1);ctx.stroke();}
+  ctx.fillStyle=shade2(c,.6);ctx.beginPath();
+  ctx.moveTo(-31,-12);ctx.quadraticCurveTo(-34,-28,-17,-30);
+  ctx.lineTo(4,-25);ctx.lineTo(2,-9);ctx.quadraticCurveTo(-14,-5,-31,-12);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
+  ctx.strokeStyle=shade2(c,.34);ctx.lineWidth=2;
+  for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(-25+i*9,-29);ctx.lineTo(-27+i*9,-8);ctx.stroke();}
+  const bg=ctx.createLinearGradient(0,-58,0,-20);
+  bg.addColorStop(0,shade2(c,1.34));bg.addColorStop(1,shade2(c,.55));
+  ctx.fillStyle=bg;ctx.beginPath();
+  ctx.moveTo(-6,-26);ctx.quadraticCurveTo(-6,-54,12,-58);
+  ctx.quadraticCurveTo(26,-52,26,-34);ctx.lineTo(18,-20);ctx.lineTo(0,-20);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.4;ctx.stroke();
+  if(K==='glaciermaw'){                 // rime: shorter, whiter, and it frosts the shoulder
+    ctx.save();ctx.shadowColor='#cdeefc';ctx.shadowBlur=10;ctx.fillStyle='#cdeefc';
+    for(let i=0;i<5;i++){const bx=-4+i*6,by=-38-i*4;
+      ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx+3,by-11-i);ctx.lineTo(bx+6,by-2);ctx.closePath();ctx.fill();}
+    ctx.restore();
+    ctx.strokeStyle='#a8d8e8';ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.moveTo(2,-30);ctx.quadraticCurveTo(8,-50,18,-50);ctx.stroke();
+  } else {                              // prisms that catch your own fire
+    ctx.save();ctx.shadowColor=c;ctx.shadowBlur=13;ctx.fillStyle=shade2(c,1.62);
+    for(let i=0;i<4;i++){const bx=-4+i*7,by=-40-i*4;
+      ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx+4,by-16-i*2);ctx.lineTo(bx+8,by-2);ctx.closePath();ctx.fill();}
+    ctx.restore();
+    ctx.strokeStyle=shade2(c,1.75);ctx.lineWidth=2.2;
+    ctx.beginPath();ctx.moveTo(2,-30);ctx.quadraticCurveTo(8,-50,18,-50);ctx.stroke();
+  }
+  bclamps9(c,-40,15,3,wob);
+  bwedge9(c,20,-52,f.disp==='predator'?'#ff5c5c':'#ffe9a0');
+}
+function spShell9(f,c,wob){              // rockmimic, boulderback
+  const O='rgba(12,14,20,.8)',K=f.tp;
+  const hid9=(K==='rockmimic'&&!f.revealed);   // still pretending to be a rock
+  spShadow(29);
+  if(!hid9){
+    ctx.strokeStyle=shade2(c,.4);ctx.lineWidth=5.5;ctx.lineCap='round';
+    for(let i=0;i<4;i++){const x=-24+i*13;
+      ctx.beginPath();ctx.moveTo(x,-16);ctx.lineTo(x-5+(i%2?wob:-wob),-1);ctx.stroke();}
+    bclamps9(c,-24,16,4,wob);
+  }
+  const bg=ctx.createLinearGradient(0,-52,0,-16);
+  bg.addColorStop(0,shade2(c,hid9?1.05:1.34));bg.addColorStop(1,shade2(c,.5));
+  ctx.fillStyle=bg;
+  if(K==='rockmimic'){                  // a lumpy boulder, not a smooth shell
+    ctx.beginPath();ctx.moveTo(-34,-18);ctx.lineTo(-26,-42);ctx.lineTo(-6,-52);
+    ctx.lineTo(18,-48);ctx.lineTo(30,-30);ctx.lineTo(14,-15);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=O;ctx.lineWidth=2.6;ctx.stroke();
+    ctx.fillStyle=shade2(c,.78);
+    ctx.beginPath();ctx.arc(-14,-34,6,0,TAU);ctx.arc(6,-40,4.5,0,TAU);ctx.arc(18,-28,3.5,0,TAU);ctx.fill();
+  } else {
+    ctx.beginPath();ctx.moveTo(-34,-20);ctx.quadraticCurveTo(-32,-48,-4,-52);
+    ctx.quadraticCurveTo(26,-50,30,-28);ctx.quadraticCurveTo(4,-14,-34,-20);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=O;ctx.lineWidth=2.6;ctx.stroke();
+    ctx.fillStyle=shade2(c,.55);        // boulderback: a wall of stone plate across the shell
+    ctx.beginPath();ctx.moveTo(-18,-46);ctx.lineTo(10,-49);ctx.lineTo(16,-30);ctx.lineTo(-14,-26);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=O;ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=shade2(c,.85);
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(-12+i*4,-44+i*7,6-i,0,TAU);ctx.fill();}
+  }
+  ctx.strokeStyle=shade2(c,.42);ctx.lineWidth=2.2;
+  for(let i=0;i<3;i++){ctx.beginPath();
+    ctx.moveTo(-24+i*15,-46+i*3);ctx.quadraticCurveTo(-20+i*15,-32,-16+i*15,-20+i*2);ctx.stroke();}
+  if(!hid9)bwedge9(c,22,-36,f.disp==='predator'?'#ff5c5c':'#ffe9a0');
+}
+function spBrute(f){
+  const fd=f.face||-1,ph=f.walk||0,wob=Math.sin(ph)*2.6;
+  const c=f.a.col,vs=f.vseed==null?.5:f.vseed;
+  ctx.save();ctx.scale(fd*(1+vs*.07),1+vs*.07);
+  if(f.hp<=0||f.st==='stunned'){ctx.rotate(1.2);ctx.globalAlpha*=.85;}
+  const B=bruteBody9(f.tp);
+  if(B==='prism')spPrism9(f,c,wob);
+  else if(B==='shell')spShell9(f,c,wob);
+  else spHeavy9(f,c,wob);
   ctx.restore();
 }
-function spBruteKit(f,fd,c,wob){
-  const K=f.tp;
-  if(K==='craghorn'){                    // two forward horns, built for the charge
-    ctx.fillStyle='#e8dcc0';ctx.strokeStyle='rgba(12,14,20,.8)';ctx.lineWidth=1.5;
-    for(const sy of[-1,1]){
-      ctx.beginPath();ctx.moveTo(fd>0?9:-9,-40+sy*3);
-      ctx.quadraticCurveTo(fd>0?26:-26,-46+sy*4,fd>0?30:-30,-34+sy*6);
-      ctx.quadraticCurveTo(fd>0?22:-22,-40+sy*4,fd>0?9:-9,-36+sy*3);ctx.closePath();ctx.fill();ctx.stroke();
-    }
-  } else if(K==='boulderback'){          // a wall of stone plate across chest and back
-    ctx.fillStyle=shade2(c,.55);ctx.strokeStyle='rgba(12,14,20,.85)';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(-6,-46);ctx.lineTo(20,-40);ctx.lineTo(24,-16);ctx.lineTo(-2,-14);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.fillStyle=shade2(c,.8);
-    for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(-14+i*2,-40+i*10,7-i,0,TAU);ctx.fill();}
-  } else if(K==='glaciermaw'){           // frost jaw and rime along the spine
-    ctx.fillStyle='#cdeefc';
-    for(let i=0;i<5;i++){ctx.beginPath();
-      ctx.moveTo(fd>0?(6+i*4):-(6+i*4),-38);ctx.lineTo(fd>0?(9+i*4):-(9+i*4),-28);ctx.lineTo(fd>0?(3+i*4):-(3+i*4),-30);ctx.closePath();ctx.fill();}
-    ctx.strokeStyle='#a8d8e8';ctx.lineWidth=2;
-    for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*6,-46);ctx.lineTo(i*6+2,-56);ctx.stroke();}
-  } else if(K==='crystalhulk'){          // grown through with prisms that catch your own fire
-    ctx.shadowColor=c;ctx.shadowBlur=12;
-    ctx.fillStyle=shade2(c,1.5);
-    for(let i=0;i<5;i++){const a=-1.2+i*.5,r=26;
-      ctx.beginPath();ctx.moveTo(Math.cos(a)*10,-30+Math.sin(a)*8);
-      ctx.lineTo(Math.cos(a)*r,-30+Math.sin(a)*r*.7);
-      ctx.lineTo(Math.cos(a+.18)*10,-30+Math.sin(a+.18)*8);ctx.closePath();ctx.fill();}
-    ctx.shadowBlur=0;
-  } else if(K==='alphabrute'){           // scars, a torn ear, and a mane that means rank
-    ctx.strokeStyle=shade2(c,1.7);ctx.lineWidth=3;ctx.lineCap='round';
-    for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*7,-48);ctx.lineTo(i*9,-60-Math.abs(i)*2+wob*.4);ctx.stroke();}
-    ctx.strokeStyle='#f0d0c0';ctx.lineWidth=1.6;
-    ctx.beginPath();ctx.moveTo(fd>0?6:-6,-44);ctx.lineTo(fd>0?16:-16,-34);ctx.stroke();
-    if(f.enraged){ctx.shadowColor='#ff3a3a';ctx.shadowBlur=16;ctx.fillStyle='#ff5c5c';
-      ctx.beginPath();ctx.arc(fd>0?12:-12,-41,3,0,TAU);ctx.fill();ctx.shadowBlur=0;}
-  } else if(K==='rockmimic'){            // still wearing the boulder it pretended to be
-    ctx.fillStyle=shade2(c,.7);ctx.strokeStyle='rgba(12,14,20,.8)';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(-22,-30);ctx.lineTo(-8,-52);ctx.lineTo(14,-50);ctx.lineTo(24,-32);ctx.lineTo(10,-22);ctx.lineTo(-14,-22);ctx.closePath();
-    ctx.fill();ctx.stroke();
-    ctx.fillStyle=shade2(c,.95);
-    ctx.beginPath();ctx.arc(-4,-38,5,0,TAU);ctx.arc(10,-42,3.5,0,TAU);ctx.fill();
-  }
+
+// ===== ship machines =====
+// The old body was a floating rhombus: no limbs, never touched the ground, so nothing told you
+// how big it was and at size it read as a kite. Two bodies now, split by what the machine IS:
+//   mech    — light and mobile (securitybot, drone): bipedal, boxy, visor bar. Reads as crew.
+//   turret  — heavy or emplaced (heavybot, sentry): armoured dome on two legs. Reads as ordnance.
+// Anything drawn as a drone that is NOT a robot keeps the old floating body.
+function botLens9(x,y,r,col){
+  ctx.save();ctx.shadowColor=col;ctx.shadowBlur=9;ctx.fillStyle=col;
+  ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();ctx.restore();
+  ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(x-r*.3,y-r*.3,r*.32,0,TAU);ctx.fill();
+}
+function botBar9(x,y,w,h,col){ctx.save();ctx.shadowColor=col;ctx.shadowBlur=8;ctx.fillStyle=col;ctx.fillRect(x,y,w,h);ctx.restore();}
+function spMech9(f,c,e,bob){
+  const O='rgba(12,14,20,.8)';
+  spShadow(15);
+  ctx.fillStyle=shade2(c,.45);
+  ctx.beginPath();ctx.roundRect(-11,-20,8,20,3);ctx.fill();
+  ctx.beginPath();ctx.roundRect(3,-20,8,20,3);ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=shade2(c,.34);ctx.fillRect(-12,-3,10,3.5);ctx.fillRect(2,-3,10,3.5);
+  ctx.translate(0,bob*.5);
+  const bg=ctx.createLinearGradient(0,-44,0,-18);
+  bg.addColorStop(0,shade2(c,1.75));bg.addColorStop(1,shade2(c,.62));
+  ctx.fillStyle=bg;
+  ctx.beginPath();ctx.moveTo(-15,-43);ctx.lineTo(15,-43);ctx.lineTo(12,-20);ctx.lineTo(-12,-20);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.4;ctx.stroke();
+  ctx.strokeStyle=shade2(c,1.9);ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(0,-40);ctx.lineTo(0,-26);ctx.stroke();
+  ctx.strokeStyle=shade2(c,.62);ctx.lineWidth=6;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-15,-39);ctx.lineTo(-20,-22);ctx.moveTo(15,-39);ctx.lineTo(20,-22);ctx.stroke();
+  ctx.fillStyle=shade2(c,.72);
+  ctx.beginPath();ctx.roundRect(-24,-22,8,7,2.5);ctx.fill();
+  ctx.beginPath();ctx.roundRect(16,-22,8,7,2.5);ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=1.8;ctx.stroke();
+  const hg=ctx.createLinearGradient(0,-58,0,-44);
+  hg.addColorStop(0,shade2(c,1.75));hg.addColorStop(1,shade2(c,.62));
+  ctx.fillStyle=hg;ctx.beginPath();ctx.roundRect(-10,-58,20,15,5);ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.4;ctx.stroke();
+  botBar9(-7,-53,14,4,e);
+  ctx.strokeStyle=shade2(c,.6);ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(7,-58);ctx.lineTo(11,-66);ctx.stroke();
+  botLens9(11,-67,2,e);
+}
+function spTurret9(f,c,e,bob){
+  const O='rgba(12,14,20,.8)';
+  spShadow(18);
+  ctx.strokeStyle=shade2(c,.45);ctx.lineWidth=6;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-8,-20);ctx.lineTo(-19,-13);ctx.lineTo(-22,0);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(8,-20);ctx.lineTo(19,-13);ctx.lineTo(22,0);ctx.stroke();
+  ctx.strokeStyle=shade2(c,.34);ctx.lineWidth=4.5;
+  ctx.beginPath();ctx.moveTo(-5,-19);ctx.lineTo(-12,-11);ctx.lineTo(-13,0);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(5,-19);ctx.lineTo(12,-11);ctx.lineTo(13,0);ctx.stroke();
+  ctx.translate(0,bob*.35);
+  const bg=ctx.createLinearGradient(0,-34,0,-14);
+  bg.addColorStop(0,shade2(c,1.75));bg.addColorStop(1,shade2(c,.62));
+  ctx.fillStyle=bg;ctx.beginPath();
+  ctx.moveTo(-18,-16);ctx.quadraticCurveTo(-18,-34,0,-34);
+  ctx.quadraticCurveTo(18,-34,18,-16);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.4;ctx.stroke();
+  ctx.strokeStyle=shade2(c,.4);ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-18,-19);ctx.lineTo(18,-19);ctx.stroke();
+  ctx.fillStyle=shade2(c,.5);ctx.beginPath();ctx.roundRect(-13,-30,26,9,4);ctx.fill();
+  botBar9(-10,-28,20,4.4,e);
+  ctx.fillStyle=shade2(c,.62);
+  ctx.fillRect(-9,-16,5,9);ctx.fillRect(4,-16,5,9);
+  ctx.strokeStyle=O;ctx.lineWidth=1.8;ctx.strokeRect(-9,-16,5,9);ctx.strokeRect(4,-16,5,9);
+}
+function spRider9(f){
+  // A hooded thing on a lean mount. Read at size: a low dark animal shape with a TALL dark shape
+  // sitting on it, and one cold light where a face should be. No skin, no eyes, no horse's head
+  // detail that would only turn to mush at forty pixels.
+  const fd=f.face||-1,ph=f.walk||0,gal=Math.sin(ph*1.6),c=f.a.col;
+  const O='rgba(8,8,14,.88)',COLD='#a8dcff';
+  ctx.save();ctx.scale(fd,1);
+  if(f.hp<=0||f.st==='stunned'){ctx.rotate(1.15);ctx.globalAlpha*=.85;}
+  spShadow(24);
+  // the cold it carries, on the ground around the hooves
+  ctx.save();ctx.globalAlpha=.16+Math.sin(S.t*2.2+(f.vseed||0)*6)*.05;
+  ctx.fillStyle=COLD;ctx.beginPath();ctx.ellipse(0,1,26,9,0,0,TAU);ctx.fill();ctx.restore();
+  const dk=shade2(c,.6),md=shade2(c,1.25),lt=shade2(c,2.0);
+  // legs, galloping
+  ctx.strokeStyle=dk;ctx.lineWidth=4.5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-13,-24);ctx.lineTo(-19+gal*5,-1);ctx.moveTo(-8,-24);ctx.lineTo(-12-gal*4,-1);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(11,-25);ctx.lineTo(17-gal*5,-1);ctx.moveTo(6,-25);ctx.lineTo(10+gal*4,-1);ctx.stroke();
+  // barrel of the mount: haunch at the back, deep chest at the front, ONE closed shape with the
+  // neck, so the head never reads as a separate box floating in front of the body
+  const nk9=gal*1.5;
+  ctx.fillStyle=md;ctx.beginPath();
+  ctx.moveTo(-20,-22);
+  ctx.quadraticCurveTo(-23,-38,-8,-40);        // haunch
+  ctx.quadraticCurveTo(6,-42,14,-38);          // back
+  ctx.quadraticCurveTo(20,-44-nk9,26,-49-nk9); // neck, rising forward out of the withers
+  ctx.lineTo(31,-46-nk9);
+  ctx.quadraticCurveTo(24,-40-nk9,18,-30);     // underside of the neck into the chest
+  ctx.quadraticCurveTo(2,-20,-20,-22);         // belly
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
+  // the head: a long wedge angled DOWN off the neck, with an ear notch. Equine at a glance.
+  ctx.save();ctx.translate(28,-48-nk9);ctx.rotate(.42);
+  ctx.fillStyle=shade2(c,1.1);ctx.beginPath();
+  ctx.moveTo(-3,-4);ctx.lineTo(15,-2.5);ctx.lineTo(16,3);ctx.lineTo(-3,4);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=1.9;ctx.stroke();
+  ctx.fillStyle=dk;ctx.beginPath();
+  ctx.moveTo(-4,-4);ctx.lineTo(-7,-11);ctx.lineTo(0,-5);ctx.closePath();ctx.fill();   // ear
+  ctx.save();ctx.shadowColor=COLD;ctx.shadowBlur=7;ctx.fillStyle=COLD;
+  ctx.fillRect(6,-1.6,5,2);ctx.restore();
+  ctx.restore();
+  // mane, streaming back off the neck
+  ctx.strokeStyle=dk;ctx.lineWidth=2.6;ctx.lineCap='round';
+  for(let i=0;i<3;i++){ctx.beginPath();
+    ctx.moveTo(19+i*3,-42-nk9-i*1.5);ctx.quadraticCurveTo(14+i*3,-48-nk9,9+i*2,-46-nk9-gal);ctx.stroke();}
+  // tail
+  ctx.strokeStyle=dk;ctx.lineWidth=3.4;
+  ctx.beginPath();ctx.moveTo(-19,-33);ctx.quadraticCurveTo(-29,-30,-31,-19-gal*3);ctx.stroke();
+  // THE RIDER: a hood and a cloak, nothing inside
+  ctx.fillStyle=shade2(c,.85);ctx.beginPath();
+  ctx.moveTo(-10,-33);ctx.quadraticCurveTo(-13,-50,-2,-58);
+  ctx.quadraticCurveTo(8,-62,10,-52);ctx.lineTo(8,-34);
+  ctx.quadraticCurveTo(-1,-30,-10,-33);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
+  // the hood, peaked and empty
+  ctx.fillStyle=shade2(c,.5);ctx.beginPath();
+  ctx.moveTo(-7,-52);ctx.quadraticCurveTo(-4,-68,4,-66);
+  ctx.quadraticCurveTo(11,-63,10,-51);ctx.quadraticCurveTo(2,-47,-7,-52);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=O;ctx.lineWidth=2.2;ctx.stroke();
+  ctx.save();ctx.shadowColor=COLD;ctx.shadowBlur=f.st==='aggro'?12:7;
+  ctx.fillStyle=COLD;ctx.fillRect(1,-58,7,2.6);ctx.restore();
+  // rein arm, and a blade held low
+  ctx.strokeStyle=shade2(c,.7);ctx.lineWidth=4;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(7,-46);ctx.lineTo(17,-42);ctx.stroke();
+  ctx.strokeStyle=lt;ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(-9,-44);ctx.lineTo(-24,-30);ctx.stroke();
+  ctx.restore();
 }
 function spDrone(f){
   const bob=Math.sin(S.t*3+(f.vseed||0)*9)*2,O='rgba(12,14,20,.8)';
+  const tr9=(f.a&&f.a.trim)||null;                       // flagship security wears the ship's colours
+  const rb9=!!(f.a&&f.a.robot)||f.tp==='sentry';
   ctx.save();
   if(f.hp<=0||f.st==='stunned'){ctx.rotate(.9);ctx.globalAlpha*=.85;}
-  spShadow(12);
+  if(rb9){
+    const c9=tr9?((f.a&&f.a.col)||'#181a22'):((f.a&&f.a.col)||'#5a6a8a');
+    const e9=tr9||(f.st==='aggro'?'#ff5c5c':'#39c9ff');
+    const heavy9=(f.tp==='heavybot'||f.tp==='sentry'||(f.a&&f.a.hp>=200));
+    if(heavy9)spTurret9(f,c9,e9,bob); else spMech9(f,c9,e9,bob);
+    ctx.restore();return;
+  }
   ctx.translate(0,-16+bob);
+  const bc9=(f.a&&f.a.col)||'#181a22';
   const bg=ctx.createLinearGradient(0,-14,0,10);
   bg.addColorStop(0,'#aeb6c2');bg.addColorStop(1,'#5a6270');
   ctx.fillStyle=bg;
@@ -17980,6 +18343,7 @@ function spDrone(f){
   ctx.fillRect(-6,-4,12,3);ctx.shadowBlur=0;
   ctx.restore();
 }
+
 function spProp(o){
   const pal=AWPAL[AW.theme]||AWPAL.ruins;
   if(o.kind==='pet'){
@@ -18493,11 +18857,22 @@ function drawAway(){
       if(FF9&&FF9.form!=='quad'&&dw!=='person')spBeastForm(f,FF9);
       else if(dw==='brute')spBrute(f);
       else if(dw==='drone')spDrone(f);
-      else if(dw==='person')spPerson({fem:!!f.fem,cyborg:!!(typeof AW!=='undefined'&&AW&&AW.voidFoes9&&f.a&&f.a.human),col:f.officer?'#a8842a':((f.a&&f.a.pcol)||'#6a3a8a'),skin:['#e8c8a8','#d8b08a','#b98d68','#8a5f42'][Math.floor((f.vseed||0)*4)]||'#e0be9a',hair:f.fem?'#3a2c22':'#2a2620',face:f.face,walk:f.walk,moving:f.st==='aggro'||f.st==='approach',gun:true,fall:(f.hp<=0||f.st==='stunned')});
+      else if(dw==='rider')spRider9(f);
+      else if(dw==='person')spPerson({fem:!!f.fem,cyborg:!!(typeof AW!=='undefined'&&AW&&AW.voidFoes9&&f.a&&f.a.human),col:f.officer?((f.a&&f.a.trim)?'#22242e':'#a8842a'):((f.a&&f.a.pcol)||'#6a3a8a'),trim:f.officer?((f.a&&f.a.trim)?'#f0d268':null):((f.a&&f.a.trim)||null),skin:['#e8c8a8','#d8b08a','#b98d68','#8a5f42'][Math.floor((f.vseed||0)*4)]||'#e0be9a',hair:f.fem?'#3a2c22':'#2a2620',face:f.face,walk:f.walk,moving:f.st==='aggro'||f.st==='approach',gun:true,fall:(f.hp<=0||f.st==='stunned')});
       else spBeast(f);
       ctx.restore();
       if(f.hp>0){
-        const bh=f.tp==='brute'?-54:(f.tp==='guard'?-52:-36);
+        // The HP bar and the state glyph hang above the sprite, so this offset has to follow how tall
+        // the sprite actually DRAWS. It was keyed to the species NAME instead: only something literally
+        // called 'brute' or 'guard' got a tall offset, so every other person (crewman, shocktrooper,
+        // the whole flagship crew) wore its bar across the shoulders with the alert '!' printed on its
+        // face, and every other brute-bodied species (crystalhulk, boulderback) wore the bar inside its
+        // chest. Keyed to the draw type now. Drones and beasts were already clear at -36 and keep it.
+        const bh=dw==='rider'?-78
+          :dw==='person'?-62
+          :(dw==='brute'?(bruteBody9(f.tp)==='heavy'?-76:(bruteBody9(f.tp)==='prism'?-70:-58))
+          :(dw==='drone'&&(f.a&&f.a.robot||f.tp==='sentry')?((f.tp==='heavybot'||f.tp==='sentry')?-42:-72)
+          :((FF9&&FF9.big)?-52:-36)));
         if(f.st==='alert')txt('!',sx,sy+bh-10,'#ffd86b',14,'center');
         else if(f.st==='approach'||f.st==='watch')txt('?',sx,sy+bh-10,'#9fd8ff',13,'center');
         else if(f.st==='yield')txt('\u270B',sx,sy+bh-10,'#e8e8e8',12,'center');
@@ -21156,6 +21531,25 @@ function isCapital(e){return !!(e&&e.et&&e.et.deploys);}
 function unbowed9(e){return !!(e&&(e.boss||e.unique9||(e.et&&e.et.beh==='boss')||isCapital(e)||(e.et&&e.et.noSurrender)));}
 function isBeast9(e){return !!(e&&e.et&&e.et.beast);} // energy field / organism / automaton — no hull to grip, no airlock to board
 const CAPITAL_TOUGH=3; // she is three ships in one hull — and worth three ships to take
+// ===== THE CAPITAL GOVERNOR: a flagship is an EVENT, not a crop =====
+// The farm was a feedback loop, not a single bug. Claiming a capital adds heat and (via +standing
+// or +infamy) notoriety; the ambient spawner reads BOTH — notoriety raises the odds of a flagship
+// and heat shortens the interval toward ~45s. So taking one made the next arrive sooner, and
+// nothing capped how many could be alive at once. Three brakes, in order of bluntness:
+//   capAlive9    — never two flagships in one sky
+//   S.capCd9     — the lanes stay quiet for a long while after a prize is claimed
+//   the decay in capitalValue9 — the market for stolen flagships is thin and gets thinner
+function capAlive9(){try{return enemies.some(e9=>e9.alive&&isCapital(e9)&&!e9.liner);}catch(e9){return false;}}
+function capSpawnOk9(){
+  if(capAlive9())return false;
+  if((S.capCd9||0)>S.t)return false;
+  return true;
+}
+function capClaimed9(){          // a prize court resolved: this is the reward being CLAIMED
+  S.capTaken9=(S.capTaken9||0)+1;
+  S.capCd9=S.t+Math.min(2400,900+600*((S.capTaken9||1)-1));  // 15 min after the first, growing to 40
+  S.orsonFold9=false;
+}
 function tractorThresh(e){return isCapital(e)?CAPITAL_GUNS:TRACTOR_HP;}
 const RIFT_MIN=75; // a jump is a FULL BURN: needs 75% charge, consumes everything
 function mapClick(p){
@@ -23686,12 +24080,21 @@ function capitalValue9(){
   const marks9=Math.max(0,(u9.lance||1)-1)+Math.max(0,(u9.torp||1)-1)+Math.max(0,(u9.shield||1)-1)+Math.max(0,(u9.engine||1)-1)+(u9.armor||0);
   v9+=marks9*3000;                                 // every mark of refit aboard
   if(S.royalWed9)v9+=30000;                        // a royal capital commands a royal price
-  return Math.min(150000,Math.max(75000,Math.round(v9/1000)*1000));
+  v9=Math.min(150000,Math.max(75000,v9));
+  // Every capital AFTER the first is worth less. Capping the spawns alone still leaves a slow farm,
+  // so the purse decays too: full price, then 60%, 35%, 20%, floored at 25,000. It never blocks you,
+  // it just stops the second and third hull being worth camping for.
+  const decay9=[1,.6,.35,.2][Math.min(3,Math.max(0,S.capTaken9||0))];
+  if(S.orsonFold9)v9*=.5;      // Orson did your fighting for you, and the court can tell
+  return Math.max(25000,Math.round(v9*decay9/1000)*1000);
 }
+// The hull you KEEP was valued the day you took her. Selling her at a yard later must not quietly
+// re-price her against capitals you have taken since, or the prize court would look like it lied.
+function ownedCapValue9(){return S.capLocked9||capitalValue9();}
 function yardSellCapital9(){
   if(!S.citadel||(typeof isVorlan9==='function'&&isVorlan9())){say('You hold no capital prize to sell here, Captain.','#8899bb');return;}
   const flying9=(typeof flyingCitadel9==='function'&&flyingCitadel9());
-  const price9=capitalValue9();
+  const price9=ownedCapValue9();
   showEnc('SELL THE CAPITAL PRIZE',
     'The yardmaster surveys her, then names a number. "A capital hull, clear title, a buyer already waiting: '+price9+' credits, today." '+(flying9?'"You would walk out onto a fleet-standard hull, and the wing goes with her."':'"She comes out of the berth and does not come back."')+' The offer is real. So is the finality.',
     [{label:'SELL HER — +'+price9+' cr, give up the capital for good',col:'#2a2036',tcol:'#ffd86b',fn:()=>{
@@ -23822,7 +24225,7 @@ function drawYard9(){
     rr(240,byB9,240,46,10,'#243a24');txt(e8b.trophy9?'TAKE THE HELM':((S.hullSkin===e8b.k)?'FLYING HER':'REFIT TO THIS HULL'),360,byB9+29,'#7fd98a',15,'center');
     yardRects9.push({x:240,y:byB9,w:240,h:46,fn:()=>{yardBuy9();}});
   }
-  if(!IS_TOUCH)txt('[\u2191\u2193] browse   \u2022   [E] refit'+(S.citadel?'   \u2022   [C] recall   \u2022   [S] sell the capital ('+capitalValue9()+' cr)':'')+'   \u2022   [Esc] back to the station',W/2,H-18,'#8899bb',13,'center','normal');
+  if(!IS_TOUCH)txt('[\u2191\u2193] browse   \u2022   [E] refit'+(S.citadel?'   \u2022   [C] recall   \u2022   [S] sell the capital ('+ownedCapValue9()+' cr)':'')+'   \u2022   [Esc] back to the station',W/2,H-18,'#8899bb',13,'center','normal');
   txt(Math.round(ship.credits)+' cr',W-60,64,'#ffd86b',16,'right');
 }
 
