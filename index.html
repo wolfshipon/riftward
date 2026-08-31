@@ -492,7 +492,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.66';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.68';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -3500,6 +3500,10 @@ ET.fed_dread={nm:'ACCORD DREADNOUGHT',hp:55,dmg:18,rate:3,spd:75,rng:300,r:36,cr
 CLS.fed_escort='ACCORD ESCORT FRIGATE';
 CLS.fed_cruiser='ACCORD HEAVY CRUISER';
 CLS.fed_dread='ACCORD DREADNOUGHT';
+// Fobby Bischer had no ship. He does now: a small fast hull that never fires, because the man is a
+// hustler, not a threat, and the board is the weapon.
+ET.fobby_ship={nm:'THE GAMBIT',hp:40,dmg:0,rate:9,spd:120,rng:180,r:22,cr:0,beh:'orbit',draw:'wedge',col:'#c9a24a'};
+CLS.fobby_ship='THE GAMBIT (FOBBY BISCHER)';
 ET.bork_carrier={nm:'THE MIRTHRIDER',hp:80,dmg:0,rate:9,spd:70,rng:200,r:42,cr:0,beh:'orbit',draw:'bork9',col:'#e04030'};
 CLS.bork_carrier='THE MIRTHRIDER (BORK FROM CHORK)';
 function isBeast9(e){const t=e&&e.et;if(!t)return false;
@@ -6537,6 +6541,8 @@ function hailNearest(){
      if(!closer9&&civ&&dist(ship,civ)<bd9)closer9=true;
      if(!closer9){borkHail9();return;}   // otherwise Bork answers only when he is the closest hull, not just present
    }}
+  {const F9=enemies.find(e=>e.alive&&e.fobby9&&dist(ship,e)<520);
+   if(F9){fobbyHail9();return;}}
   {const L9=enemies.find(e=>e.alive&&e.liner&&dist(ship,e)<520);
    if(L9){
      if(typeof isVorlan9==='function'&&isVorlan9()){
@@ -7227,19 +7233,49 @@ function lanceHit(e){
   }
   hurtEnemy(e,dmg);
 }
+const PURGE_HEAVY9=0.15;   // share of a boss or capital's MAX hull taken per pulse, on a 90s cooldown:
+                           // two or three pulses across a long fight, so it is a real contribution
+                           // without being the fight
 function purgeWave9(){
   if((S.citTier9||0)<3){say('You have no Purge array, Captain.','#ff8c8c');return;}
   if(S.screen!=='space')return;
   if((S.purgeCd9||0)>S.t){say('PURGE ARRAY recharging \u2014 '+Math.ceil((S.purgeCd9||0)-S.t)+'s.','#ff8c8c');if(sfx.fail)sfx.fail();return;}
   const heavy9=e=>!!(e.boss||(e.et&&e.et.beh==='boss')||isCapital(e)||(e.et&&e.et.noSurrender));
-  const tgts=enemies.filter(e=>e.alive&&e.et&&!heavy9(e));
-  const rode=enemies.some(e=>e.alive&&heavy9(e));
-  if(!tgts.length){say(rode?'The Purge Wave breaks over the capital hulls and bosses without touching them \u2014 those you face the hard way.':'Nothing to purge, Captain.','#8899bb');return;}
+  // Anything you are not at war with is not a target, whatever its class: your own casino, a liner
+  // still being polite, an escort flying with you, and Bork.
+  const fair9=e=>e.alive&&e.et&&!e.bork9&&!e.friendly9&&!e.neutral9&&!e.owned9;
+  const tgts=enemies.filter(e=>fair9(e)&&!heavy9(e));
+  const hvy=enemies.filter(e=>fair9(e)&&heavy9(e));
+  if(!tgts.length&&!hvy.length){say('Nothing to purge, Captain.','#8899bb');return;}
   S.purgeCd9=S.t+90;
   QSTATE.flash=2;S.shake=Math.max(S.shake||0,3.2);if(sfx.boom)sfx.boom();
   let n=0;for(const e of tgts){boom(e.x,e.y,64);hurtEnemy(e,9e9);n++;}
+  // A flagship does not evaporate, but it no longer shrugs the thing off either. PURGE_HEAVY9 of her
+  // maximum hull, every pulse. It can NEVER land the kill: a capital killed by a button is a boarding
+  // prize you can no longer take, and the Unmaker deserves better than being deleted from a menu.
+  // So the damage is floored to leave at least one point of hull on the target.
+  // Applied DIRECTLY rather than through hurtEnemy, and that is deliberate. hurtEnemy multiplies
+  // damage by 2.5 against a capital that is spooling to jump, and it contains its own death branch,
+  // so a floor computed before the call gets amplified straight through it: a chipped carrier took
+  // 346 instead of 138 and died at -115 hull. Nothing hurtEnemy protects is reachable here anyway,
+  // since fair9 already excluded Bork, the liner, friendlies and neutrals, and a Saint or an Emperor
+  // can never own this array. So the clamp lives where it cannot be undone.
+  let h=0;
+  for(const e of hvy){
+    if(!(e.hp>1))continue;
+    const dmg9=Math.min(Math.max(1,e.maxHp*PURGE_HEAVY9),e.hp-1);
+    if(dmg9<=0)continue;
+    e.hp-=dmg9;
+    boom(e.x,e.y,48);
+    try{sfx.hit&&sfx.hit();}catch(er9){}
+    for(let q9=0;q9<7;q9++)parts.push({x:e.x+rnd(-16,16),y:e.y+rnd(-16,16),vx:rnd(-55,55),vy:rnd(-55,55),life:.45,col:'#8fe8ff',r:2});
+    h++;
+  }
   alarm('PURGE WAVE \u2014 THE SYSTEM IS SCOURED CLEAN');
-  say('\u2605\u2605 PURGE WAVE: '+n+' hostile'+(n>1?'s':'')+' unmade in a single pulse'+(rode?' \u2014 the capitals and bosses ride it out.':'.')+' \u2605\u2605','#8fe8ff');
+  const parts9=[];
+  if(n)parts9.push(n+' hostile'+(n>1?'s':'')+' unmade in a single pulse');
+  if(h)parts9.push(h+' heavy hull'+(h>1?'s':'')+' opened up by it \u2014 they do not die to a button, but they FEEL it');
+  say('\u2605\u2605 PURGE WAVE: '+parts9.join(', and ')+'. \u2605\u2605','#8fe8ff');
 }
 function fireTorpedo(){
   if(ship.cloaked){ship.cloaked=false;ship.cloakCd=30;say('Decloaking — weapons hot!','#8fd0ff');}
@@ -12681,7 +12717,7 @@ function baseItems(){
     mats:[{dur:10,plasma:10},{dur:15,plasma:15,borg:2},{dur:20,plasma:20,borg:4},null][S.citTier9||0],
     info:['TIER I \u2014 THE AEGIS: a war-citadel hull with a 12-ship fighter wing, and LANCES that never run dry (no energy cost to fire).',
           'TIER II \u2014 THE LEVIATHAN: TORPEDO racks that never empty. Keeps the Aegis lance power and the wing.',
-          'TIER III \u2014 THE ANNIHILATOR: [Z] PURGE WAVE \u2014 scour every ordinary hostile in the system in one pulse (bosses & capital ships ride it out; 90s cooldown). Keeps all prior powers.',
+          'TIER III \u2014 THE ANNIHILATOR: [Z] PURGE WAVE \u2014 one pulse unmakes every ordinary hostile in the system AND tears 15% of maximum hull out of every boss and capital present. It will not land the killing blow on them; that is still yours to take. 90s cooldown. Keeps all prior powers.',
           'The Annihilator is yours: unlimited lances, unlimited torpedoes, a 12-ship wing, and the Purge Wave [Z].'][S.citTier9||0],
     can:()=>(S.citTier9||0)<3&&!(typeof isSaint9==='function'&&isSaint9())&&!(typeof isVorlan9==='function'&&isVorlan9()),
     buy:()=>{
@@ -15669,9 +15705,9 @@ function chAiMove(){
 function chClick(p){
   if(!CH)return;
   if(CH.over){
-    const took=CH.tookSys;CH=null;
-    if(took){S.screen='away';say('His shuttle is already clear of the bay, your hardware in its hold. The transporter takes you home.','#c98a8a');endAway(AW.done);}
-    else S.screen='away';
+    const took=CH.tookSys,back9=CH.back9||'away';CH=null;
+    if(took&&back9==='away'){S.screen='away';say('His shuttle is already clear of the bay, your hardware in its hold. The transporter takes you home.','#c98a8a');endAway(AW.done);}
+    else{S.screen=back9;if(back9==='space'){try{setMusic('space');}catch(e9){}}}
     return;
   }
   if(CH.turn!=='w')return;
@@ -21202,6 +21238,62 @@ function borkSpawn9(){
   e.detected=true;e.idKnown=true;e.friendly9=true;e.neutral9=true;e.holdFire=true;e.bork9=true;e.nm=ET.bork_carrier.nm;
   return e;
 }
+function fobbySpawn9(){
+  if(enemies.some(e=>e.alive&&e.fobby9))return enemies.find(e=>e.alive&&e.fobby9);
+  const e=spawnEnemy('fobby_ship',{noTier:true});
+  if(!e)return null;
+  const a=Math.random()*TAU;
+  e.x=ship.x+Math.cos(a)*380;e.y=ship.y+Math.sin(a)*380;e.vx=0;e.vy=0;
+  e.detected=true;e.idKnown=true;e.friendly9=true;e.neutral9=true;e.holdFire=true;e.fobby9=true;
+  e.nm=ET.fobby_ship.nm;
+  return e;
+}
+function fobbyHail9(){
+  const opts=[];
+  const tiers=[[500,'a friendly game'],[2000,'a serious game'],[5000,'the whole night on one board']];
+  for(const tt of tiers)if(ship.credits>=tt[0])opts.push({label:'Play him for '+tt[0]+' cr \u2014 '+tt[1],
+    fn:()=>{closeEnc();try{chInit();CH.stake={type:'cr',amt:tt[0]};CH.back9='space';S.screen='chess';setMusic('base');}catch(e9){}}});
+  opts.push({label:'Another time, Fobby.',col:'#2a281a',tcol:'#e8dfa0',
+    fn:()=>{closeEnc();say('"Another time." He says it the way a man says it when he knows there will be one.','#c9d46a');}});
+  if(opts.length===1){
+    showEnc('THE GAMBIT \u2014 FOBBY BISCHER',
+      'The little hull matches your heading without being asked. Fobby comes up on screen with a board already set beside him, glances at something offscreen, and winces politely. "Friend. I can see your ledger from here. Come back with real money and I will take it properly."',
+      opts,'space');
+    return;
+  }
+  showEnc('THE GAMBIT \u2014 FOBBY BISCHER',
+    'A small gold hull slides alongside like it was always going to. Fobby Bischer fills the screen, a board set at his elbow and no visible crew. "Captain! You look like a person with somewhere to be and no real desire to be there." He turns the board around. "Sit. Real stakes. I will even let you have white."',
+    opts,'space');
+}
+const BORK_FERRY9=5000;
+// Bork will run you at a big hull, and he answers to the SAME capital governor as everything else.
+// A ferry that ignored it would quietly reopen the harvest that v0.9.64 closed: an on-demand
+// capital finder is exactly the tool that turns a rare event back into a crop. So he checks first,
+// and when the lanes are quiet he says so instead of inventing one.
+function borkFerry9(){
+  if(!capSpawnOk9()){
+    if(capAlive9())say('Bork spreads his hands. "Friend, there is already one out there with your name on it. Finish that conversation first."','#c9d46a');
+    else say('Bork checks a manifest that is mostly doodles. "Quiet week for big hulls. They go to ground after one of them loses a fight. Give it a while, eh?"','#c9d46a');
+    try{sfx.fail&&sfx.fail();}catch(e9){}
+    return;
+  }
+  if(ship.credits<BORK_FERRY9){say('Bork counts your credits twice, out of politeness. "'+BORK_FERRY9+', friend. Fuel is not free and neither is my nerve."','#ff8c8c');try{sfx.fail&&sfx.fail();}catch(e9){}return;}
+  const cands9=[];
+  for(let i9=0;i9<SYSTEMS.length;i9++)if(i9!==ship.sys)cands9.push(i9);
+  if(!cands9.length){say('Bork looks around the sector, then at you. "Nowhere to take you, friend. You are already everywhere."','#c9d46a');return;}
+  const t9=cands9[Math.floor(rnd(0,cands9.length))];
+  ship.credits-=BORK_FERRY9;
+  SYSTEMS[t9].known=true;
+  try{riftStreak(ship.x,ship.y,ship.ang||0,'#ff9a5c','out');sfx.rift();}catch(e9){}
+  ship.sys=t9;S.screen='space';setMusic('space');arriveSystem();
+  const dg9=SYSTEMS[t9].danger;
+  const sp9=(dg9&&typeof factionFlag9==='function')?factionFlag9(dg9):'carrier';
+  const cap9=spawnEnemy(sp9,{noTier:true});
+  if(cap9){cap9.detected=true;cap9.idKnown=true;
+    cap9.x=ship.x+Math.cos(Math.random()*TAU)*620;cap9.y=ship.y+Math.sin(Math.random()*TAU)*620;}
+  try{QSTATE.flash=1.4;alarm('A CAPITAL HULL, AND BORK IS ALREADY GONE');}catch(e9){}
+  say('\u2605 Bork drops you at '+SYSTEMS[t9].name+', honks once, and is not there any more. Something very large is, though. (\u2212'+BORK_FERRY9+' cr) \u2605','#ffd86b');
+}
 function borkOverhaul9(){
   if(ship.credits<999){say('Bork checks your account, then his manifest, then his own heart. "Come back with 999 and a smile, friend."','#ff8c8c');try{sfx.fail();}catch(e){}return;}
   ship.credits-=999;
@@ -21245,6 +21337,13 @@ function borkHail9(){
      {label:'Hail him again (he always has another one)',fn:()=>{closeEnc();borkHail9();}},
      {label:'Instant ride to the casino ship, please',col:'#2a2036',tcol:'#ffd86b',fn:()=>{closeEnc();say('Bork snaps his fingers. "The house always keeps a seat for a face like yours." The lights go strange, and then you are aboard.','#ffd86b');try{openFloor9('grand');}catch(e){}}},
      {label:(S.borkQuest9?'About that Bork run I still owe you...':'Got an odd job for me, Bork? (a Bork run, 1500 cr)'),col:'#3a2a16',tcol:'#ffd86b',fn:()=>{closeEnc();borkGiveQuest9();}},
+     {label:'Know where a big hull is sitting, Bork? ('+BORK_FERRY9+' cr)',col:'#2a1c16',tcol:'#ffb56b',fn:()=>{closeEnc();borkFerry9();}},
+     {label:'Is Fobby Bischer anywhere near? I feel lucky.',col:'#2a2a16',tcol:'#e8dfa0',fn:()=>{
+        closeEnc();
+        if(enemies.some(e9=>e9.alive&&e9.fobby9)){say('Bork points, delighted. "He is RIGHT THERE. He has been right there. Hail him before he wins something off me again."','#c9d46a');return;}
+        const f9=fobbySpawn9();
+        if(f9)say('\u2605 Bork makes a call he clearly enjoys making. A small gold hull rifts in a few hundred klicks off your bow, already matching your heading. Hail it. \u2605','#ffd86b');
+        else say('Bork shrugs. "He owes eleven people money in this system. He is not coming here."','#c9d46a');}},
      {label:'Wave and fly on',col:'#2a281a',tcol:'#e8dfa0',fn:()=>{closeEnc();say('Bork salutes with the wrong hand, honks something that is either a horn or a laugh, and holds station. He will be around.','#8fd0ff');}}],
     'space');
 }
@@ -21594,9 +21693,9 @@ addEventListener('wheel',e=>{
 const TRACTOR_HP=.25; // at a quarter hull her weapons die and the beam can grip — a narrow window before she runs at 18%
 const CAPITAL_BAYS=.30, CAPITAL_GUNS=.15; // capitals die harder: bays first, then guns
 function isCapital(e){return !!(e&&e.et&&e.et.deploys);}
-// Ships that cannot be talked off the board. Same class the Purge Wave cannot touch ("the capitals
-// and bosses ride it out") and the same ships that never flee. Words do not delete these; you fight
-// them, board them, or leave.
+// Ships that cannot be talked off the board, and the same ships that never flee. Words do not delete
+// these; you fight them, board them, or leave. Same class the Purge Wave treats specially: as of
+// v0.9.67 it DOES damage them (PURGE_HEAVY9 of max hull) but can never land the kill on one.
 function unbowed9(e){return !!(e&&(e.boss||e.unique9||(e.et&&e.et.beh==='boss')||isCapital(e)||(e.et&&e.et.noSurrender)));}
 function isBeast9(e){return !!(e&&e.et&&e.et.beast);} // energy field / organism / automaton — no hull to grip, no airlock to board
 const CAPITAL_TOUGH=3; // she is three ships in one hull — and worth three ships to take
