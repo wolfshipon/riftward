@@ -492,7 +492,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.65';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.66';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -15448,6 +15448,84 @@ const CHGLYPH={wk:'\u2654',wq:'\u2655',wr:'\u2656',wb:'\u2657',wn:'\u2658',wp:'\
 // Solid silhouettes for BOTH sides. The hollow white glyphs and the solid black ones read very
 // differently at size, and a solid black pawn against a dark square was being mistaken for a bishop.
 const CHSOLID={k:'\u265A',q:'\u265B',r:'\u265C',b:'\u265D',n:'\u265E',p:'\u265F'};
+// ===== chess pieces, drawn as VECTORS =====
+// They were Unicode glyphs. U+265F BLACK CHESS PAWN carries an emoji presentation, so macOS
+// substituted a COLOUR emoji font for it, and a colour font ignores fillStyle and strokeStyle
+// completely: both sides' pawns came out the same solid black and the outline never appeared.
+// Only the pawn, because only the pawn has a common emoji form. Fonts are the wrong foundation
+// for this, so the pieces are paths now. It also fixes the scale: every glyph rendered at one
+// font size, which made pawns as big as kings. Here each piece is drawn at its own true height
+// inside a 100-unit box, so the hierarchy is built in: king 100, queen 93, bishop 88, knight 84,
+// rook 72, pawn 64. The king's cross reaches 108, and THAT is what the scale is set against, or
+// he grows out the top of his own square and off the board on rank 8.
+function chFoot9(w,h,w2){ctx.beginPath();ctx.moveTo(-w,0);ctx.lineTo(w,0);ctx.lineTo(w2,-h);ctx.lineTo(-w2,-h);ctx.closePath();ctx.fill();ctx.stroke();}
+function chPath9(fn){ctx.beginPath();fn();ctx.closePath();ctx.fill();ctx.stroke();}
+function chPiece9(pc,cx,baseY,cs){
+  const white9=pc[0]==='w', k9=pc[1];
+  const fill9=white9?'#f4efe4':'#16130f', line9=white9?'#16130f':'#efe9dc';
+  const S=cs*0.0080;      // 108-unit king lands at ~86% of the cell; a 63-unit pawn at ~50%
+  ctx.save();
+  ctx.translate(cx,baseY);ctx.scale(S,S);
+  ctx.fillStyle=fill9;ctx.strokeStyle=line9;
+  ctx.lineWidth=3.4;ctx.lineJoin='round';ctx.lineCap='round';
+  if(k9==='p'){
+    chFoot9(20,8,16);
+    chPath9(()=>{ctx.moveTo(-14,-8);ctx.lineTo(14,-8);ctx.lineTo(12,-14);ctx.lineTo(-12,-14);});
+    chPath9(()=>{ctx.moveTo(-12,-14);ctx.quadraticCurveTo(-11,-32,-7,-43);ctx.lineTo(7,-43);ctx.quadraticCurveTo(11,-32,12,-14);});
+    ctx.beginPath();ctx.arc(0,-52,11,0,TAU);ctx.fill();ctx.stroke();
+  } else if(k9==='r'){
+    chFoot9(24,9,20);
+    chPath9(()=>{ctx.moveTo(-18,-9);ctx.lineTo(-14,-46);ctx.lineTo(14,-46);ctx.lineTo(18,-9);});
+    chPath9(()=>{ctx.moveTo(-22,-46);ctx.lineTo(22,-46);ctx.lineTo(22,-53);ctx.lineTo(-22,-53);});
+    chPath9(()=>{ctx.moveTo(-22,-53);ctx.lineTo(-22,-72);ctx.lineTo(-13,-72);ctx.lineTo(-13,-64);
+      ctx.lineTo(-5,-64);ctx.lineTo(-5,-72);ctx.lineTo(5,-72);ctx.lineTo(5,-64);
+      ctx.lineTo(13,-64);ctx.lineTo(13,-72);ctx.lineTo(22,-72);ctx.lineTo(22,-53);});
+  } else if(k9==='b'){
+    chFoot9(21,9,17);
+    chPath9(()=>{ctx.moveTo(-15,-9);ctx.lineTo(15,-9);ctx.lineTo(13,-15);ctx.lineTo(-13,-15);});
+    chPath9(()=>{ctx.moveTo(-13,-15);ctx.quadraticCurveTo(-12,-38,-8,-51);ctx.lineTo(8,-51);ctx.quadraticCurveTo(12,-38,13,-15);});
+    chPath9(()=>{ctx.moveTo(-12,-51);ctx.lineTo(12,-51);ctx.lineTo(11,-57);ctx.lineTo(-11,-57);});
+    chPath9(()=>{ctx.moveTo(-10,-57);ctx.quadraticCurveTo(-13,-73,0,-83);ctx.quadraticCurveTo(13,-73,10,-57);});
+    ctx.beginPath();ctx.arc(0,-86,5,0,TAU);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(3,-76);ctx.lineTo(-3,-63);ctx.stroke();   // the mitre's slit
+  } else if(k9==='n'){
+    chFoot9(22,9,18);
+    chPath9(()=>{ctx.moveTo(-16,-9);ctx.lineTo(16,-9);ctx.lineTo(14,-16);ctx.lineTo(-14,-16);});
+    chPath9(()=>{
+      ctx.moveTo(-14,-16);
+      ctx.lineTo(-12,-38);
+      ctx.quadraticCurveTo(-15,-62,-3,-71);
+      ctx.lineTo(-7,-80);ctx.lineTo(0,-73);ctx.lineTo(4,-84);ctx.lineTo(9,-71);
+      ctx.quadraticCurveTo(20,-69,22,-57);
+      ctx.lineTo(15,-51);ctx.lineTo(18,-45);
+      ctx.quadraticCurveTo(8,-43,2,-39);
+      ctx.quadraticCurveTo(6,-27,14,-16);
+    });
+    ctx.fillStyle=line9;
+    ctx.beginPath();ctx.arc(9,-63,2.6,0,TAU);ctx.fill();                 // eye
+    ctx.strokeStyle=line9;ctx.lineWidth=2.6;
+    ctx.beginPath();ctx.moveTo(-3,-66);ctx.quadraticCurveTo(2,-56,-1,-46);ctx.stroke();  // mane
+  } else if(k9==='q'){
+    chFoot9(22,9,18);
+    chPath9(()=>{ctx.moveTo(-16,-9);ctx.lineTo(16,-9);ctx.lineTo(14,-15);ctx.lineTo(-14,-15);});
+    chPath9(()=>{ctx.moveTo(-14,-15);ctx.quadraticCurveTo(-13,-40,-9,-55);ctx.lineTo(9,-55);ctx.quadraticCurveTo(13,-40,14,-15);});
+    chPath9(()=>{ctx.moveTo(-14,-55);ctx.lineTo(14,-55);ctx.lineTo(13,-62);ctx.lineTo(-13,-62);});
+    chPath9(()=>{ctx.moveTo(-16,-62);ctx.lineTo(-18,-81);ctx.lineTo(-9,-69);ctx.lineTo(-4,-86);
+      ctx.lineTo(0,-72);ctx.lineTo(4,-86);ctx.lineTo(9,-69);ctx.lineTo(18,-81);ctx.lineTo(16,-62);});
+    [[-18,-83],[-4,-88],[4,-88],[18,-83]].forEach(b=>{ctx.beginPath();ctx.arc(b[0],b[1],4,0,TAU);ctx.fill();ctx.stroke();});
+  } else {                                   // king
+    chFoot9(22,9,18);
+    chPath9(()=>{ctx.moveTo(-16,-9);ctx.lineTo(16,-9);ctx.lineTo(14,-15);ctx.lineTo(-14,-15);});
+    chPath9(()=>{ctx.moveTo(-14,-15);ctx.quadraticCurveTo(-13,-40,-9,-55);ctx.lineTo(9,-55);ctx.quadraticCurveTo(13,-40,14,-15);});
+    chPath9(()=>{ctx.moveTo(-14,-55);ctx.lineTo(14,-55);ctx.lineTo(13,-62);ctx.lineTo(-13,-62);});
+    chPath9(()=>{ctx.moveTo(-15,-62);ctx.lineTo(-17,-79);ctx.quadraticCurveTo(-8,-72,0,-79);
+      ctx.quadraticCurveTo(8,-72,17,-79);ctx.lineTo(15,-62);});
+    chPath9(()=>{ctx.moveTo(-3.5,-79);ctx.lineTo(-3.5,-92);ctx.lineTo(-9,-92);ctx.lineTo(-9,-98);
+      ctx.lineTo(-3.5,-98);ctx.lineTo(-3.5,-108);ctx.lineTo(3.5,-108);ctx.lineTo(3.5,-98);
+      ctx.lineTo(9,-98);ctx.lineTo(9,-92);ctx.lineTo(3.5,-92);ctx.lineTo(3.5,-79);});
+  }
+  ctx.restore();
+}
 // One source of truth for the board's size and position: the draw and the tap test both read it.
 function chGeom9(){
   const cs=IS_TOUCH?60:46, bw=cs*8;
@@ -15654,16 +15732,7 @@ function drawChess(){
     if(CH&&CH.targets.includes(sq)){ctx.fillStyle='rgba(90,180,110,.55)';ctx.beginPath();
       ctx.arc(ox+c*CS9+CS9/2,oy+r*CS9+CS9/2,CH.bd[sq]?CS9*0.39:CS9*0.17,0,TAU);ctx.fill();}
     const pc=CH&&CH.bd[sq];
-    if(pc){
-      ctx.font=Math.round(CS9*0.78)+'px serif';ctx.textAlign='center';
-      const gx9=ox+c*CS9+CS9/2, gy9=oy+r*CS9+Math.round(CS9*0.77), g9=CHSOLID[pc[1]]||CHGLYPH[pc];
-      ctx.lineWidth=Math.max(2,Math.round(CS9*0.055));
-      ctx.lineJoin='round';
-      ctx.strokeStyle=pc[0]==='w'?'#171310':'#f6f2ea';   // the outline that was set but never drawn
-      ctx.fillStyle  =pc[0]==='w'?'#f6f2ea':'#171310';
-      ctx.strokeText(g9,gx9,gy9);
-      ctx.fillText(g9,gx9,gy9);
-      ctx.textAlign='left';}
+    if(pc)chPiece9(pc,ox+c*CS9+CS9/2,oy+r*CS9+CS9-Math.round(CS9*0.10),CS9);
   }
   ctx.strokeStyle='#2a2018';ctx.lineWidth=3;ctx.strokeRect(ox,oy,G9.bw,G9.bw);
   if(CH&&CH.over){
