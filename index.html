@@ -267,6 +267,7 @@ function drawTouch(){
   }
   if(S.paused||(S.screen!=='space'&&S.screen!=='away')){ctx.restore();return;}
   if(S.screen==='space'&&S.qmode){ctx.restore();return;}   // Q mode: the plaything list owns the screen (tap targets live in qRects9)
+  if(S.screen==='away'&&S.qmAway){ctx.restore();return;}   // and the same on the ground
   // During an away parley the dialog owns the screen: hide the stick + ground buttons so taps reach the options.
   if(S.screen==='away'&&AW&&AW.parley){
     if(AW.parley.stage==='open'){ctx.restore();return;}   // options dialog: let taps reach the [1-4] buttons
@@ -301,6 +302,10 @@ function drawTouch(){
         {k:'e',l:'ABLTY',x:W-190,y:H-146,r:28},
         {k:'b',l:'RECALL',x:W-80,y:H-198,r:30},
         {l:'DODGE',x:W-40,y:H-262,r:28,act9:()=>{keys['j']=true;setTimeout(()=>{keys['j']=false;},130);}}];
+    // ORSON MODE was reachable in space and in the casino but NOT on the ground, where the only way
+    // in was the [Q] key. On a phone that meant no Orson planetside at all, and none in the arena
+    // either, since the arena fight runs on this same screen.
+    if(S.qUnlocked)B9.push({k:'q',l:'ORSON',x:W-40,y:H-326,r:28});
   }
   for(const b9 of B9){
     touchRects.push(b9);
@@ -350,7 +355,7 @@ if(IS_TOUCH){
       }
       // An away parley is a modal dialog, and Q mode is a menu: don't treat their taps as movement/glyph.
       const awayParley9=(S.screen==='away'&&AW&&AW.parley);
-      const play9=(S.screen==='space'||S.screen==='away'||(S.screen==='casino'&&CF))&&!S.menu&&!S.paused&&!awayParley9&&!S.qmode;
+      const play9=(S.screen==='space'||S.screen==='away'||(S.screen==='casino'&&CF))&&!S.menu&&!S.paused&&!awayParley9&&!S.qmode&&!S.qmAway;   // qmAway too, or the movement stick swallows taps on the plaything list (it sits in the left half)
       if(play9&&p9.x<W*.55&&TB.id===null){TB.id=t9.identifier;TB.cx=p9.x;TB.cy=p9.y;TB.dx=0;TB.dy=0;continue;}
       // Glyph tracing retired: every ability and command now has a real button or context prompt, so a second
       // finger no longer "casts" anything. (GB stays defined but is never armed.)
@@ -492,7 +497,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.68';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.70';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -3502,6 +3507,12 @@ CLS.fed_cruiser='ACCORD HEAVY CRUISER';
 CLS.fed_dread='ACCORD DREADNOUGHT';
 // Fobby Bischer had no ship. He does now: a small fast hull that never fires, because the man is a
 // hustler, not a threat, and the board is the weapon.
+// The Playwright conjures a warship to audition you, and it used to be a RENEGADE WARSHIP with its
+// hull knocked DOWN from 20 to 16: a named boss weaker than the generic ship it was reskinned from.
+// It is its own hull now. Roughly three times a standard warship, twin lances and torpedoes, fast,
+// and it does not look like anything else in the sector, because it was never built. It was staged.
+ET.playtoy={nm:"THE PLAYWRIGHT'S TOY",hp:58,dmg:14,rate:2.2,spd:150,rng:230,r:26,cr:0,beh:'orbit',draw:'shroud',col:'#d8a0e8',twin:true,torp:true};
+CLS.playtoy="THE PLAYWRIGHT'S TOY";
 ET.fobby_ship={nm:'THE GAMBIT',hp:40,dmg:0,rate:9,spd:120,rng:180,r:22,cr:0,beh:'orbit',draw:'wedge',col:'#c9a24a'};
 CLS.fobby_ship='THE GAMBIT (FOBBY BISCHER)';
 ET.bork_carrier={nm:'THE MIRTHRIDER',hp:80,dmg:0,rate:9,spd:70,rng:200,r:42,cr:0,beh:'orbit',draw:'bork9',col:'#e04030'};
@@ -3588,7 +3599,7 @@ const MS=[
  {"t":"Broodlord's Challenge","ty":"boss","sys":8,"en":"gorn","hp":18,"nm":"BROODLORD SSKAR","b":"The Sarrqan burned Cinder III to glass. Their Broodlord offers single combat, ship against ship, winner keeps the border. Accept."},
  {"t":"Dreamside","ty":"away","sys":13,"obj":"clear","th":"jungle","b":"On this world, whatever you imagine becomes real — including everything your crew is afraid of. Fight through their nightmares to the off switch."},
  {"t":"Seven Down","ty":"defend","sys":14,"time":38,"en":"tholian","b":"A downed shuttle crew is rigging repairs under fire at Trigon Drift. Hold the perimeter until the Gallant lifts."},
- {"t":"The Playwright","ty":"boss","sys":12,"en":"mirror_fed","hp":16,"nm":"THE PLAYWRIGHT'S TOY","b":"A capricious being who stages wars for amusement has conjured a warship to \"audition\" you. Win his play and he may release the hostages."},
+ {"t":"The Playwright","ty":"boss","sys":12,"en":"playtoy","hp":58,"nm":"THE PLAYWRIGHT'S TOY","b":"A capricious being who stages wars for amusement has conjured a warship to \"audition\" you. Win his play and he may release the hostages."},
  {"t":"Storm Over Serene Hold","ty":"waves","sys":4,"waves":3,"en":"klingon_bop","b":"War-Clan strike wings are descending on Serene Hold in waves. Its people will not lift a hand in their own defense. So yours will have to do."},
  {"t":"Mother of Stone","ty":"away","sys":7,"obj":"parley","th":"cave","b":"Something in the Deepdelve mines is killing miners. It is also a mother. Find it before the miners do — and do NOT shoot first.","pt":["The stone creature blocks the tunnel, wounded, a phrase seared into the rock: NO HURT. The miners' torches are close behind you.","A mind-touch: she was guarding her clutch. You broker the peace — she tunnels, they profit, and nobody else dies in the dark.","The miners open fire and the galleries erupt — protect the eggs!"]},
  {"t":"The Long Sleepers","ty":"away","sys":6,"obj":"parley","th":"ship","b":"A two-century-old sleeper ship. Seventy-two engineered sleepers. Their leader is brilliant, magnetic, and exactly as dangerous as he looks. Board her.","pt":["Kade Vhorr rises from cryosleep and measures you like a chessboard. \"I remember the old wars. Tell me of YOUR ship, Captain.\"","You match him fact for fact and concede nothing. Strength is the only currency he honors; the sleepers stand down for transport.","Vhorr seizes a sidearm: \"Superior men TAKE, Captain!\" Repel the sleepers!"]},
@@ -7684,9 +7695,18 @@ function amuse(n){
   } else if(n<0)S.amuseSpam=0;
   S.amuse=clamp((S.amuse||0)+n,0,100);
 }
+// NOTE: every k here must be UNIQUE. qPower() resolves with find(), so a duplicate silently makes
+// the later power unreachable by keyboard AND by tap. 'REWRITE HIS MISSION' sat on '0' behind
+// 'SEND IN BORK' that way until v0.9.70. Also avoid 'w', 'r' and 'q': the space key handler
+// claims those before it falls through to qPower.
 const QPOWERS=[
  {k:'0',need:0,name:'SEND IN BORK FROM CHORK!',desc:'summon that lovable red menace to fix, fuel, and pester your captain (+amusement)',fn:()=>{
    borkSpawn9();amuse(10);qSay('"Oh, you will LOVE this one. BORK! Yoo-hoo!" A red-and-white carrier covered in triangles blinks in, already telling a joke.');}},
+ {k:'a',need:0,name:'PUT ME IN THE ARENA',desc:'he drops your captain in the sand, for the noise (free)',fn:()=>{
+   if(typeof openArena9!=='function'){qSay('"The sand is closed. Someone lost a lion."');return;}
+   amuse(8);
+   qSay('"Blood sport! Finally, a use for you." He does not ask whether you agreed.');
+   S.qmode=false;openArena9('planet');}},
  {k:'1',need:0,name:'CONJURE AN AMBUSH',desc:'drop hostiles on your little captain (+amusement)',fn:()=>{
    for(let i=0;i<2+Math.floor(rnd(0,2));i++){const e=spawnEnemy(SYSTEMS[ship.sys].danger||'orion_raider',{noTier:true});e.detected=true;}
    amuse(14);qSay('"Let us see how he WRIGGLES." Hostiles conjured.');}},
@@ -7731,7 +7751,7 @@ const QPOWERS=[
    qSay('"Hideous. Let us try... THE '+HULLSKINS[nxt].nm+'!" Your ship SHIMMERS and is remade.');
    say('Hull reconfigured: THE '+HULLSKINS[nxt].nm+(bits9.length?(' \u2014 and genuinely '+bits9.join(', ')+'. He will deny it.'):' \u2014 structurally identical, and approximately 2 percent more aesthetically pleasing.'),'#c9d46a');
    sfx.transporter();}},
- {k:'0',need:90,name:'REWRITE HIS MISSION',desc:'an active mission simply... completes (needs 90, costs 50)',fn:()=>{
+ {k:'m',need:90,name:'REWRITE HIS MISSION',desc:'an active mission simply... completes (needs 90, costs 50)',fn:()=>{
    const m9=S.missions[Math.floor(rnd(0,S.missions.length))];
    if(!m9){qSay('"He has no story worth rewriting. Dull, dull, DULL."');return;}
    amuse(-50);completeMission(m9);
@@ -10186,15 +10206,28 @@ function drawQOverlayAway(){
   rr(W/2-190,90,380,10,5,'rgba(255,255,255,.14)');
   rr(W/2-190,90,380*(am/100),10,5,'#ff8ce8');
   txt(Math.round(am)+'/100',W/2+210,84,'#ff8ce8',12,'right');
-  let y=H-26-QPOWERS_AW.length*26;
-  rr(18,y-30,500,QPOWERS_AW.length*26+40,14,'rgba(20,4,26,.85)');
-  txt("ORSON'S PLAYTHINGS  (press the number \u2022 [Q] returns you to the mortal)",30,y-10,'#ff8ce8',12,'left');
+  // Tap targets, mirroring the space overlay. Without these the whole ground power set was
+  // keyboard-only: [Q] to ascend and the digits 1-8 to use anything, none of which a phone has.
+  qRects9=[];
+  // On a phone the descriptions truncated to an ellipsis and told you nothing, so touch gets the
+  // name and the amusement gate only. The full description stays on desktop, where it fits.
+  const rowH9=IS_TOUCH?30:26, boxW9=IS_TOUCH?430:500;
+  let y=H-40-QPOWERS_AW.length*rowH9;
+  rr(18,y-30,boxW9,QPOWERS_AW.length*rowH9+40,14,'rgba(20,4,26,.88)');
+  txt("ORSON'S PLAYTHINGS  ("+(IS_TOUCH?'tap one':'press the number \u2022 [Q] returns you to the mortal')+')',30,y-10,'#ff8ce8',12,'left');
   QPOWERS_AW.forEach(p=>{
     const ok=am>=p.need;
-    txt('['+p.k+'] '+p.name,30,y+10,ok?'#ffd0f4':'#7a5a72',12);
-    txtFit(p.desc,246,y+10,ok?'#c9a0c2':'#5a4456',10,262,'left','normal');
-    y+=26;
+    txtFit('['+p.k+'] '+p.name,30,y+10,ok?'#ffd0f4':'#7a5a72',12,IS_TOUCH?286:210,'left');
+    if(IS_TOUCH)txt(ok?'':'needs '+p.need,boxW9+4,y+10,'#7a5a72',10,'right','normal');
+    else txtFit(p.desc+(ok?'':'  (locked)'),246,y+10,ok?'#c9a0c2':'#5a4456',10,262,'left','normal');
+    qRects9.push({x:18,y:Math.round(y-rowH9/2+4),w:boxW9,h:rowH9,k:p.k});
+    y+=rowH9;
   });
+  // and a way back down that does not need a keyboard
+  {const dw9=180,dx9=W-dw9-22,dy9=62;
+   rr(dx9,dy9,dw9,44,12,'rgba(60,10,66,.92)');
+   txt('\u2715 DESCEND',dx9+dw9/2,dy9+28,'#ffd0f4',13,'center');
+   qRects9.push({x:dx9,y:dy9,w:dw9,h:44,k:'q'});}
 }
 function endAwayNow(success){
   if(isVorlan9()&&S.redeemActive9==='unmake'&&success&&conquered9(ship.sys)){
@@ -14103,13 +14136,17 @@ function canvasPress(p){
   }
   if(S.menu){for(const r of menuRects)if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h){menuAction(r.k);return;}return;}
   if(S.qmode){for(const r of qRects9)if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h){pressKey(r.k);return;}return;}
+  if(S.qmAway&&S.screen==='away'){for(const r of qRects9)if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h){pressKey(r.k);return;}return;}
   if(S.screen==='splash'){splashClick(p);return;}
   if(S.screen==='intro'){introAdvance();return;}
   if(S.screen==='epilogue'){epAdvance();return;}
   if(S.screen==='cutscene9'){cutAdvance9();return;}
   if(S.screen==='story'){storyClick(p);return;}
   if(S.screen==='persona'){for(const r of personaRects)if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h){r.fn();return;}return;}
-  if(S.screen==='chess'){chClick(p);return;}
+  if(S.screen==='chess'){
+    for(const r of uiRects9)if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h){try{r.fn();}catch(e9){}return;}
+    chClick(p);return;
+  }
   if(S.screen==='rescued'){reviveAtBase();return;}
   if(S.screen==='victory'){S.screen='space';setMusic('space');return;}
   if(S.screen==='base'){for(const r of baseRects)if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h){r.fn();return;}return;}
@@ -15436,21 +15473,36 @@ function drawShipStatus(){
     if(eps.length)txtFit('\u2605 '+eps.join(' \u2022 '),214,R2Y+206,'#ffd86b',9,206,'left','normal');
   } else txt('No personnel file on record.',240,R2Y+120,'#556',11,'center','normal');
   // ---- ROW 2: SPECIAL FITTINGS grid ----
-  rr(454,R2Y,656,132,10,'#0d1420');hdr(454,R2Y,656,'SPECIAL FITTINGS');
+  // The panel used to be a checkbox grid with the hull buried in it as one more tick. It now leads
+  // with WHAT YOU FLY: the model in the header, the actual hull drawn on the right, and the
+  // war-citadel tiers listed, since those are the most expensive things you can own and nothing on
+  // this screen admitted they existed.
+  rr(454,R2Y,656,132,10,'#0d1420');
   const skinNow=(S.hullTemp&&S.hullTemp.jumps>0)?S.hullTemp.skin:(S.hullSkin||0);
+  const modelNm9=HULLSKINS[skinNow].nm+((S.hullTemp&&S.hullTemp.jumps>0)?' (ORSON\u2019s taste, temporary)':'');
+  hdr(454,R2Y,656,'YOUR SHIP \u2014 '+modelNm9);
+  const cit9=S.citTier9||0;
   const fit=[
     [ship.hasCloak,'CLOAKING DEVICE'+(ship.hasCloak?'  [C]':'')],
     [S.miniRift,'MINI-RIFT COIL'+(S.miniRift?'  [W]':'')],
-    [(S.upCal||0)>0,'CALIBRATION MODULES  '+(S.upCal||0)+'/3'],
-    [ship.hangar,'HANGAR'+(ship.hangar?' \u2014 wing of '+wingSize():'')],
-    [(S.cargoUp||0)>0,'HOLD TIER '+['STANDARD','I (16)','II (22)','III (30)'][S.cargoUp||0]],
-    [true,'HULL: '+HULLSKINS[skinNow].nm+((S.hullTemp&&S.hullTemp.jumps>0)?" (ORSON\'s taste, temporary)":'')],
+    [(S.upCal||0)>0,'CALIBRATION  '+(S.upCal||0)+'/3'],
+    [ship.hangar,'HANGAR'+(ship.hangar?': wing of '+wingSize():'')],
+    [(S.cargoUp||0)>0,'HOLD '+['STANDARD','TIER I (16)','TIER II (22)','TIER III (30)'][S.cargoUp||0]],
+    [cit9>0,(cit9>0?['','AEGIS','LEVIATHAN','ANNIHILATOR'][cit9]+' CITADEL':'WAR-CITADEL: none')],
+    [cit9>=1,'UNLIMITED LANCES'],
+    [cit9>=2,'UNLIMITED TORPS'],          // 'TORPEDOES' overflows the 163px column clamp; TORP is the game's own HUD abbreviation
+    [cit9>=3,'PURGE WAVE  [Z]'],
   ];
   fit.forEach((f9,i9)=>{
-    const fx9=470+(i9%2)*328,fy9=R2Y+52+Math.floor(i9/2)*26;
+    const fx9=470+(i9%3)*186,fy9=R2Y+52+Math.floor(i9/3)*26;
     txt(f9[0]?'\u2713':'\u2014',fx9,fy9,f9[0]?'#7fd98a':'#556',11);
-    txtFit(f9[1],fx9+20,fy9,f9[0]?'#dfe8f2':'#667',10,296,'left','normal');
+    txtFit(f9[1],fx9+18,fy9,f9[0]?'#dfe8f2':'#667',10,163,'left','normal');
   });
+  // the hull itself, from the same routine that draws it in space, so it is always the ship you are
+  // actually flying rather than a stock picture
+  {ctx.save();ctx.translate(1064,R2Y+76);ctx.scale(1.35,1.35);
+   try{drawPlayerShip(0,0,-Math.PI/2,true);}catch(e9){}
+   ctx.restore();}
   txt('insurance copay if lost: '+(typeof insuranceCopay==='function'?insuranceCopay()+' cr':'\u2014')+'   \u2022   score '+(ship.score||0),470,R2Y+52+78,'#c98aff',9,'left','normal');
   // ---- ROW 2: ACTIVE MISSIONS strip ----
   const MSY=R2Y+142;
@@ -15747,7 +15799,8 @@ function chResign(){
 }
 function drawChess(){
   ctx.fillStyle='#0a0d14';ctx.fillRect(0,0,W,H);
-  txt('FOBBY BISCHER — CHESS MASTER',W/2,40,'#ffd86b',22,'center');
+  uiRects9=[];
+  txt(IS_TOUCH?'FOBBY BISCHER':'FOBBY BISCHER — CHESS MASTER',W/2,40,'#ffd86b',22,'center');   // the full title runs into the MENU/RESIGN buttons at phone text scale
   if(CH&&CH.note)txtFit(CH.note,W/2,62,'#c8b88a',10,W-260,'center','normal');
   txt(CH&&CH.over?'':(IS_TOUCH?'Bischer plays black • tap a piece, then a square':'Bischer plays black • click a piece, then a square • [ESC] resign the board'),W/2,66,'#8899bb',11,'center','normal');
   if(CH&&!CH.over&&!IS_TOUCH)txt('castling: click your king, then the marked square two files toward the rook',W/2,82,'#667',10,'center','normal');
@@ -15771,6 +15824,13 @@ function drawChess(){
     if(pc)chPiece9(pc,ox+c*CS9+CS9/2,oy+r*CS9+CS9-Math.round(CS9*0.10),CS9);
   }
   ctx.strokeStyle='#2a2018';ctx.lineWidth=3;ctx.strokeRect(ox,oy,G9.bw,G9.bw);
+  // A way OUT, and a way to the captain's menu, both reachable by thumb. drawMenu() is painted last
+  // in the frame and canvasPress intercepts for it, so opening it from here works on any screen.
+  if(!(CH&&CH.over)){
+    const bw8=IS_TOUCH?132:150, bg8=IS_TOUCH?8:10;
+    uiBtn9(W-bw8*2-bg8-20,10,bw8,40,'\u2630 MENU','#9fd8ff','#16283e',()=>{S.menu=true;});
+    uiBtn9(W-bw8-20,10,bw8,40,'\u2691 RESIGN','#ff9a9a','#2a1820',()=>{chResign();});
+  }
   if(CH&&CH.over){
     rr(W/2-220,IS_TOUCH?H-114:H-170,440,64,14,'rgba(6,10,18,.92)');
     txt(CH.over==='win'?('VICTORY — +'+CH.award+' cr'):(CH.over==='draw'?'A DRAW — stakes returned':(CH.tookSys?'DEFEAT — he took your hardware':(CH.stake&&CH.stake.type==='cr'?('DEFEAT — '+CH.stake.amt+' cr, gone'):'DEFEAT — a free lesson'))),W/2,IS_TOUCH?H-86:H-142,CH.over==='win'?'#ffd86b':'#ff9a9a',17,'center');
@@ -21270,6 +21330,18 @@ const BORK_FERRY9=5000;
 // A ferry that ignored it would quietly reopen the harvest that v0.9.64 closed: an on-demand
 // capital finder is exactly the tool that turns a rare event back into a crop. So he checks first,
 // and when the lanes are quiet he says so instead of inventing one.
+const BORK_ARENA9=250;
+// Cheap on purpose: the arena takes your money at the door and in the betting, so the RIDE is not
+// where the cost should sit. Bork is a ferry, and this is a short hop.
+function borkArena9(){
+  if(typeof openArena9!=='function'){say('Bork shrugs. "No sand this side of the rift, friend."','#c9d46a');return;}
+  if((S.arena9&&S.arena9.on)||(typeof AW!=='undefined'&&AW&&AW.isArena9)||S.screen==='arena'){
+    say('Bork peers at you. "Friend. You are ALREADY in the arena. Look around."','#c9d46a');return;}
+  if(ship.credits<BORK_ARENA9){say('Bork spreads his hands. "'+BORK_ARENA9+' credits, friend. I have to pay the man at the gate too."','#ff8c8c');try{sfx.fail&&sfx.fail();}catch(e9){}return;}
+  ship.credits-=BORK_ARENA9;
+  say('\u2605 Bork hums something martial, drops you at a gate that smells of sand and beer, and promises to wait. (\u2212'+BORK_ARENA9+' cr) \u2605','#ffd86b');
+  openArena9('planet');
+}
 function borkFerry9(){
   if(!capSpawnOk9()){
     if(capAlive9())say('Bork spreads his hands. "Friend, there is already one out there with your name on it. Finish that conversation first."','#c9d46a');
@@ -21338,6 +21410,7 @@ function borkHail9(){
      {label:'Instant ride to the casino ship, please',col:'#2a2036',tcol:'#ffd86b',fn:()=>{closeEnc();say('Bork snaps his fingers. "The house always keeps a seat for a face like yours." The lights go strange, and then you are aboard.','#ffd86b');try{openFloor9('grand');}catch(e){}}},
      {label:(S.borkQuest9?'About that Bork run I still owe you...':'Got an odd job for me, Bork? (a Bork run, 1500 cr)'),col:'#3a2a16',tcol:'#ffd86b',fn:()=>{closeEnc();borkGiveQuest9();}},
      {label:'Know where a big hull is sitting, Bork? ('+BORK_FERRY9+' cr)',col:'#2a1c16',tcol:'#ffb56b',fn:()=>{closeEnc();borkFerry9();}},
+     {label:'Run me to the arena, Bork ('+BORK_ARENA9+' cr)',col:'#2a1618',tcol:'#ff9a9a',fn:()=>{closeEnc();borkArena9();}},
      {label:'Is Fobby Bischer anywhere near? I feel lucky.',col:'#2a2a16',tcol:'#e8dfa0',fn:()=>{
         closeEnc();
         if(enemies.some(e9=>e9.alive&&e9.fobby9)){say('Bork points, delighted. "He is RIGHT THERE. He has been right there. Hail him before he wins something off me again."','#c9d46a');return;}
