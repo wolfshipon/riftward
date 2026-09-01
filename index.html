@@ -497,7 +497,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.70';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.71';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -8358,6 +8358,28 @@ function updateSpace(dt){
   S.saveT=(S.saveT||0)+dt;if(S.saveT>60){S.saveT=0;saveGame();}
   if(!ship.cloaked)S.heat=(S.heat||0)+dt*(1+((typeof hullPerk9==='function'?hullPerk9().heat:0)||0));
   crew.forEach(c9=>{if(c9.hp<crewMaxHp(c9))c9.hp=Math.min(crewMaxHp(c9),c9.hp+.4*dt);});
+  // ORSON, UNINVITED. He does not ask, because asking is not the joke. What he will NOT do is drop
+  // you in the sand while something is shooting at you, while the white or the crown is wearing your
+  // face, or while your officers are all down. And he moves the SHIP, not your crew: you arrive at
+  // the gate, so you still choose who walks out with you, or turn around and leave.
+  if(S.qUnlocked&&!S.qmode&&!S.menu&&!riftAnim&&S.screen==='space'
+     &&(typeof ENC==='undefined'||!ENC)
+     &&!(S.arena9&&S.arena9.on)&&!(typeof AW!=='undefined'&&AW&&AW.isArena9)
+     &&!(typeof isSaint9==='function'&&isSaint9())&&!(typeof isVorlan9==='function'&&isVorlan9())
+     &&!enemies.some(e9=>e9.alive)&&(S.t-(S.lastFightT||0))>45
+     &&ship.hull>55&&crew.some((c9,i9)=>i9>0&&c9.hp>0)){
+    if(S.qArenaT9==null)S.qArenaT9=rnd(900,1800);
+    S.qArenaT9-=dt;
+    if(S.qArenaT9<=0){
+      S.qArenaT9=rnd(1400,2600);
+      try{
+        qSay('"You looked BORED. I have FIXED it." The stars go out, and come back as a wall of noise.');
+        try{amuse(4);}catch(e9){}
+        QSTATE.flash=1.4;try{sfx.transporter&&sfx.transporter();}catch(e9){}
+        openArena9('planet');
+      }catch(e9){}
+    }
+  }
   // quiet watch — unprompted small life aboard, only when the sky is calm
   if(!enemies.some(e9=>e9.alive)&&!S.menu&&!riftAnim&&(S.t-(S.lastFightT||0))>45){
     if(S.vigT==null)S.vigT=rnd(420,760);
@@ -23457,26 +23479,38 @@ function arClose9(){
 function arFight9(){
   if(!AR)return;
   const where9=AR.where;
-  S.arena9={on:true,wave:1,purse:0,where:where9,qUsed:0};
-  AR=null;
-  // beginAway is what actually assembles the team. startAway alone leaves no companion,
-  // and the away frame then dies on a null and drops you back to this menu.
-  {let ci9=1;
-   try{
-     const fit9=[1,4,2,3].filter(i9=>crew[i9]&&crew[i9].hp>0);
-     ci9=fit9.length?fit9[0]:1;
-   }catch(e){ci9=1;}
-   try{
-     beginAway({t:'THE ARENA',tier:2,obj:'clear',arena9:true,expedition:true},null,ci9);
-   }catch(e){
-     try{startAway({t:'THE ARENA',tier:2,obj:'clear',arena9:true});}catch(e2){}
-   }}
-  if(AW)AW.isArena9=true;
-  if(!AW||!AW.comp){say('The arena master waves you off: you cannot fight this alone, Captain. Bring an officer who can stand.','#ff8c8c');S.arena9=null;S.screen='space';return;}
-  S.screen='away';
-  try{setMusic('boarding')}catch(e){}
-  say('★ THE GATE DROPS BEHIND YOU. Ten waves. A lance, your team, and a great deal of noise. ★','#ffd86b');
-  S.arena9.spawn9=true;   // the watcher puts them on the sand on the next frame
+  // The arena used to choose your companion FOR you: the first fit officer out of [1,4,2,3], which
+  // is almost always the First Officer, so every trip to the sand was Reyes. An earlier attempt to
+  // use startAway was reverted, and the comment left behind blamed startAway. It was not startAway.
+  // Its team dialog is ASYNCHRONOUS: everything after the call ran before the player had picked, so
+  // the "you cannot fight this alone" guard saw no companion yet, fired immediately, and threw you
+  // out. The dialog is fine; the setup just has to live in the continuation.
+  const go9=(ci9)=>{
+    AR=null;
+    S.arena9={on:true,wave:1,purse:0,where:where9};
+    try{beginAway({t:'THE ARENA',tier:2,obj:'clear',arena9:true,expedition:true},null,ci9);}
+    catch(e9){try{S.screen='space';}catch(e8){}return;}
+    if(AW)AW.isArena9=true;
+    if(!AW||!AW.comp){say('The arena master waves you off: you cannot fight this alone, Captain. Bring an officer who can stand.','#ff8c8c');S.arena9=null;S.screen='space';return;}
+    S.screen='away';
+    try{setMusic('boarding')}catch(e9){}
+    say('\u2605 THE GATE DROPS BEHIND YOU. Ten waves. A lance, your team, and a great deal of noise. \u2605','#ffd86b');
+    S.arena9.spawn9=true;   // the watcher puts them on the sand on the next frame
+  };
+  const fit9=[1,2,3,4].filter(i9=>crew[i9]&&crew[i9].hp>0&&!(S.disease&&S.disease.who===i9));
+  if(!fit9.length){
+    say('The arena master waves you off: you cannot fight this alone, Captain. Bring an officer who can stand.','#ff8c8c');
+    return;   // AR is still live, so you are simply back at the gate
+  }
+  if(fit9.length===1){go9(fit9[0]);return;}
+  const abil9=(ci)=>{try{const t9=compAbilityText(ci);const p9=t9.split('\u2014 ');return p9[1]||t9;}catch(e9){return '';}};
+  showEnc('WHO GOES OUT WITH YOU?',
+    'The gate hand looks past you at your officers. "One of them. The sand is not interested in your whole crew." You lead [LVL '+crew[0].lvl+' \u2022 HP '+Math.round(crew[0].hp)+'/'+crewMaxHp(crew[0])+'].',
+    fit9.map(ci=>({label:crew[ci].name+'  [LVL '+crew[ci].lvl+' \u2022 HP '+Math.round(crew[ci].hp)+'/'+crewMaxHp(crew[ci])+']  \u2014 '+abil9(ci),
+                   fn:()=>{closeEnc();go9(ci);}}))
+      .concat([{label:'Step back from the gate',col:'#2a281a',tcol:'#e8dfa0',
+                fn:()=>{closeEnc();S.screen='arena';}}]),
+    'space');
 }
 function arClearFloor9(){
   if(!AW||!AW.grid)return;
