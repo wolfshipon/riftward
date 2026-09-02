@@ -111,6 +111,27 @@ function touchHailNear9(){ // is ANYTHING hailable close? (companions, allies, B
 }
 // Special abilities that have no fixed button: only the ones usable RIGHT NOW, so touch players can reach
 // cloak, blink, fire breath, the class kits, and become-Q without tracing anything.
+// Every ground ability that has no fixed button. Wolf asked where the cloak button was; the answer
+// was that FIVE away actions were keyboard-only, not one. Built as a context list like the space
+// pills so a new ground ability gets a touch button automatically instead of waiting to be noticed.
+//   [C] suit cloak        (anyone with a cloaking device, not the Saint)
+//   [X] the veil          (Saint)
+//   [C] charm a foe       (Saint)
+//   [W] step / blink      (Vorlan, or a mini-rift coil)
+//   [V] fire breath       (if you took it off the wyrm)
+function awayAbil9(){
+  const out=[];
+  try{
+    const st9=(typeof isSaint9==='function'&&isSaint9()), vr9=(typeof isVorlan9==='function'&&isVorlan9());
+    if(!st9&&ship.hasCloak)out.push({k:'c',l:(AW&&AW.cloak9)?'UNCLK':'CLOAK'});
+    if(st9)out.push({k:'x',l:S.veil9?'UNVEIL':'VEIL'});
+    if(st9)out.push({k:'c',l:'CHARM'});
+    if(vr9)out.push({k:'w',l:'STEP'});
+    else if(S.miniRift)out.push({k:'w',l:'BLINK'});
+    if(S.fireBreath9)out.push({k:'v',l:'BREATH'});
+  }catch(e9){}
+  return out.slice(0,4);   // four slots, clear of the minimap above
+}
 function touchAbilities9(){
   const out=[];
   try{
@@ -306,6 +327,10 @@ function drawTouch(){
     // in was the [Q] key. On a phone that meant no Orson planetside at all, and none in the arena
     // either, since the arena fight runs on this same screen.
     if(S.qUnlocked)B9.push({k:'q',l:'ORSON',x:W-40,y:H-326,r:28});
+    // two columns, filling across then upward; the away minimap ends around y=170 so these clear it
+    awayAbil9().forEach((a9,i9)=>{
+      B9.push({k:a9.k,l:a9.l,x:W-((i9%2)?104:40),y:H-390-Math.floor(i9/2)*64,r:26});
+    });
   }
   for(const b9 of B9){
     touchRects.push(b9);
@@ -497,7 +522,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.71';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.74';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -4078,7 +4103,7 @@ function orsonFlip(){
         say('ORSON: "Character-building! You\'ll thank me at your eulogy."','#ff8ce8');closeEnc();}}]);
     return;
   }
-  if(S.orsonFavor&&Math.random()<.3){S.orsonFavor=false;ship.shield=0;QSTATE.flash=1.5;
+  if(S.orsonFavor&&Math.random()<.3){S.orsonFavor=false;ship.shield=0;orsonO9(1.5);
     say('ORSON: "About that favor — I\'ll take it now." Your shields evaporate. Somewhere, applause.','#ff8ce8');sfx.fanfare();return;}
   const wantR=(S.standing||50)<=25&&!S.orsonR&&!S.duty;
   const wantP=fcv()<=25&&!S.orsonP&&!S.reapp;
@@ -7383,6 +7408,14 @@ function hurtEnemy(e,dmg){
       S.capCd9=Math.max(S.capCd9||0,S.t+420);   // a wreck bounty is small, so the quiet is short
       say('\u2605 CAPITAL HULL DESTROYED \u2014 the prize courts pay 7,500 cr on the wreck alone. Boarding one pays a great deal more. \u2605','#ffd86b');
     }
+    // A leviathan is one of the hardest things in the sky: 210 hull before multipliers, self-mending
+    // at 1.8/s, half damage from lances so torpedoes are the only real answer, and a shockwave with a
+    // 700-unit reach. It paid SCORE and nothing else. The xeno institutes pay for a carcass.
+    if(e.et&&e.et.leviPulse9&&!e.friendly9&&!e.neutral9&&!e.bork9){
+      award(10000);
+      say('\u2605\u2605 THE LEVIATHAN IS DOWN. Every xeno institute in the sector wants a piece of the carcass and they are bidding against each other: +10,000 cr. \u2605\u2605','#ffd86b');
+      try{sfx.fanfare&&sfx.fanfare();}catch(e9){}
+    }
     if(e.type&&e.type.slice(0,4)==='fed_'){
       S.standing=Math.max(0,(S.standing||50)-4);S.fcred=Math.min(100,fcv()+1);addInfamy(15);
       say('the Accord will remember that hull. STANDING falls.','#ff8c8c');
@@ -8265,7 +8298,8 @@ function drawHullVariant(k){
   ctx.fillStyle=sk.ac;ctx.beginPath();ctx.arc(0,-4,2.6,0,TAU);ctx.fill();
   ctx.shadowBlur=0;
 }
-function qSay(t){say('ORSON: '+t,'#ff8ce8');QSTATE.flash=Math.max(QSTATE.flash,1);}
+function orsonO9(v){QSTATE.flash=Math.max(QSTATE.flash||0,v);QSTATE.oT9=Math.max(QSTATE.oT9||0,v);}
+function qSay(t){say('ORSON: '+t,'#ff8ce8');orsonO9(1);}
 function toggleQMode(){
   if(typeof isVorlan9==='function'&&isVorlan9()){
     S.qmode=false;
@@ -8276,7 +8310,7 @@ function toggleQMode(){
     say('ORSON: (you feel the thought brush past) '+(QSTATE.count<=2?'"You are not yet INTERESTING enough to be me. Keep trying."':(QSTATE.count<=4?'"Warmer. You are becoming almost watchable. Not yet."':(QSTATE.count<=5?'"So CLOSE. A visit or two more and we shall talk, you and I."':'"One more visit, dear captain. ONE. Do try to survive until then."'))),'#ff8ce8');
     return;
   }
-  if(!S.qmode){S.qmode=true;if(S.amuse==null)S.amuse=20;sfx.fanfare();QSTATE.flash=1.6;
+  if(!S.qmode){S.qmode=true;if(S.amuse==null)S.amuse=20;sfx.fanfare();orsonO9(1.6);
     say('ORSON: "Enough watching. Let us PLAY." You ascend. Your captain flies on, oblivious.','#ff8ce8');}
   else{S.qmode=false;say('ORSON: "Back to your little chair, then. For now." You descend into the story.','#ff8ce8');}
 }
@@ -8375,7 +8409,7 @@ function updateSpace(dt){
       try{
         qSay('"You looked BORED. I have FIXED it." The stars go out, and come back as a wall of noise.');
         try{amuse(4);}catch(e9){}
-        QSTATE.flash=1.4;try{sfx.transporter&&sfx.transporter();}catch(e9){}
+        orsonO9(1.4);try{sfx.transporter&&sfx.transporter();}catch(e9){}
         openArena9('planet');
       }catch(e9){}
     }
@@ -12622,9 +12656,25 @@ function drawEncounter(){
     return{sz:eBig9?13:11,lines:[l1.trim(),l2.trim()]};
   };
   const laid=ENC.options.map((o,i)=>{const f2=fit('['+(i+1)+'] '+o.label);return{o,sz:f2.sz,lines:f2.lines,h:f2.lines.length>1?(eBig9?72:58):(eBig9?54:44)};});
-  const optH=laid.reduce((a,l)=>a+l.h+8,0);
-  const contentH=76+textH+optH+16;
-  const py0=(ENC&&(ENC.bg==='ctable'||ENC.bg==='comedy9'||ENC.bg==='singer9'))?Math.max(64,H-contentH-18):Math.max(70,Math.min(170,(H-contentH)/2));
+  // A long dialog used to run straight off the bottom of the screen: no scroll, no shrink, it simply
+  // computed a height taller than the display and drew anyway. Bork's menu reached eight options and
+  // the last one ("Wave and fly on") was drawn below the glass and could not be tapped. Rows now
+  // squeeze toward a floor until the whole card fits, which fixes every over-long dialog at once.
+  let gap9=8;
+  let optH=laid.reduce((a,l)=>a+l.h+gap9,0);
+  let contentH=76+textH+optH+16;
+  let pad9=70;
+  if(contentH>H-2*pad9-8){
+    pad9=24;                                   // give the card the margins back first
+    const room9=(H-2*pad9-8)-(76+textH+16);
+    const need9=laid.reduce((a,l)=>a+l.h,0)+laid.length*gap9;
+    const k9=Math.max(0.58,Math.min(1,room9/Math.max(1,need9)));
+    gap9=Math.max(4,Math.round(gap9*k9));
+    laid.forEach(l=>{l.h=Math.max(l.lines.length>1?46:34,Math.round(l.h*k9));});
+    optH=laid.reduce((a,l)=>a+l.h+gap9,0);
+    contentH=76+textH+optH+16;
+  }
+  const py0=(ENC&&(ENC.bg==='ctable'||ENC.bg==='comedy9'||ENC.bg==='singer9'))?Math.max(pad9-6,H-contentH-18):Math.max(pad9,Math.min(170,(H-contentH)/2));
   rr(W/2-340,py0,680,contentH,18,'#0d1420');
   txt(ENC.title,W/2,py0+42,'#ffd86b',eBig9?23:19,'center');
   wrapText(ENC.text,W/2-300,py0+74,600,eBig9?17:14,'#cfe8ff');
@@ -12633,13 +12683,14 @@ function drawEncounter(){
   laid.forEach(l=>{
     rr(W/2-300,oy,600,l.h,12,l.o.col||'#1f3a5c');
     if(l.lines.length>1){
-      txt(l.lines[0],W/2,oy+22,l.o.tcol||'#9fd8ff',l.sz,'center');
-      txt(l.lines[1],W/2,oy+42,l.o.tcol||'#9fd8ff',l.sz,'center');
+      // positioned from the row's own height so a squeezed row keeps both lines inside it
+      txt(l.lines[0],W/2,oy+Math.round(l.h*0.42),l.o.tcol||'#9fd8ff',l.sz,'center');
+      txt(l.lines[1],W/2,oy+Math.round(l.h*0.78),l.o.tcol||'#9fd8ff',l.sz,'center');
     } else {
       txt(l.lines[0],W/2,oy+l.h/2+6,l.o.tcol||'#9fd8ff',l.sz,'center');
     }
     encRects.push({x:W/2-300,y:oy,w:600,h:l.h,fn:l.o.fn});
-    oy+=l.h+8;
+    oy+=l.h+gap9;
   });
 }
 function noLandBust(){
@@ -24594,6 +24645,7 @@ function frameInner(now){
   if(alarmState){alarmState.ttl-=dt;if(alarmState.ttl<=0)alarmState=null;}
   if(S.hitFlash>0)S.hitFlash-=dt;
   if(QSTATE.flash>0)QSTATE.flash-=dt*.8;
+  if(QSTATE.oT9>0)QSTATE.oT9-=dt*.8;   // the O has its own clock now, and only Orson winds it
   sfxBudget=Math.min(10,sfxBudget+dt*30); // sfx throttle refills ~30 sounds/sec
   S.acT=(S.acT||0)+dt;
   if(S.acT>1){S.acT=0;if(AC&&!muted&&AC.state!=='running'){try{AC.resume();}catch(e){}}
@@ -24708,11 +24760,13 @@ function frameInner(now){
   } else if(PREFS.vol<=0.001&&S.screen!=='splash'&&S.screen!=='story'){
     txt('MASTER VOLUME 0% \u2014 [Esc]\u2192[5]',W-14,14,'#8899bb',9,'right','normal');
   }
-  // Orson's flash transcends all screens
+  // A white flash transcends all screens. The O only comes with it when ORSON caused it.
   if(QSTATE.flash>0){
     ctx.fillStyle='rgba(255,255,255,'+Math.min(.7,QSTATE.flash*.5)+')';ctx.fillRect(0,0,W,H);
+  }
+  if(QSTATE.oT9>0){
     ctx.shadowColor='#ff8ce8';ctx.shadowBlur=40;
-    txt('O',W/2,H/2+40,'rgba(255,140,232,'+Math.min(1,QSTATE.flash)+')',120,'center');
+    txt('O',W/2,H/2+40,'rgba(255,140,232,'+Math.min(1,QSTATE.oT9)+')',120,'center');
     ctx.shadowBlur=0;
   }
   if(S.menu)drawMenu();
