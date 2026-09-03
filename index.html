@@ -149,7 +149,9 @@ function touchAbilities9(){
       // shrines, almshouses and white hulls were unreachable on touch.
       if(typeof pacified9==='function'&&pacified9(ship.sys))out.push({k:'y',l:'CHAPTER'});
     } else if(vorlan){
-      if(typeof heldCount9==='function'&&heldCount9()>=2)out.push({k:'z',l:'CORRUPT'});
+      // Always shown. It was hidden below 2 held systems, so a new Emperor never learned the power
+      // existed; the HUD line already reads '[Z] locked (hold 2)' and pressing it says the same.
+      out.push({k:'z',l:(typeof heldCount9==='function'&&heldCount9()>=2)?'CORRUPT':'CORRUPT \u2715'});
       out.push({k:'v',l:'CLAIM'});
       out.push({k:'w',l:'BLINK'});
       if(ship.hasCloak)out.push({k:'c',l:ship.cloaked?'UNCLOAK':'CLOAK'});
@@ -275,7 +277,7 @@ function drawTouch(){
     ctx.fillStyle='#8fd0ff';ctx.fill();
     const CB9=[];
     if(CF.brawl9)CB9.push({l:'PUNCH',x:W-74,y:H-84,r:44,act9:()=>cfPunch9()});
-    CB9.push({l:'USE',x:CF.brawl9?W-176:W-74,y:CF.brawl9?H-56:H-84,r:CF.brawl9?32:44,act9:()=>cfUse9()});
+    CB9.push({l:'USE',x:CF.brawl9?W-180:W-74,y:CF.brawl9?H-58:H-84,r:CF.brawl9?38:44,act9:()=>cfUse9()});   // r32 while fleeing was the smallest button on the screen
     CB9.push({l:'DASH',x:W-190,y:H-160,r:30,act9:()=>{if((CF.dashCd9||0)<=0){CF.dashT9=0.30;CF.dashCd9=0.85;try{sfx.ding&&sfx.ding();}catch(e){}}}});
     // r26/r28 clamped these labels to 'CL...' and 'ORS...': txtFit floors at 14px and uiScale9()
     // takes it to 17, so a five-cap word wants ~52px inside a 49px allowance. Bigger circles, wider spacing.
@@ -334,7 +336,9 @@ function drawTouch(){
     // ORSON MODE was reachable in space and in the casino but NOT on the ground, where the only way
     // in was the [Q] key. On a phone that meant no Orson planetside at all, and none in the arena
     // either, since the arena fight runs on this same screen.
-    if(S.qUnlocked)B9.push({k:'q',l:'ORSON',x:W-40,y:H-326,r:28});
+    // Vorlan gets NO Orson button. S.qLock9 is set the moment you take the crown, so the only thing
+    // the button could do is print the refusal line. A button that exists to say no is not a button.
+    if(S.qUnlocked&&!S.qLock9&&!(typeof isVorlan9==='function'&&isVorlan9()))B9.push({k:'q',l:'ORSON',x:W-40,y:H-326,r:28});
     // two columns, filling across then upward; the away minimap ends around y=170 so these clear it
     awayAbil9().forEach((a9,i9)=>{
       B9.push({k:a9.k,l:a9.l,x:W-((i9%2)?104:40),y:H-390-Math.floor(i9/2)*64,r:26});
@@ -507,6 +511,14 @@ function txtFit(s,x,y,c,size,maxW,align,weight){
   if(S&&S.txtRec9&&t&&t.trim()){try{const w9=ctx.measureText(t).width;let x9=x;if(align==='center')x9=x-w9/2;else if(align==='right')x9=x-w9;(S.txtBoxes9=S.txtBoxes9||[]).push({s:t.slice(0,46),x:x9,y:y-sz,w:w9,h:sz*1.15});}catch(e){}}
   return t;
 }
+function txtPx9(size){
+  // The pixel size txt()/txtFit() will ACTUALLY paint at. It is NOT the number you pass:
+  // there is a 14px floor on touch and a uiScale9() multiplier on a phone. Measure with this,
+  // or you wrap at one size and paint at another, which is how text ends up outside its own box.
+  let sz9=Math.max(IS_TOUCH?14:12,Math.round((size||15)*1.16));
+  if(PHONE9){const u9=uiScale9();if(u9!==1)sz9=Math.round(sz9*u9);}
+  return sz9;
+}
 function wrapText(text,x,y,maxW,size,color){
   if(TR&&TR[text])text=TR[text];   // translate the whole paragraph BEFORE wrapping — per-line lookups never match
   size=Math.max(12,Math.round(size*1.12));
@@ -539,7 +551,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.77';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.81';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -1821,6 +1833,15 @@ function vorBecome9(e){
   say('Everything you trained them for is gone. Everything anybody owed you is gone. There is only the ship, the dark, and how far you are willing to take it.','#8899bb');
   say('Orson does not come. He will not, while this lasts.','#e86ad9');
   try{startCutscene9('vor');}catch(err){}
+  // The crown ends every Accord contract and every trade confidence. They were the mortal's
+  // business, and holding a mission log you can no longer complete is just clutter on the journal.
+  try{
+    const nM9=(S.missions||[]).length;
+    S.missions=[];S.baseOffers=null;
+    S.tradeTip=null;S.tipCd=0;S.intel=[];S.treasureTip=null;S.courierJob=null;
+    if(nM9)say('Every contract in your log goes quiet at once. '+nM9+' commission'+(nM9>1?'s':'')+' the Accord will not be honouring, and no lane will whisper a price to the dark.','#8899bb');
+    else say('No lane will whisper a price to the dark. The trade talk stops the day you take the crown.','#8899bb');
+  }catch(err){}
   try{say('The throne is administered from the seats you have taken. Dock at any starbase to hold court and set the reign’s next campaign.','#c9b7e8');}catch(err){}
 }
 function vorMortal9(){
@@ -1971,6 +1992,7 @@ function bossHere9(){
   try{
     if(typeof levi!=='undefined'&&levi&&(levi.hp==null||levi.hp>0))return true;
     return enemies.some(e9=>e9&&e9.alive&&(e9.boss||e9.unique9||e9.type==='vorlanship'||
+      e9.type==='leviathan'||(e9.et&&e9.et.leviPulse9)||
       (e9.et&&e9.et.beh==='boss')||(typeof isCapital==='function'&&isCapital(e9))));
   }catch(e){return false;}
 }
@@ -1989,6 +2011,20 @@ function clearLanes9(){
   }catch(e){}
 }
 function missionInSys9(sys9){try{return (S.missions||[]).some(m2=>{const d2=(typeof edef==='function'?edef(m2):(m2&&m2.def))||(m2&&m2.def)||{};return d2.sys===sys9||(d2.syss&&d2.syss.includes(sys9));});}catch(e){return false;}}
+function vorPodOk9(){
+  // The pod is the FIRST beat of the arc: him asleep on somebody else's courier. It has no
+  // business turning up once the arc has moved on, and none at all while you ARE him — Wolf
+  // scanned a transport carrying Vorlan while wearing the crown, which is a plain contradiction.
+  try{
+    if(typeof isVorlan9==='function'&&isVorlan9())return false;   // you are the thing in the pod
+    if(S.vorlan9&&S.vorlan9.on)return false;
+    if(S.wantedCaptive)return false;                              // he is already in your brig
+    if((S.vorlanCaught9||0)>=1)return false;                      // taken once: from here he HUNTS, he does not sleep
+    if(S.vorDone9||S.vorWas9)return false;                        // the arc is spent, or you have already worn it
+    if(typeof S.hullSkin!=='undefined'&&typeof throneSkin9==='function'&&S.hullSkin===throneSkin9())return false;
+  }catch(e){}
+  return true;
+}
 function vorHunt9(){
   // he returns between one and three jumps after you last put him away
   vorInit9();
@@ -4840,6 +4876,7 @@ const CGEN=(()=>{
 })();
 function spawnTraffic(free){
   if(typeof bossHere9==='function'&&bossHere9())return;   // the lanes are closed while something that size is out there
+  if(typeof isVorlan9==='function'&&isVorlan9())return;   // and they do not open again for the Unmaker at all
   if(free){ // a courier just passing through this system
     const v=Math.random()<.5;
     const a={x:v?rnd(0,ARENA):(Math.random()<.5?-60:ARENA+60),y:v?(Math.random()<.5?-60:ARENA+60):rnd(0,ARENA)};
@@ -4954,7 +4991,9 @@ function sayBridge(force){
   }catch(e){}
 }
 function wrapMsg9(str9,maxW9,size9){
-  const sz9=Math.max(IS_TOUCH?14:12,Math.round((size9||12)*1.16));
+  // This computed the touch FLOOR but skipped uiScale9(), which txt() applies on a phone. It wrapped
+  // at 14px and painted at ~17, so every message ran about 20% past its own column and off the screen.
+  const sz9=txtPx9(size9||12);
   ctx.font='bold '+sz9+'px "Helvetica Neue",Arial,sans-serif';
   const words9=String(str9).split(' ');const out9=[];let line9='';
   const probe9=ctx.measureText('MMMMMMMMMM');
@@ -6495,6 +6534,8 @@ function hailEnemy(e){
         gainStanding(1);
         say('You say your piece. They do not blink, and they do not slow down. Your crew, however, stand a little straighter.','#ffd86b');
         closeEnc();}});
+    // Not as Vorlan. Striking your colours is a trick for someone who could plausibly lose.
+    if(!(typeof isVorlan9==='function'&&isVorlan9()))
     opts9.push({label:'FALSE SURRENDER — lure them close (dishonorable)',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
         e.duped=true;S.standing=Math.max(0,(S.standing||50)-4);addInfamy(12);
         say('You strike your colors. They close to finish it. Your gunner\'s hands are very steady. (Next lance hit ×2.5)','#c9d46a');
@@ -6524,10 +6565,10 @@ function hailEnemy(e){
           say('A long pause. Then hard burn AWAY. '+crew[2].name+' does not smile. Visibly.','#7fd98a');}
         else{e.dmgMul=(e.dmgMul||1)*1.1;say('They scan your \'plague ship\'. It is a planet. Awkward. FIGHT!','#ff8c8c');}
         closeEnc();}},
-     {label:'FALSE SURRENDER — lure them close (dishonorable)',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
+     ...((typeof isVorlan9==='function'&&isVorlan9())?[]:[{label:'FALSE SURRENDER — lure them close (dishonorable)',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
         e.duped=true;S.standing=Math.max(0,(S.standing||50)-4);addInfamy(12);
         say('You strike your colors. They close to board. Your gunner\'s hands are very steady. (Next lance hit \u00d72.5)','#c9d46a');
-        closeEnc();}});
+        closeEnc();}}]));
   }
   showEnc('CHANNEL OPEN \u2014 '+(e.idKnown?(CLS[e.type]||e.nm):'UNKNOWN VESSEL'),
     beaten9?'Their hull is venting and their guns are half-dark. The face on the viewer is doing the arithmetic of survival. This one you could let live.'
@@ -7005,7 +7046,7 @@ function fireLightning9(){
     S.beamFx.push({x1:ship.x,y1:ship.y,x2:ship.x+Math.cos(ship.ang)*LR9,y2:ship.y+Math.sin(ship.ang)*LR9,t:.12,hit:false,volt9:true});
     return;
   }
-  const chain9=2+((S.empire9&&S.empire9.wrath>=2)?2:1);
+  const chain9=3+((S.empire9&&S.empire9.wrath>=2)?3:1);
   const hitList9=[best9];let from9=best9;
   while(hitList9.length<chain9){
     let nxt9=null,nd9=200;
@@ -7021,7 +7062,7 @@ function fireLightning9(){
   for(const e9 of hitList9){
     S.beamFx.push({x1:px9,y1:py9,x2:e9.x,y2:e9.y,t:.14,hit:true,volt9:true});
     try{
-      let vd9=(6+ship.up.lance*3.0)*(1+(S.vorlan9.tier||1)*0.14)*(1+((S.empire9&&S.empire9.wrath)||0)*0.08)*buffMul9('dmg');
+      let vd9=(11+ship.up.lance*4.4)*(1+(S.vorlan9.tier||1)*0.19)*(1+((S.empire9&&S.empire9.wrath)||0)*0.11)*buffMul9('dmg');
       if(e9.et&&e9.et.lanceHalf)vd9*=.45;
       if(e9.duped){vd9*=2.5;e9.duped=false;say('Point-blank arc, and the false colors drop with it.','#ffd86b');}
       hurtEnemy(e9,vd9);leech9+=vd9;
@@ -8343,33 +8384,43 @@ function qPower(k){
   }
   p.fn();
 }
-function drawQOverlay(){
-  ctx.fillStyle='rgba(30,4,34,.28)';ctx.fillRect(0,0,W,H);
-  // amusement meter
-  const am=S.amuse||0;
-  rr(W/2-220,14,440,44,14,'rgba(20,4,26,.85)');
-  txt('ORSON MODE  —  AMUSEMENT',W/2,34,'#ff8ce8',13,'center');
-  rr(W/2-190,40,380,10,5,'rgba(255,255,255,.14)');
-  rr(W/2-190,40,380*(am/100),10,5,'#ff8ce8');
-  txt(Math.round(am)+'/100',W/2+210,34,'#ff8ce8',12,'right');
-  // power list
+function qCards9(list,am,top,bot){
+  // One shared card grid for BOTH Orson lists. The old layout drew a 26px row with the name at x=30
+  // and the description at x=300 inside a 470-wide panel: long names ran straight through the
+  // descriptions, the descriptions ran outside the panel entirely, and a 26px row is not a tap
+  // target on a phone, it is a guess.
   qRects9=[];
-  let y=H-26-QPOWERS.length*26;
-  rr(18,y-30,470,QPOWERS.length*26+40,14,'rgba(20,4,26,.8)');
-  txt("ORSON'S PLAYTHINGS  ("+(IS_TOUCH?'tap one':'press the number')+')',30,y-10,'#ff8ce8',12,'left');
-  QPOWERS.forEach(p=>{
-    const ok=am>=p.need;
-    txt('['+p.k+'] '+p.name,30,y+10,ok?'#ffd0f4':'#7a5a72',12);
-    txt(p.desc+(ok?'':'  (locked)'),300,y+10,ok?'#c89ac0':'#6a4a64',10,'left','normal');
-    qRects9.push({x:18,y:y-6,w:470,h:26,k:p.k});
-    y+=26;
+  const arr9=list.slice().sort((a9,b9)=>((am>=a9.need)?0:1)-((am>=b9.need)?0:1));  // usable first, locked last
+  const COLS9=2, MG9=24, GAP9=14;
+  const cw9=Math.floor((W-2*MG9-GAP9)/COLS9);
+  const rows9=Math.ceil(arr9.length/COLS9);
+  const ch9=Math.max(52,Math.min(84,Math.floor((bot-top-(rows9-1)*10)/rows9)));
+  arr9.forEach((p,i9)=>{
+    const col9=i9%COLS9, row9=(i9-col9)/COLS9;
+    const x9=MG9+col9*(cw9+GAP9), y9=top+row9*(ch9+10);
+    const ok9=am>=p.need;
+    rr(x9,y9,cw9,ch9,12,ok9?'#2a1030':'#170a1c');
+    if(ok9){ctx.strokeStyle='rgba(255,140,232,.34)';ctx.lineWidth=1.5;ctx.strokeRect(x9+1,y9+1,cw9-2,ch9-2);}
+    txtFit('['+p.k+'] '+p.name,x9+14,y9+25,ok9?'#ffd0f4':'#7a5a72',13,cw9-100,'left');
+    if(!ok9)txt('needs '+p.need,x9+cw9-12,y9+25,'#8a5a80',10,'right','normal');
+    txtFit(p.desc,x9+14,y9+ch9-14,ok9?'#c89ac0':'#5a4456',10,cw9-26,'left','normal');
+    qRects9.push({x:x9,y:y9,w:cw9,h:ch9,k:p.k});
   });
-  // DESCEND button (tap to leave Q mode on touch)
-  rr(W-172,12,150,42,10,'#3a1c1c');txt('✕ DESCEND',W-97,39,'#ffb0b0',13,'center');
-  qRects9.push({x:W-172,y:12,w:150,h:42,k:'q'});
-  txt((IS_TOUCH?'tap DESCEND to return to your captain':'[Q] descend back into your captain')+'  •  he is flying himself while you play',W/2,H-8,'#c89ac0',11,'center','normal');
 }
-
+function drawQOverlay(){
+  ctx.fillStyle='rgba(10,2,14,.90)';ctx.fillRect(0,0,W,H);   // was .28: the live HUD showed straight through the list
+  const am=S.amuse||0;
+  rr(W/2-220,10,440,44,14,'rgba(20,4,26,.92)');
+  txt('ORSON MODE  —  AMUSEMENT',W/2,30,'#ff8ce8',13,'center');
+  rr(W/2-190,36,380,10,5,'rgba(255,255,255,.14)');
+  rr(W/2-190,36,380*(am/100),10,5,'#ff8ce8');
+  txt(Math.round(am)+'/100',W/2+210,30,'#ff8ce8',12,'right');
+  txt("ORSON'S PLAYTHINGS  ("+(IS_TOUCH?'tap one':'press the key')+')',24,74,'#ff8ce8',13,'left');
+  qCards9(QPOWERS,am,86,H-52);
+  rr(W-176,10,152,44,10,'#3a1c1c');txt('\u2715 DESCEND',W-100,38,'#ffb0b0',13,'center');
+  qRects9.push({x:W-176,y:10,w:152,h:44,k:'q'});
+  txtFit((IS_TOUCH?'tap DESCEND to return to your captain':'[Q] descend back into your captain')+'  \u2022  he is flying himself while you play',W/2,H-12,'#c89ac0',11,W-80,'center','normal');
+}
 function updateSpace(dt){
   let thrust=0;
   if(S.qmode){autoPilot(dt);thrust=Math.hypot(ship.vx,ship.vy)>40?1:0;}
@@ -9089,12 +9140,12 @@ function updateSpace(dt){
             say('Paid. They rift off to bother someone braver.','#c9d46a');closeEnc();}},
          {label:'"Claimed by WHOM, exactly?" (stand your ground)',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
             he.holdFire=false;he.fire=.5;say('The channel fills with laughter. Then torpedo-lock tones.','#ff8c8c');closeEnc();}},
-         {label:'BLUFF: "My battle group is one jump behind me."',fn:()=>{
+         ...((typeof isVorlan9==='function'&&isVorlan9())?[]:[{label:'BLUFF: "My battle group is one jump behind me."',fn:()=>{
             if(Math.random()<.35+crew[2].lvl*.08+(hasTrait('talk')?.12:0)){he.alive=false;he.detected=false;
               riftStreak(he.x,he.y,he.ang||Math.random()*TAU,'#7fd98a','out');sfx.rift();
               say('They check long-range sensors twice... and decide not to gamble. Hard burn out.','#7fd98a');}
             else{he.holdFire=false;he.fire=.5;he.dmgMul=(he.dmgMul||1)*1.1;say('"Nice try." Weapons hot \u2014 and now it\'s personal.','#ff8c8c');}
-            closeEnc();}}]);
+            closeEnc();}}])]);   // no bluff for the Unmaker: nobody needs to invent a fleet when they ARE the thing being feared
     }
   }
   updateTractor(dt);
@@ -9294,7 +9345,15 @@ function updateSpace(dt){
     }
   }
   // civilian traffic
-  if(civ&&!civ.stranded&&!civ.saved&&typeof bossHere9==='function'&&bossHere9())clearLanes9();
+  {const shut9=(typeof bossHere9==='function'&&bossHere9())||(typeof isVorlan9==='function'&&isVorlan9());
+   const inLane9=(civ&&!civ.stranded&&!civ.saved)||(typeof traffic!=='undefined'&&traffic&&traffic.length);
+   if(shut9&&inLane9){
+     const hadT9=(typeof traffic!=='undefined'&&traffic)?traffic.length:0;
+     clearLanes9();
+     if(hadT9&&!S.laneShut9){S.laneShut9=true;
+       say((typeof isVorlan9==='function'&&isVorlan9())?'The couriers are already gone. Word travels ahead of the dark, and no freighter files a lane you are flying.':'Every courier in the zone breaks off and runs for the edge. Nobody hauls cargo past a fight this size.','#c9d46a');}
+   } else if(!shut9) S.laneShut9=false;
+  }
   if(civ){
     civ.x=clamp(civ.x+civ.vx*dt,60,ARENA-60);
     civ.y=clamp(civ.y+civ.vy*dt,60,ARENA-60);
@@ -9596,10 +9655,18 @@ function updateSpace(dt){
     }
   }
   enemies=enemies.filter(e=>e.alive);
-  // camera
-  cam.x+= (ship.x-W/2-cam.x)*Math.min(1,dt*5);
-  cam.y+= (ship.y-H/2-cam.y)*Math.min(1,dt*5);
-  cam.x=clamp(cam.x,0,ARENA-W);cam.y=clamp(cam.y,0,ARENA-H);
+  // camera — the ship stays CENTRED.
+  // The old code lerped toward centre and then clamped to clamp(0, ARENA-W). With ARENA 1600
+  // and W 1100 that left only 500px of horizontal travel, so for most of the map the camera was
+  // pinned and the ship slid to a screen edge: you flew corner to corner with half your field of
+  // view outside the world and whatever you were chasing off-screen behind you.
+  // The clamp was never needed. torusTick() wraps the ship and tsnap()s EVERY object (enemies,
+  // bolts, torpedoes, pickups, traffic, roids, fighters, the defence fleet, civ, friendly, ally,
+  // levi, the whale pod, PLANETS, STATION, hazard) to its nearest torus image relative to the
+  // ship, and nothing can be further than ARENA/2 = 800 away, which comfortably covers a 550px
+  // screen half-width. So centring is correct on a torus, and the world simply wraps into view.
+  cam.x+= (ship.x-W/2-cam.x)*Math.min(1,dt*7);
+  cam.y+= (ship.y-H/2-cam.y)*Math.min(1,dt*7);
 }
 
 // ====================== AWAY MODULE ======================
@@ -9903,7 +9970,7 @@ function beginAway(d,mRef,compIdx){
   if(S.arena9&&!(d&&d.arena9))S.arena9=null;   // a new mission is not the arena
   hint('away',IS_TOUCH?'Ground rules: drag the left side to move the team, FIRE shoots, STUN/KILL toggles your setting, ABLTY is your companion, DODGE rolls while moving, RECALL beams you up.':'Ground rules: arrows move the team, [SPACE] fires, [S] toggles STUN/KILL, [E] companion ability, [J] dodge, [B] beams up.');
   AW.active=true;AW.def=d;AW.missionRef=mRef;AW.boarding=!!d.boarding;AW.outT=0;AW.outOk=false;
-  AW.riders9=false;AW.coldT9=0;AW.coldSay9=0;   // AW persists between missions: a stale flag here rode along to every later drop
+  AW.riders9=false;AW.coldT9=0;AW.coldSay9=0;AW.vdSay9=false;   // AW persists between missions: a stale flag here rode along to every later drop
   BC('beginAway '+(d.boarding?'BOARD':'GROUND')+' obj='+(d.obj||'?')+' tier='+(d.tier||1)+(S.childQ?' quest='+S.childQ.type:''));
   {const bio9=(typeof PLANET!=='undefined'&&PLANET&&PLANET.biome)||SYSTEMS[ship.sys].biome;
    const bt=BIOME_THEME[bio9]||['jungle'];
@@ -10293,23 +10360,10 @@ function drawQOverlayAway(){
   txt(Math.round(am)+'/100',W/2+210,84,'#ff8ce8',12,'right');
   // Tap targets, mirroring the space overlay. Without these the whole ground power set was
   // keyboard-only: [Q] to ascend and the digits 1-8 to use anything, none of which a phone has.
-  qRects9=[];
-  // On a phone the descriptions truncated to an ellipsis and told you nothing, so touch gets the
-  // name and the amusement gate only. The full description stays on desktop, where it fits.
-  const rowH9=IS_TOUCH?30:26, boxW9=IS_TOUCH?430:500;
-  let y=H-40-QPOWERS_AW.length*rowH9;
-  rr(18,y-30,boxW9,QPOWERS_AW.length*rowH9+40,14,'rgba(20,4,26,.88)');
-  txt("ORSON'S PLAYTHINGS  ("+(IS_TOUCH?'tap one':'press the number \u2022 [Q] returns you to the mortal')+')',30,y-10,'#ff8ce8',12,'left');
-  QPOWERS_AW.forEach(p=>{
-    const ok=am>=p.need;
-    txtFit('['+p.k+'] '+p.name,30,y+10,ok?'#ffd0f4':'#7a5a72',12,IS_TOUCH?286:210,'left');
-    if(IS_TOUCH)txt(ok?'':'needs '+p.need,boxW9+4,y+10,'#7a5a72',10,'right','normal');
-    else txtFit(p.desc+(ok?'':'  (locked)'),246,y+10,ok?'#c9a0c2':'#5a4456',10,262,'left','normal');
-    qRects9.push({x:18,y:Math.round(y-rowH9/2+4),w:boxW9,h:rowH9,k:p.k});
-    y+=rowH9;
-  });
-  // and a way back down that does not need a keyboard
-  {const dw9=180,dx9=W-dw9-22,dy9=62;
+  // same card grid as the space list: real tap targets, nothing overlapping
+  txt("ORSON'S PLAYTHINGS  ("+(IS_TOUCH?'tap one':'press the key \u2022 [Q] returns you to the mortal')+')',24,132,'#ff8ce8',13,'left');
+  qCards9(QPOWERS_AW,am,144,H-52);
+  {const dw9=176,dx9=W-dw9-22,dy9=62;
    rr(dx9,dy9,dw9,44,12,'rgba(60,10,66,.92)');
    txt('\u2715 DESCEND',dx9+dw9/2,dy9+28,'#ffd0f4',13,'center');
    qRects9.push({x:dx9,y:dy9,w:dw9,h:44,k:'q'});}
@@ -10791,16 +10845,16 @@ function capShoot(){
   AW.shotFx={x1:mzx9,y1:mzy9,x2:tgt?tgt.x:rx,y2:tgt?tgt.y:ry,t:.12,stun:AW.stun};
   if(tgt){AW.cap.ang=Math.atan2(tgt.y-AW.cap.y,tgt.x-AW.cap.x);
     if(S.veil9&&typeof isSaint9==='function'&&isSaint9()){S.veil9=false;say('The veil breaks — even here, a hand raised is a hand seen.','#8899bb');}
-    const cd9=(3.5+crew[0].lvl*.9)*(AW.comp.idx===4?2:1)*(hasTrait('combat')?1.12:1);hitFoe(tgt,cd9);vorLeechAway9(cd9);
+    const cd9=(3.5+crew[0].lvl*.9)*(AW.comp.idx===4?2:1)*(hasTrait('combat')?1.12:1)*((typeof isVorlan9==='function'&&isVorlan9())?1.75:1);hitFoe(tgt,cd9);vorLeechAway9(cd9);
     if(typeof isVorlan9==='function'&&isVorlan9()){   // the throne's lightning chains on the ground too
-      const chainN=4+((S.empire9&&S.empire9.wrath>=2)?2:0);
+      const chainN=5+((S.empire9&&S.empire9.wrath>=2)?3:0);
       const hit9=[tgt];let from9=tgt;AW.chainFx9=AW.chainFx9||[];
       while(hit9.length<chainN){
         let nxt9=null,nd9=210;
         for(const f9 of AW.foes){if(f9.hp<=0||f9.st==='stunned'||hit9.includes(f9))continue;const dd9=Math.hypot(f9.x-from9.x,f9.y-from9.y);if(dd9<nd9){nd9=dd9;nxt9=f9;}}
         if(!nxt9)break;
         AW.chainFx9.push({x1:from9.x,y1:from9.y,x2:nxt9.x,y2:nxt9.y,t:.16});
-        const cd2=cd9*0.7;hitFoe(nxt9,cd2);vorLeechAway9(cd2);
+        const cd2=cd9*0.85;hitFoe(nxt9,cd2);vorLeechAway9(cd2);
         hit9.push(nxt9);from9=nxt9;
       }
       if(hit9.length>1)awToast('⚡ LIGHTNING ARCS '+hit9.length+' — the dark takes them all','#c07ae8');
@@ -11707,6 +11761,38 @@ function updateAway(dt){
       AW.riders9=false;
       try{setMusic(AW.boarding?'board':'away');}catch(e9){}
       say('\u2744 The last rider comes apart into frost and the cold goes out of the ground. Whatever that was, it knew your name.','#a8dcff');
+    }
+  }
+  // === THE UNMAKER'S REACH — standing near him costs you ===
+  // Anything alive that comes within a body length or two starts bleeding life into him. This is
+  // passive: no key, no wrath, no cooldown. It is what he IS.
+  if(typeof isVorlan9==='function'&&isVorlan9()&&!AW.cloak9&&cap.hp>0){
+    let took9=0;
+    for(const f9 of AW.foes){
+      if(!f9||f9.hp<=0||f9.st==='fled'||f9.pacified)continue;
+      const reach9=44+((f9.a&&f9.a.r)||12)*1.6;          // ~62-66 units: one to two body lengths
+      const d9=Math.hypot(f9.x-cap.x,f9.y-cap.y);
+      if(d9>reach9)continue;
+      const amt9=Math.min(12*(1-d9/reach9),30-took9/Math.max(dt,.001))*dt;   // hardest at contact, nothing at the edge, capped ~30/s so a pack does not vaporise
+      if(amt9<=0)continue;
+      f9.vdrain9=(f9.vdrain9||0)+amt9;
+      took9+=amt9;
+      if(f9.vdrain9>=2){                                  // apply in chunks so deaths and loot run normally
+        const chunk9=f9.vdrain9;f9.vdrain9=0;
+        try{hitFoe(f9,chunk9);}catch(e9){}
+      }
+      if(Math.random()<dt*10){                            // life visibly crossing the gap
+        const t9=Math.random();
+        parts.push({x:f9.x+(cap.x-f9.x)*t9+rnd(-4,4),y:f9.y-10+(cap.y-f9.y)*t9+rnd(-4,4),
+          vx:(cap.x-f9.x)*0.6,vy:(cap.y-f9.y)*0.6-14,life:rnd(.2,.4),col:(Math.random()<.5?'#c07ae8':'#4a1d5c'),r:2});
+      }
+    }
+    if(took9>0){
+      const mx9=crewMaxHp(crew[0]);
+      if(cap.hp<mx9)cap.hp=Math.min(mx9,cap.hp+took9*0.45);
+      if(!AW.vdSay9){AW.vdSay9=true;
+        say('\u2620 YOU ARE DRAINING LIFEFORCE. Anything that comes close enough to touch you starts to empty into the dark.','#c07ae8');
+        try{sfx.ding&&sfx.ding();}catch(e9){}}
     }
   }
   if(keys[' ']&&!S.qmAway){
@@ -14492,9 +14578,9 @@ addEventListener('keydown',e=>{
   }
   if(S.screen==='away'){
     if(k==='w'&&isVorlan9()&&!AW.parley){
-      if(S.vorBlinkCd9>0){say('Not yet.','#8899bb');return;}
+      // No cooldown. The wrath cost IS the limiter, and a 3s lockout on the Emperor's own
+      // short step made moving through a fight feel like asking permission.
       if(!wrathSpend9(15,'The dark does not open for you.'))return;
-      S.vorBlinkCd9=3;
       const ang9=Math.atan2((AW.aimY9||AW.cap.y+1)-AW.cap.y,(AW.aimX9||AW.cap.x)-AW.cap.x);
       const fx9=(AW.cap.face||1);
       const dx9=(AW.aimX9!=null?Math.cos(ang9):fx9)*260,dy9=(AW.aimY9!=null?Math.sin(ang9):0)*260;
@@ -15033,7 +15119,7 @@ addEventListener('keydown',e=>{
             tg2.scanRes={t:'...recalibrate and scan again. Confirmed: THE HOPE DIAMOND, of Old Earth, riding in a shoebox of packing straw. Value: ~100,000 credits. The pilot is whistling nervously.',gem:true};
           } else if(roll0<.075){   // was .009 — unreachable below the .050 branch above it
             tg2.scanRes={t:'...a LIVING LEGEND of the holo-screens, traveling incognito \u2014 and caught red-handed being charming. They offer a SIGNED keepsake for your silence.',eff:'autograph'};
-          } else if(roll0<.105){   // was .029 — same problem
+          } else if(roll0<.105&&vorPodOk9()){   // was .029 — same problem
             tg2.scanRes={t:'a cold-sleep pod registered to a dead man... it\'s VORLAN THE UNMAKER, the most wanted being in seven sectors. Alive. Aboard. Helpless.',wanted:true};
           } else if(roll0<.225){   // CELEBRITY SIGHTING — signs a keepsake worth 5,000 cr
             const c9x=CELEBS9[Math.floor(rnd(0,CELEBS9.length))];
@@ -17151,7 +17237,28 @@ function drawSpace(){
       continue;
     }
     ctx.rotate(pf.ang+Math.PI/2);
-    ctx.shadowColor=hurt9?'rgba(255,150,80,.85)':(ry9?'rgba(170,110,240,.85)':(vg9?'rgba(120,90,160,.7)':'rgba(140,200,255,.8)'));ctx.shadowBlur=hurt9?7:10;
+    if(vg9){
+      // THE REIGN'S WING — not the fleet's dart in a grey coat. A black barbed hull with red
+      // edges, a lit slit across the nose and twin red exhausts. Nothing about it says 'escort'.
+      ctx.shadowColor=hurt9?'rgba(255,120,80,.9)':'rgba(200,40,50,.9)';ctx.shadowBlur=hurt9?8:13;
+      ctx.fillStyle='#100609';
+      ctx.beginPath();
+      ctx.moveTo(0,-13);ctx.lineTo(4,-4);ctx.lineTo(11.5,6);ctx.lineTo(5,4);
+      ctx.lineTo(3,10.5);ctx.lineTo(0,5);ctx.lineTo(-3,10.5);ctx.lineTo(-5,4);
+      ctx.lineTo(-11.5,6);ctx.lineTo(-4,-4);ctx.closePath();ctx.fill();
+      ctx.strokeStyle=hurt9?'rgba(255,150,90,.95)':'rgba(214,38,48,.95)';ctx.lineWidth=1.3;ctx.stroke();
+      ctx.shadowBlur=6;
+      ctx.strokeStyle='rgba(255,74,64,'+(0.65+0.35*Math.sin((S.t||0)*6+fx3*0.05))+')';ctx.lineWidth=1.7;
+      ctx.beginPath();ctx.moveTo(-2.7,-7.2);ctx.lineTo(2.7,-7.2);ctx.stroke();
+      ctx.fillStyle='rgba(232,52,52,.95)';
+      ctx.fillRect(-3.5,3.4,1.8,4.4);ctx.fillRect(1.7,3.4,1.8,4.4);
+      ctx.shadowBlur=0;ctx.restore();
+      if(Math.random()<.22)parts.push({x:pf.x+rnd(-3,3),y:pf.y+rnd(0,6),vx:rnd(-8,8),vy:rnd(-6,10),life:rnd(.25,.5),col:(Math.random()<.5?'#d62630':'#2a0e14'),r:1.6});
+      rr(fx3-10,fy3-16,20,3,1,'rgba(255,255,255,.15)');
+      rr(fx3-10,fy3-16,20*clamp(pf.hp/(pf.maxHp||12),0,1),3,1,hurt9?'#ff8a5c':'#d62630');
+      continue;
+    }
+    ctx.shadowColor=hurt9?'rgba(255,150,80,.85)':(ry9?'rgba(170,110,240,.85)':'rgba(140,200,255,.8)');ctx.shadowBlur=hurt9?7:10;
     const fg2=ctx.createLinearGradient(0,-10,0,8);
     if(hurt9){fg2.addColorStop(0,'#e8b48c');fg2.addColorStop(1,'#6a4a3a');}else if(ry9){fg2.addColorStop(0,'#d9b6ff');fg2.addColorStop(1,'#4a2a7a');}else if(vg9){fg2.addColorStop(0,'#7a808c');fg2.addColorStop(1,'#5a5f6a');}else{fg2.addColorStop(0,'#e8f0fa');fg2.addColorStop(1,'#7f90ac');}
     ctx.fillStyle=fg2;
@@ -19843,7 +19950,11 @@ function drawSplash(){
   ng.addColorStop(0,'rgba(120,60,180,.3)');ng.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=ng;ctx.fillRect(0,0,W,H);
   ctx.save();ctx.translate(W/2,H*.68);ctx.scale(3,3);ctx.rotate(-.06);
-  drawPlayerShip(0,0,-Math.PI/2);ctx.restore();
+  // The title screen is the GAME's ship, not your save's. Going to the title as Vorlan put the
+  // throne hull on the splash, which spoils the arc for anyone looking over your shoulder.
+  {const hs9=S.hullSkin,ht9=S.hullTemp;S.hullSkin=0;S.hullTemp=null;
+   try{drawPlayerShip(0,0,-Math.PI/2);}finally{S.hullSkin=hs9;S.hullTemp=ht9;}}
+  ctx.restore();
   txt('PAST THE MERIDIAN LINE, NO ONE IS COMING',W/2,110,'#9fc5ff',17,'center','normal');
   ctx.shadowColor='#6fb7ff';ctx.shadowBlur=24;
   txt('RIFTWARD',W/2,170,'#e8f2ff',54,'center');
@@ -20395,34 +20506,42 @@ function drawEpilogue(){
   const pn9=S.epi&&S.epi.panels[S.epi.p];
   if(!pn9)return;
   epArt(pn9.a);
-  // measure FIRST so the card always contains its text — no line ever runs off the bottom
-  const fs9=13;ctx.font='normal '+fs9+'px "Helvetica Neue",Arial,sans-serif';
+  // Measured at 13px and painted at 12 through txt(), which a phone renders at ~17. Wrong wrap
+  // points, type too small for a full-width band, and a 13px line-height floor that could put
+  // 17px glyphs on top of each other. Measure the font that actually gets painted.
+  const fs9=IS_TOUCH?15:14;
+  const px9=txtPx9(fs9);
+  ctx.font='normal '+px9+'px "Helvetica Neue",Arial,sans-serif';
+  const wrapW9=W-200;
   const wrapped9=[];
   for(const ln9 of pn9.l){
     const words9=ln9.split(' ');let cur9='';
     for(const w9 of words9){const t9=cur9?cur9+' '+w9:w9;
-      if(ctx.measureText(t9).width>W-320){wrapped9.push(cur9);cur9=w9;}else cur9=t9;}
+      if(ctx.measureText(t9).width>wrapW9){wrapped9.push(cur9);cur9=w9;}else cur9=t9;}
     if(cur9)wrapped9.push(cur9);
-    wrapped9.push('');            // a blank spacer between paragraphs
+    wrapped9.push('');
   }
   if(wrapped9.length&&wrapped9[wrapped9.length-1]==='')wrapped9.pop();
-  // fit the line spacing to whatever height we can afford, so long panels compress instead of overflowing
-  const titleH9=52, footH9=34, padH9=20;
-  const availMax9=Math.round(H*0.54);                     // the card owns the bottom ~half at most — the top half is ALWAYS a clear stage for the art
-  let lineH9=19;
+  const titleH9=Math.round(px9*2.6), footH9=40, padH9=22;
+  const availMax9=Math.round(H*0.66);
+  const minLH9=px9+5;
+  let lineH9=Math.round(px9*1.5);
   let bodyH9=wrapped9.length*lineH9;
   let boxH9=titleH9+bodyH9+footH9+padH9;
-  if(boxH9>availMax9){lineH9=Math.max(13,(availMax9-titleH9-footH9-padH9)/Math.max(1,wrapped9.length));bodyH9=wrapped9.length*lineH9;boxH9=availMax9;}
+  if(boxH9>availMax9){
+    lineH9=Math.max(minLH9,Math.floor((availMax9-titleH9-footH9-padH9)/Math.max(1,wrapped9.length)));
+    bodyH9=wrapped9.length*lineH9;boxH9=titleH9+bodyH9+footH9+padH9;
+  }
   const top9=H-boxH9;
-  rr(0,top9,W,boxH9,0,'rgba(2,4,10,.9)');
+  rr(0,top9,W,boxH9,0,'rgba(2,4,10,.92)');
   rr(0,top9,W,2,0,'rgba(255,216,107,.4)');
-  txt(pn9.t,W/2,top9+34,'#ffd86b',22,'center');
-  let ly9=top9+titleH9+lineH9-4;
+  txtFit(pn9.t,W/2,top9+Math.round(titleH9*0.66),'#ffd86b',IS_TOUCH?21:22,W-60,'center');
+  let ly9=top9+titleH9+px9;
   for(const ln9 of wrapped9){
-    if(ln9)txt(ln9,W/2,ly9,'#dfe8f2',fs9-1,'center','normal');
+    if(ln9)txt(ln9,W/2,ly9,'#e4ecf5',fs9,'center','normal');
     ly9+=lineH9;
   }
-  txt((S.epi.p+1)+' / '+S.epi.panels.length+'   \u2022   [ENTER]',W/2,H-14,'#8899bb',11,'center','normal');
+  txtFit((S.epi.p+1)+' / '+S.epi.panels.length+'   \u2022   [ENTER]',W/2,H-13,'#8899bb',11,W-60,'center','normal');
 }
 // ===================== TRANSFORMATION CUTSCENES =====================
 const SAINT_CUT9=[
@@ -20508,27 +20627,35 @@ function drawCutscene9(){
   const cs9=S.cut9; if(!cs9){S.screen='space';return;}
   const fr9=cs9.frames[cs9.p]; if(!fr9)return;
   try{cutArt9(cs9.kind,fr9.a);}catch(e){}
-  // caption card (epilogue-style)
-  const fs9=13;ctx.font='normal '+fs9+'px "Helvetica Neue",Arial,sans-serif';
+  // caption card. This measured at 13px system text and painted through txt() at 12, which a phone
+  // renders at ~17: the wrap points were wrong and the type was far too small for a full-width band.
+  const fs9=IS_TOUCH?15:14;
+  const px9=txtPx9(fs9);
+  ctx.font='normal '+px9+'px "Helvetica Neue",Arial,sans-serif';
+  const wrapW9=W-200;
   const wr9=[];
   for(const ln9 of fr9.l){const words9=ln9.split(' ');let cur9='';
-    for(const w9 of words9){const tt9=cur9?cur9+' '+w9:w9;if(ctx.measureText(tt9).width>W-320){wr9.push(cur9);cur9=w9;}else cur9=tt9;}
+    for(const w9 of words9){const tt9=cur9?cur9+' '+w9:w9;if(ctx.measureText(tt9).width>wrapW9){wr9.push(cur9);cur9=w9;}else cur9=tt9;}
     if(cur9)wr9.push(cur9);wr9.push('');}
   if(wr9.length&&wr9[wr9.length-1]==='')wr9.pop();
-  const titleH9=52,footH9=34,padH9=20,availMax9=Math.round(H*0.54);
-  let lineH9=19,bodyH9=wr9.length*lineH9,boxH9=titleH9+bodyH9+footH9+padH9;
-  if(boxH9>availMax9){lineH9=Math.max(13,(availMax9-titleH9-footH9-padH9)/Math.max(1,wr9.length));bodyH9=wr9.length*lineH9;boxH9=availMax9;}
+  const titleH9=Math.round(px9*2.6),footH9=40,padH9=22,availMax9=Math.round(H*0.66);
+  const minLH9=px9+5;                       // lines can NEVER be shorter than the glyphs are tall
+  let lineH9=Math.round(px9*1.5),bodyH9=wr9.length*lineH9,boxH9=titleH9+bodyH9+footH9+padH9;
+  if(boxH9>availMax9){
+    lineH9=Math.max(minLH9,Math.floor((availMax9-titleH9-footH9-padH9)/Math.max(1,wr9.length)));
+    bodyH9=wr9.length*lineH9;boxH9=titleH9+bodyH9+footH9+padH9;
+  }
   const top9=H-boxH9;
   const isWhite9=(cs9.kind.indexOf('saint')===0);
   const acc9=isWhite9?'#eaf3ff':'#e86ad9';
-  rr(0,top9,W,boxH9,0,'rgba(2,4,10,.9)');
+  rr(0,top9,W,boxH9,0,'rgba(2,4,10,.92)');
   rr(0,top9,W,2,0,(isWhite9?'rgba(220,236,255,.5)':'rgba(232,106,217,.5)'));
-  txt(fr9.t,W/2,top9+34,acc9,22,'center');
-  let ly9=top9+titleH9+lineH9-4;
-  for(const ln9 of wr9){if(ln9)txt(ln9,W/2,ly9,'#dfe8f2',fs9-1,'center','normal');ly9+=lineH9;}
+  txtFit(fr9.t,W/2,top9+Math.round(titleH9*0.66),acc9,IS_TOUCH?21:22,W-60,'center');
+  let ly9=top9+titleH9+px9;
+  for(const ln9 of wr9){if(ln9)txt(ln9,W/2,ly9,'#e4ecf5',fs9,'center','normal');ly9+=lineH9;}
   for(let i9=0;i9<cs9.frames.length;i9++){ctx.fillStyle=i9===cs9.p?acc9:'rgba(255,255,255,.22)';ctx.beginPath();ctx.arc(W/2-((cs9.frames.length-1)*11)+i9*22,H-40,4,0,TAU);ctx.fill();}
   const endLbl9={saint:'take up the work',vor:'take the crown out',saint_off:'fly on',vor_off:'take the helm',vor_reign:'decide',saint_reign:'decide'}[cs9.kind]||'continue';
-  txt((cs9.p<cs9.frames.length-1?'[SPACE / CLICK] continue':'[SPACE / CLICK] '+endLbl9),W/2,H-14,acc9,12,'center','normal');
+  txtFit((cs9.p<cs9.frames.length-1?'[SPACE / CLICK] continue':'[SPACE / CLICK] '+endLbl9),W/2,H-13,acc9,12,W-60,'center','normal');
 }
 function cutArt9(kind,a){
   if(kind==='vor_reign')kind='vor';else if(kind==='saint_reign'||kind==='saint_canon')kind='saint';   // the finale and canonization reuse the white transformation art
@@ -22235,12 +22362,23 @@ function cfTick9(dt9){
     if(o9.x!==ox9)o9.face9=(o9.x>ox9)?1:-1;
   }
   // what is under your hand
+  // Wolf could not leave the Lucky Lady while house security was on him. This scan took the
+  // single CLOSEST thing of any type, and a guard chasing you stands closer than the pad you are
+  // standing on. CF.near became the guard, cfUse9 ran past every branch it knows and did nothing,
+  // so USE was dead exactly when it was the only thing you needed. Two rules fix it for good:
+  //   1. a hostile guard is not something you USE (you punch it), so it never claims the target
+  //   2. the BEAM PAD outranks everything while you are standing on it, brawl or no brawl
   CF.near=null;let best9=64;
+  let exit9=null,exitD9=1e9;
   for(const o9 of CF.things){
     if(o9.t==='deco'||o9.t==='plant')continue; // furniture is not an offer
     const d9=Math.hypot(o9.x-CF.px,o9.y-CF.py);
+    if(o9.t==='exit'&&d9<exitD9){exitD9=d9;exit9=o9;}
+    if(o9.t==='npc'&&o9.guard9&&(o9.hp9==null||o9.hp9>0))continue;   // security is not an interaction
     if(d9<best9){best9=d9;CF.near=o9;}
   }
+  // the pad gets a generous reach, and a more generous one while you are being chased onto it
+  if(exit9&&exitD9<((exit9.r||34)+(CF.brawl9?34:14)))CF.near=exit9;
   if(CF.sing9)singerTick9(dt9);
   if(CF.msgT>0)CF.msgT-=dt9;
 }
@@ -24123,14 +24261,26 @@ function openEmpire9(){
   S.empSel9=0;S.empBack9=S.screen;S.screen='empire';
   say('\u2620 VORLAN\u2019S EMPIRE \u2014 they build what you tell them to build, and they do not send a bill.','#c9b7e8');
 }
-function empRelease9(){
-  vorInit9();
-  const t9=S.tribute9&&S.tribute9[ship.sys];
-  if(!t9||t9.revolted){say('You hold nothing here to give back.','#8899bb');return;}
+function empReleaseDo9(){
   delete S.tribute9[ship.sys];
   dreadAdd9(-6);
   say('\u2726 You stand the garrison down and tell them it is theirs. Nobody cheers. Somebody, eventually, will.','#e86ad9');
   try{redeemDone9('release');}catch(e){}
+}
+function empRelease9(){
+  vorInit9();
+  const t9=S.tribute9&&S.tribute9[ship.sys];
+  if(!t9||t9.revolted){say('You hold nothing here to give back.','#8899bb');return;}
+  // This used to fire the instant you pressed it. Releasing a system is permanent: the tribute
+  // stops, the dread drops, and you cannot take it back by pressing the button again.
+  const nm9=SYSTEMS[ship.sys].name;
+  const toll9=(typeof landingToll9==='function')?landingToll9():0;
+  S.screen=S.empBack9||'space';
+  showEnc('GIVE '+nm9+' BACK?',
+    'You would hand this system to the people who live in it and walk away from what it pays you.\n\nThis cannot be undone by taking it again cheaply: the garrison stands down for good, the tribute stops'+(toll9?(' (you are drawing '+toll9+' cr a landing here)'):'')+', and your dread falls by 6. What it buys you is one step back along the road out of the dark.\n\nThe reign will notice. So will you.',
+    [{label:'Give it back. Stand the garrison down.',col:'#16283e',tcol:'#9fd8ff',fn:()=>{closeEnc();empReleaseDo9();}},
+     {label:'No. It is mine.',col:'#2a1016',tcol:'#e086a0',fn:()=>{closeEnc();say('The garrison stays. The thought passes.','#8899bb');}}],
+    'space');
 }
 function empBuy9(){
   vorInit9();
@@ -24440,12 +24590,15 @@ function drawEmpire9(){
     uiBtn9(168,by9,150,46,'MONUMENT','#c9b7e8','#221a2c',()=>empMonument9());
     uiBtn9(326,by9,150,46,'GIVE BACK','#9fd8ff','#16283e',()=>empRelease9());
     uiBtn9(484,by9,168,46,'STEP DOWN','#e8a8a8','#2a1820',()=>empAbdicate9());
-    uiClose9(()=>{S.screen=S.empBack9||'space';},'\u2715 BACK',W-140,by9);
-    txtFit('tap a track to select it, tap it again to build',W/2,H-72,'#6a6472',11,W-80,'center','normal');
+    uiClose9(()=>{S.screen=S.empBack9||'space';},'\u2715 BACK',W-172,by9);   // was W-140: a 156-wide button hung 16px off the canvas
+    txtFit('tap a track to select it, tap it again to build',W/2,H-76,'#6a6472',11,W-80,'center','normal');
   } else {
     txt('[\u2191\u2193] choose \u2022 [E] build \u2022 [M] RAISE A MONUMENT ('+monumentCost9()+' cr) \u2022 [R] GIVE THIS SYSTEM BACK \u2022 [Esc] back',W/2,H-40,'#6a6472',13,'center','normal');
     txt('[X]  STEP DOWN FROM THE THRONE \u2014 return to mortal life',W/2,H-20,'#9fd8ff',13,'center','normal');
   }
+  // Every refusal on this screen went through say() and was NEVER DRAWN here, so a button that
+  // declined (not enough credits, nothing to give back, no monument site) looked simply dead.
+  try{drawMsgs9(70,H-96,'left',W-260,12,H*0.62);}catch(e9){}
 }
 function empAbdicate9(){
   if(!isVorlan9())return;
@@ -24453,8 +24606,18 @@ function empAbdicate9(){
   S.screen=S.empBack9||'space';
   showEnc('STEP DOWN FROM THE THRONE',
     'You do not have to be him. You never had to. Set it down and the price comes due all at once: '+(held9?('all '+held9+' system'+(held9>1?'s':'')+' you hold throw off your rule in the same hour'):'the empire you built comes apart')+', the dark ship becomes an ordinary hull again, the folded distances close, and your crew wake as themselves with no memory of what you made them. You keep your service record and nothing else.\n\nNo one will stop you. No one could.',
-    [{label:'Step down. Return to mortal life.',col:'#1c2a3a',tcol:'#9fd8ff',fn:()=>{closeEnc();try{vorMortal9();}catch(e){}}},
+    [{label:'Step down. Return to mortal life.',col:'#1c2a3a',tcol:'#9fd8ff',fn:()=>{closeEnc();empAbdicateSure9(held9);}},
      {label:'No. Reign on.',col:'#2a1016',tcol:'#e086a0',fn:()=>{closeEnc();say('The thought closes. The dark keeps you a while longer.','#8899bb');}}],
+    'space');
+}
+// A second gate. Abdication wipes the empire, the wrath, the hull and every upgrade bought with
+// it, and there is no path back to the throne in this run. One tap should not be able to do that.
+function empAbdicateSure9(held9){
+  const spent9=(S.empire9?((S.empire9.cruiser||0)+(S.empire9.bay||0)+(S.empire9.fighter||0)+(S.empire9.wrath||0)):0);
+  showEnc('LAST WORD',
+    'Say it once more, and mean it.\n\nWhen you set the crown down it does not come back in this life. '+(spent9?('The '+spent9+' yard upgrade'+(spent9>1?'s':'')+' the reign paid for go with it. '):'')+(held9?('The '+held9+' system'+(held9>1?'s':'')+' you hold revolt in the same hour. '):'')+'The wrath drains, the throne hull becomes an ordinary ship, and the crew wake up as people again.\n\nThere is no undo, and no second crown.',
+    [{label:'Yes. Set it down for good.',col:'#1c2a3a',tcol:'#9fd8ff',fn:()=>{closeEnc();try{vorMortal9();}catch(e){}}},
+     {label:'Wait \u2014 I am not ready.',col:'#2a1016',tcol:'#e086a0',fn:()=>{closeEnc();say('You keep it. For now, you keep it.','#8899bb');}}],
     'space');
 }
 const SAINTSHOP9=[
