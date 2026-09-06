@@ -551,7 +551,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.81';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.82';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -2259,18 +2259,206 @@ function saintPacifySys9(){
   say('\u2726\u2726 '+SYSTEMS[ship.sys].name+' IS AT PEACE \u2014 not conquered, not garrisoned. Mended. It will tithe what it can spare, and it will build while you are away. \u2726\u2726','#cfe8ff');
   if(wasV9)say('This one was his. The counting-houses cross a name off a ledger, and somewhere the dark gets smaller.','#ffe9b0');
 }
+function saintUndying9(){
+  // She does not die and she does not spend a crewmate. She sits down for fifteen seconds.
+  if(typeof isSaint9!=='function'||!isSaint9())return false;
+  if(S.screen==='meditate')return true;
+  meditateStart9();
+  return true;
+}
+// ===================== THE MEDITATION =====================
+// The Saint cannot be killed and she does not spend a crewmate to survive. What it costs her is
+// FIFTEEN SECONDS OF ATTENTION. She sits with one passage on compassion, the clock runs, and there
+// is no skip. Then she is whole and back where she was. The penalty is the practice.
+const MEDITATIONS9=[
+ ['THE FIRST ONE','Begin with someone easy. Someone whose face you are glad to picture. Wish them well and mean it, and notice that it costs you nothing.'],
+ ['THE DIFFICULT ONE','Now someone harder. Not the hardest. Just harder. Wish them well anyway, badly, without conviction. Badly counts.'],
+ ['YOURSELF','You are on the list. People who leave themselves off the list run out sooner, and then there is nobody left to do the work.'],
+ ['THE BREATH','You do not have to fix anything for the length of one breath. Take the breath. The work will still be there, and so will you.'],
+ ['WHAT MERCY IS','Mercy is not agreeing. It is not excusing. It is deciding that a person\'s worst hour is not the whole of them.'],
+ ['THE ONE WHO SHOT AT YOU','Somebody trained them. Somebody paid them. Somebody told them a story about you that they believed. None of that makes them right. All of it makes them a person.'],
+ ['THE COST','It costs something to stay gentle when you are frightened. That cost is the reason it means anything.'],
+ ['SLOW','Nothing you are about to do gets better by being done faster. Almost everything gets worse.'],
+ ['THE UNSEEN WORK','Most of what you have healed, you will never see healed. You did it anyway. That is the job.'],
+ ['ANGER','Anger is information. It tells you something mattered. It is a terrible plan and an honest signal.'],
+ ['THE SMALL KINDNESS','The smallest kindness you can actually manage today outranks the large one you are planning for later.'],
+ ['NOT ALONE','You are not the only thing standing between the galaxy and the dark. It only feels that way at this hour.'],
+ ['THE HANDS','Open your hands. Notice you were holding them closed. Notice how long you had been doing that without deciding to.'],
+ ['FORGIVENESS','Forgiveness is not a gift you hand someone. It is putting down a weight you were carrying for both of you.'],
+ ['THE LONG VIEW','In a hundred years the thing frightening you now will be a line in a record nobody reads. Act well anyway. That is the only part that carries.'],
+ ['THE PERSON IN FRONT OF YOU','Compassion for everyone is easy and does nothing. Compassion for the one person actually in front of you is hard and is the whole thing.'],
+ ['FAILURE','You will fail someone this week. Plan to be kind about it, to them and to yourself, because the alternative helps no one.'],
+ ['THE BODY','Your shoulders are up near your ears. They have been for a while. Let them down. This is not a metaphor.'],
+ ['ENOUGH','You have done enough for right now. Right now is the only unit of time you can actually do anything in.'],
+ ['THE ONES WHO DO NOT THANK YOU','Most will not. Some will resent it. Do it for the reason you started, or find a reason you can keep.'],
+ ['THE ENEMY\'S CREW','Every hull you have ever fired on had somebody in it who was thinking about dinner.'],
+ ['PITY AND COMPASSION','Pity looks down. Compassion stands level. If you feel taller afterward, it was the other thing.'],
+ ['THE THING YOU CANNOT FIX','Some of it will not be fixed by you, or in your lifetime, or at all. Sit with that instead of running from it, and the running stops taking your strength.'],
+ ['THE RETURN','Whatever you did before you came here, you get to decide what you do next. That is not forgiveness. That is just how time works.'],
+ ['ATTENTION','Attention is the rarest thing you own. Giving somebody your whole attention for one minute is not a small gift. It may be the largest one available.'],
+ ['THE QUIET','You do not have to fill it. Somebody else\'s silence is not a problem you were asked to solve.'],
+ ['A HARD TRUTH','Wanting to help and helping are different skills. The second one requires asking.'],
+ ['THE LIST','Think of three people who are having a worse day than you. Not to feel better. To remember the size of the room.'],
+ ['MERCY IS NOT WEAKNESS','It takes more to hold fire than to fire. Anyone can pull a trigger. Almost nobody can decide not to, twice.'],
+ ['THE WOUND YOU CARRY','The thing that happened to you is real and it was not fair. It is also not an instruction for what you do to the next person.'],
+ ['TENDERNESS','Try being tender with the part of yourself you are most ashamed of. It has been waiting a long time and it is not going anywhere.'],
+ ['THE OTHERS ON THE BRIDGE','They are frightened too. They are just doing it facing away from you.'],
+ ['WHAT YOU CAN CONTROL','Your next word. Your next breath. The tone of your voice. That is the whole list, and it is more than enough.'],
+ ['THE OLD GRIEF','It does not shrink. You grow around it. That is not a consolation prize, that is the actual mechanism.'],
+ ['ON BEING WRONG','Being wrong out loud is a gift to everyone in the room. It gives them permission.'],
+ ['THE STRANGER','Somebody you will never meet is alive because of a decision you made and forgot. That is true of you and it is true of them.'],
+ ['PATIENCE','Patience is not waiting. It is staying kind during the wait.'],
+ ['THE HARDEST ONE','There is a name you have been avoiding this whole time. You do not have to do anything about it today. Just let yourself notice that you avoided it.'],
+ ['REST','Rest is not the reward for the work. It is part of the work. Nothing you build while empty will hold.'],
+ ['THE LIGHT YOU CARRY','You cannot see your own light. Neither can anyone else see theirs. This is why we tell each other.'],
+ ['ON JUDGING','You are comparing your inside to their outside. It is not a fair fight and you set it up that way.'],
+ ['THE DOOR','Somebody held a door for you once when they did not have to, and you still remember it. That is how small it has to be.'],
+ ['WHAT SURVIVES','The ships are gone. The empires are gone. What survived is that somebody was decent to somebody else and it got passed along.'],
+ ['THE PART THAT WANTED REVENGE','It is allowed to exist. It is not allowed to steer. Those are different rules and you can hold both.'],
+ ['SIMPLY','May you be safe. May you be well. May you be at ease. It is an old formula because it is a good one.'],
+ ['OUTWARD','Now the same for the crew. Then the sector. Then the ones you cannot stand. Do not skip the last part, that is where the work lives.'],
+ ['THE MIRROR','The thing that most irritates you in other people is usually a language you learned somewhere.'],
+ ['NO AUDIENCE','Do one good thing today that nobody will ever find out about. Notice whether it was harder.'],
+ ['COMING BACK','You will lose this. You will get frightened and sharp and small again, probably within the hour. Coming back is the practice. Not staying.'],
+ ['THE WHOLE ROOM','Every person you have ever met was, at some point, doing their genuine best with what they had at the time. Including the ones who were terrible at it.'],
+ ['ENDING','When you open your eyes the fight is still there. So are you, and you are steadier than you were fifteen seconds ago. That is not nothing. That is the entire margin.'],
+ ['THE NEXT ONE','There is always a next one. Somebody hurt, somebody frightened, somebody who has run out. The line does not end. Neither does the choosing.']
+];
+const MED_SECS9=15;
+function meditateStart9(reason9){
+  S.med9={p:Math.floor(Math.random()*MEDITATIONS9.length),t:0,reason:reason9||'',back9:(S.screen==='away'?'away':'space')};
+  S.screen='meditate';
+  try{setMusic('map');}catch(e9){}
+  try{sfx.ding&&sfx.ding();}catch(e9){}
+}
+function meditateDone9(){
+  const m9=S.med9||{}; S.med9=null;
+  // restored, not resurrected: she was never gone
+  try{
+    ship.hull=ship.maxHull||100; ship.shields=maxShields(); ship.energy=100; ship.rift=Math.max(ship.rift||0,60);
+    crew.forEach(c9=>{c9.hp=crewMaxHp(c9);});
+    const g9=grace9(); g9.grace=g9.graceMax;
+  }catch(e9){}
+  if(m9.back9==='away'&&typeof AW!=='undefined'&&AW&&AW.active){
+    try{AW.cap.hp=crewMaxHp(crew[0]); if(AW.comp)AW.comp.hp=crewMaxHp(crew[AW.comp.idx]||crew[0]);}catch(e9){}
+    S.screen='away';
+    try{setMusic(AW.boarding?'boarding':'away');}catch(e9){}
+  } else {
+    S.screen='space';
+    try{setMusic('space');}catch(e9){}
+    try{arriveSystem&&arriveSystem();}catch(e9){}
+  }
+  say('\u2726 You open your eyes. Nothing out there has changed. You have.','#eaf3ff');
+}
+function drawMeditate9(){
+  uiRects9=[];
+  // The frame that killed her can leave globalAlpha and the composite mode set, and the engine's
+  // reset runs AFTER the screen draw, so the still room came out washed grey. Claim the canvas first.
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over'; ctx.filter='none';
+  const m9=S.med9; if(!m9){S.screen='space';return;}
+  const pas9=MEDITATIONS9[m9.p]||MEDITATIONS9[0];
+  const fr9=Math.min(1,(m9.t||0)/MED_SECS9);
+  // a still, pale room
+  const bg9=ctx.createRadialGradient(W/2,H*0.42,40,W/2,H*0.42,Math.max(W,H)*0.75);
+  bg9.addColorStop(0,'#0e1620'); bg9.addColorStop(1,'#04070c');
+  ctx.fillStyle=bg9; ctx.fillRect(0,0,W,H);
+  // the breath: a slow ring on a 5.5s cycle, which is a real pace to breathe to
+  const ph9=((m9.t||0)%5.5)/5.5;
+  const br9=(ph9<0.45)?(ph9/0.45):(1-((ph9-0.45)/0.55));
+  const rad9=54+br9*46;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  const gl9=ctx.createRadialGradient(W/2,H*0.34,4,W/2,H*0.34,rad9*1.6);
+  gl9.addColorStop(0,'rgba(190,225,255,'+(0.16+br9*0.12)+')'); gl9.addColorStop(1,'rgba(190,225,255,0)');
+  ctx.fillStyle=gl9; ctx.beginPath(); ctx.arc(W/2,H*0.34,rad9*1.6,0,TAU); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle='rgba(220,238,255,'+(0.42+br9*0.35)+')'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(W/2,H*0.34,rad9,0,TAU); ctx.stroke();
+  txt(br9>0.5?'BREATHE IN':'BREATHE OUT',W/2,H*0.34+5,'rgba(220,238,255,.7)',12,'center','normal');
+  // the passage
+  txtFit(pas9[0],W/2,H*0.62,'#eaf3ff',20,W-140,'center');
+  {const px9=txtPx9(IS_TOUCH?15:14);
+   ctx.font='normal '+px9+'px "Helvetica Neue",Arial,sans-serif';
+   const words9=pas9[1].split(' '); const ln9=[]; let cur9='';
+   for(const w9 of words9){const t9=cur9?cur9+' '+w9:w9;
+     if(ctx.measureText(t9).width>W-260){ln9.push(cur9);cur9=w9;}else cur9=t9;}
+   if(cur9)ln9.push(cur9);
+   let y9=H*0.62+Math.round(px9*2.0);
+   for(const L9 of ln9){txt(L9,W/2,y9,'#c8d8e8',IS_TOUCH?15:14,'center','normal');y9+=Math.round(px9*1.5);}}
+  // the clock, as a line that fills. No number counting down, and no skip.
+  const bw9=Math.min(560,W-200);
+  rr(W/2-bw9/2,H-72,bw9,4,2,'rgba(255,255,255,.12)');
+  rr(W/2-bw9/2,H-72,bw9*fr9,4,2,'#8fd0ff');
+  if(fr9>=1){
+    const bw2=200,bx2=W/2-bw2/2;
+    rr(bx2,H-52,bw2,40,12,'#16283e');
+    txt('RETURN',W/2,H-26,'#eaf3ff',15,'center');
+    uiRects9.push({x:bx2,y:H-52,w:bw2,h:40,fn:()=>meditateDone9()});
+  } else {
+    txtFit(IS_TOUCH?'sit with it':'sit with it',W/2,H-30,'#5c6a78',12,W-120,'center','normal');
+  }
+}
+// ===================== THE SAINT'S ECONOMY =====================
+// She does not buy things. Credits gate Vorlan, who takes; GRACE gates her, because it is spent by
+// pouring yourself out and refilled by doing the thing you were called to do. Deeds cannot be the
+// currency: saintDeeds9() tops out around 62 on the tier ladder, so it is a RANK, not a purse.
+function relicCount9(){saintInit9();let n9=0;if(S.pacified9)for(const k9 in S.pacified9){if(S.pacified9[k9]&&S.pacified9[k9].relic9)n9++;}return n9;}
+function graceCost9(n9){   // spend the well; it refills through mercy
+  const g9=grace9();
+  if((g9.grace||0)<n9){
+    say('\u2726 Not enough grace. That asks '+n9+' and you are holding '+Math.round(g9.grace||0)+'. Mend someone, still a gun, bring a world to peace, and come back.','#ff8c8c');
+    return false;
+  }
+  g9.grace-=n9;return true;
+}
+const RELIC_GRACE9=140;
+function relicOk9(){
+  saintInit9();
+  if(!isSaint9())return 'You are not on that road.';
+  const t9=S.pacified9&&S.pacified9[ship.sys];
+  if(!t9||t9.freed)return 'Bring this world to peace first.';
+  if(!t9.shrine9)return 'A reliquary stands on a shrine. Consecrate the shrine here first.';
+  if(t9.relic9)return 'A reliquary already stands here. The light does not need two.';
+  if((grace9().graceMax||100)<RELIC_GRACE9)return 'The well is too shallow to hold a reliquary. Deepen it (THE WELL) or open almshouses first.';
+  return null;
+}
+function relicMake9(){
+  const bad9=relicOk9();
+  if(bad9){say('\u2726 '+bad9,'#ff8c8c');return;}
+  if(!graceCost9(RELIC_GRACE9))return;
+  const t9=S.pacified9[ship.sys];
+  t9.relic9=true;
+  try{(S.teleNodes9=S.teleNodes9||{})[ship.sys]='relic';}catch(e9){}
+  try{sfx.fanfare&&sfx.fanfare();}catch(e9){}
+  QSTATE.flash=Math.max(QSTATE.flash||0,1.8);
+  try{awardScore&&awardScore(5000);}catch(e9){}
+  say('\u2726\u2726 A RELIQUARY IS RAISED over '+SYSTEMS[ship.sys].name+' \u2014 white stone and one steady light, built by the people who live here, out of what they had. \u2726\u2726','#eaf3ff');
+  say('Ships mend in this sky now, and the fold opens straight to it from the star chart. Every world you have kept sends a little more, because they have heard. (Reliquary '+relicCount9()+')','#cfe8ff');
+}
 function saintTitheJump9(){
   saintInit9();
   if(!isSaint9())return;
+  // This paid ONLY for the system she was standing in, so forty healed worlds earned exactly what
+  // one did. Vorlan's tribute has always collected from every world he holds. Hers does now too,
+  // at a gentler rate, because it is offered rather than taken.
+  let far9=0,n9=0;
   for(const k9 in S.pacified9){
     const t9=S.pacified9[k9];if(!t9||t9.freed)continue;
-    if(+k9!==ship.sys)t9.loyal=Math.min(100,(t9.loyal||50)+4);
+    n9++;
+    if(+k9!==ship.sys){
+      t9.loyal=Math.min(100,(t9.loyal||50)+4);   // they get better while she is away. They always did.
+      far9+=Math.round(90*((t9.loyal||50)/100)*(1+(relicCount9()*0.25)));
+    }
   }
   const t9=S.pacified9[ship.sys];
-  if(t9&&!t9.freed){
-    const pay9=Math.round(250+(150*(t9.loyal||50)/100))+((S.alms9||0)*40);   // every almshouse you have opened feeds the tithe
+  let here9=0;
+  if(t9&&!t9.freed)here9=Math.round(250+(150*(t9.loyal||50)/100))+((S.alms9||0)*40);
+  const pay9=here9+far9;
+  if(pay9>0){
     ship.credits+=pay9;
-    say('\u2726 TITHE \u2014 '+SYSTEMS[ship.sys].name+' offers '+pay9+' cr, freely, which is the entire difference. (They are building: loyalty '+Math.round(t9.loyal)+')','#cfe8ff');
+    if(here9&&far9)say('\u2726 TITHE \u2014 '+SYSTEMS[ship.sys].name+' offers '+here9+' cr, and '+(n9-1)+' world'+(n9-1===1?'':'s')+' you have kept send '+far9+' more. Freely, which is the entire difference.','#cfe8ff');
+    else if(here9)say('\u2726 TITHE \u2014 '+SYSTEMS[ship.sys].name+' offers '+here9+' cr, freely, which is the entire difference. (They are building: loyalty '+Math.round(t9.loyal)+')','#cfe8ff');
+    else say('\u2726 TITHE \u2014 '+n9+' world'+(n9===1?'':'s')+' you have kept send '+far9+' cr along the lanes. Nobody asked them to.','#cfe8ff');
   }
 }
 function saintMend9(){
@@ -2364,7 +2552,7 @@ function saintVeilTick9(dt){
   if(AW&&AW.foes)for(const f9 of AW.foes){if(f9&&f9.hp>0&&!f9.charmed9&&f9.st==='aggro'){f9.st='alert';f9.wp=null;}}
 }
 function taoMastered9(){return (S.tao9&&S.tao9.mastered)?S.tao9.mastered.length:0;}
-function grace9(){saintInit9();S.saint9.graceMax=100+((S.chapel9.grace||0)*30)+((S.alms9||0)*20)+(taoMastered9()*3);return S.saint9;}
+function grace9(){saintInit9();S.saint9.graceMax=100+((S.chapel9.grace||0)*30)+((S.alms9||0)*20)+(taoMastered9()*3)+((typeof relicCount9==='function'?relicCount9():0)*25);return S.saint9;}
 function graceSpend9(cost,refuse){
   const g9=grace9();
   if(g9.grace<cost){if(refuse)say(refuse,'#8899bb');return false;}
@@ -3967,7 +4155,10 @@ const VMS=[
  {t:'The World That Bit Back',ty:'away',sys:13,obj:'clear',th:'ruins',b:'A subjugated world rose in the night, killed its overseers, and barricaded the old citadel. Walk back in. Take it a second time, and leave a mark that stays.'},
  {t:'The Reign Made Plain',ty:'boss',sys:0,en:'fed_dread',hp:55,nm:'THE RELIEF FLAGSHIP',b:'The Accord musters one last dreadnought and a name for it, and sends it to the place your record began. Meet it there. When it falls, there is no one left who has not knelt.'}
 ];
-VMS.forEach((m,i)=>{m.id=301+i;m.vor9=true;m.tier=2+Math.floor(i/8);m.reward=(400+i*30)+(m.ty==='away'?120:0);});
+// The reign's own campaign used to pay 400-1120 a mission, about 19,000 for all 25, against an
+// empire build of 1,240,000 and a monument ladder of 5,910,937. It funded nothing. A throne pays
+// like a throne: ~8,000 rising to ~41,600, about 620,000 across the campaign, half an empire.
+VMS.forEach((m,i)=>{m.id=301+i;m.vor9=true;m.tier=2+Math.floor(i/8);m.reward=(8000+i*1400)+(m.ty==='away'?2500:0);});
 // WORKS OF MERCY — the Saint's board. No hunts, no kills. You stand between the guns and the helpless, and you do not move.
 const SMS=[
  {t:'The First Mercy',ty:'away',sys:6,obj:'rescue',th:'cave',b:'Miners are trapped in a collapsed Rigel XII shaft the companies wrote off as a loss. The white writes no one off. Beam down and carry them to the light.'},
@@ -7634,6 +7825,7 @@ function vorReform9(){
 }
 function shipLost(){
   if(isVorlan9()){try{vorReform9();return;}catch(e){}}
+  if(typeof saintUndying9==='function'&&saintUndying9())return;
   boom(ship.x,ship.y,80);
   if(S.ambCaptive){S.ambCaptive=false;say('The Ambassador\'s escort cuts him free of your wreck. So much for the ransom.','#c98a8a');}
   buffClear9();
@@ -11648,7 +11840,7 @@ function updateAway(dt){
   AW._gx=cap.x;AW._gy=cap.y;
   if(comp&&(!Number.isFinite(comp.x)||!Number.isFinite(comp.y))){BC('NANFIX-comp');comp.x=cap.x+30;comp.y=cap.y;}
   for(const f9w of AW.foes)if(!Number.isFinite(f9w.x)||!Number.isFinite(f9w.y)){BC('NANFIX-foe-'+(f9w.tp||'?'));f9w.x=cap.x+80;f9w.y=cap.y;}
-  if(cap.hp<=0&&!vorAwayRevive9()){endAway(false);return;}
+  if(cap.hp<=0&&!vorAwayRevive9()){ if(typeof saintUndying9==='function'&&saintUndying9())return; endAway(false);return;}
   if(AW.abilCd>0)AW.abilCd-=dt;
   if(AW.cloak9){AW.cloakE9=(AW.cloakE9||0)-13.3*dt;if(AW.cloakE9<=0){AW.cloakE9=0;AW.cloak9=false;say('Your suit cloak flickers out \u2014 cells spent.','#ffb56b');}}
   else if((AW.cloakE9||0)<100)AW.cloakE9=Math.min(100,(AW.cloakE9||0)+7*dt);
@@ -14370,6 +14562,11 @@ addEventListener('keydown',e=>{
     if(k==='escape'||k==='j'||k==='t'){closeTaoLedger9();return;}
     return;
   }
+  if(S.screen==='meditate'){
+    // no skip. The clock is the point.
+    if(S.med9&&(S.med9.t||0)>=MED_SECS9)meditateDone9();
+    return;
+  }
   if(S.screen==='chapel'){
     if(k==='h'){S.chapPage9=S.chapPage9?0:1;S.chapSel9=0;return;}
     const list9=S.chapPage9?chapHullList9():CHAPTRACK9;
@@ -14378,6 +14575,7 @@ addEventListener('keydown',e=>{
     if(k==='e'||k==='enter'){chapBuy9();return;}
     if(k==='a'){almsEndow9();return;}
     if(k==='s'){saintShrine9();return;}
+    if(k==='r'){relicMake9();return;}   // her monument
     if(k==='escape'||k==='y'){S.screen=S.chapBack9||'space';return;}
     return;
   }
@@ -15237,7 +15435,7 @@ let taoRects9=[];    // touch tap targets for THE BOOK: each chapter row, scroll
 // Several screens were built keyboard-first and had no canvasPress branch at all, which on a
 // phone meant no way to act and, worse, no way back out. uiRects9 + uiBtn9 give them buttons.
 let uiRects9=[];
-const UISCR9=['shipstat','keyref','record','boardlog','settings','chapel','empire','arena','casino'];
+const UISCR9=['shipstat','keyref','record','boardlog','settings','chapel','empire','arena','casino','meditate'];
 function uiBtn9(x,y,w,h,label,col,bg,fn){
   rr(x,y,w,h,10,bg||'#16283e');
   txtFit(label,x+w/2,y+Math.round(h/2)+5,col||'#9fd8ff',13,w-14,'center');
@@ -15556,7 +15754,7 @@ function teachTick9(){
     if(sai){
       if(teach('t_tao', (typeof taoHave9==='function'&&taoHave9(1)), '✦ THE BOOK is open to you — press [T] in open space to read the Tao. Answer for understanding and your grace ceiling and regen rise, for good.'))return;
       if(teach('t_chapter', (typeof pacified9==='function'&&pacified9(ship.sys)), '✦ This world is at peace — press [Y] for THE CHAPTER HOUSE: white hulls in the LIBRARY [H], an ALMSHOUSE [A], and a SHRINE [S] that makes a world’s peace permanent.'))return;
-      if(teach('t_shrine2', (typeof pacified9==='function'&&pacified9(ship.sys)&&S.pacified9&&S.pacified9[ship.sys]&&!S.pacified9[ship.sys].shrine9&&typeof shrineCost9==='function'&&ship.credits>=shrineCost9()), '✦ You can afford a SHRINE here. Press [Y] RIGHT HERE in open space — no starbase needed — then [S] ('+((typeof shrineCost9==='function')?shrineCost9():'')+' cr): this world’s peace becomes PERMANENT, it will never waver or be lost again. Worlds without one can slip back to war while you are away.'))return;
+      if(teach('t_shrine2', (typeof pacified9==='function'&&pacified9(ship.sys)&&S.pacified9&&S.pacified9[ship.sys]&&!S.pacified9[ship.sys].shrine9&&typeof shrineCost9==='function'&&(grace9().grace||0)>=shrineCost9()), '✦ You have the grace for a SHRINE here. Press [Y] RIGHT HERE in open space — no starbase needed — then [S] ('+((typeof shrineCost9==='function')?shrineCost9():'')+' ✦ grace): this world’s peace becomes PERMANENT, it will never waver or be lost again. Worlds without one can slip back to war while you are away.'))return;
       if(teach('t_sanct', (typeof saintTier9==='function'&&saintTier9()>=4), '✦ SANCTUARY unlocked — press [Z] to still every gun in the whole system at once, not one of them ended. It asks deep grace, so spend it when the sky is full.'))return;
       if(teach('t_canon', (typeof saintCanonizeReady9==='function'&&saintCanonizeReady9()), '✦ You have walked the whole Path. Dock at a world you brought to peace and press [T] at THE TEMPLE to accept CANONIZATION.'))return;
       if(teach('t_miracle', !!S.canonized9, '✦ You are CANONIZED. Press [R] in open space when your grace runs deep for THE MIRACLE — the whole sky goes white, every ship stilled unhurt, and you are made whole.'))return;
@@ -24160,7 +24358,7 @@ const CHAPTRACK9=[
  {k:'choir',nm:'THE CHOIR',     d:'More voices. You can hold more of them at once, and they listen longer.', eff:'+1 charmed at a time per tier'},
  {k:'grace',nm:'THE WELL',      d:'A deeper well, and it fills faster when you are doing what you were called to do.', eff:'+30 max grace per tier'}
 ];
-const CHAPPRICE9=[15000,35000,70000];
+const CHAPPRICE9=[55,85,125];   // GRACE, not credits. Her path does not run on money.
 function openChapel9(){
   saintInit9();
   if(!pacified9(ship.sys)){say('\u2726 There is no chapter house here. Bring this system to peace first.','#8899bb');return;}
@@ -24174,9 +24372,10 @@ function chapBuy9(){
     S.chapel9.skins9=S.chapel9.skins9||[];
     if(h9.trophy9){S.hullSkin=h9.sk;try{sfx.fanfare&&sfx.fanfare();}catch(e9){}say('\u2726 '+h9.nm+' comes back to the berth in white and gold. She was always yours, and she always will be.','#ffe9b0');return;}
     if(S.chapel9.skins9.indexOf(h9.sk)>=0){S.hullSkin=h9.sk;say('\u2726 You take '+h9.nm+' back out. She was always yours.','#cfe8ff');return;}
-    if(ship.credits<h9.p){say('Materials for '+h9.nm+' come to '+h9.p+' cr. You are '+(h9.p-Math.round(ship.credits))+' short. The tithes will get you there.','#ff8c8c');return;}
-    ship.credits-=h9.p;S.chapel9.skins9.push(h9.sk);S.hullSkin=h9.sk;taoHook9('mend');
-    try{mercyGive9(Math.round(h9.p*.5));}catch(e9){}
+    const hg9=hullGrace9(h9);
+    if(!graceCost9(hg9))return;
+    S.chapel9.skins9.push(h9.sk);S.hullSkin=h9.sk;taoHook9('mend');
+    try{mercyGive9(Math.round((h9.p||0)*.5));}catch(e9){}
     say('\u2726\u2726 '+h9.nm+' comes out of the shed in white. They will not take payment for the labour, only the materials. \u2726\u2726','#cfe8ff');
     return;
   }
@@ -24184,8 +24383,8 @@ function chapBuy9(){
   const cur9=S.chapel9[tr9.k]||0;
   if(cur9>=3){say('That is as far as they will take it.','#8899bb');return;}
   const price9=CHAPPRICE9[cur9];
-  if(ship.credits<price9){say('Materials cost '+price9+' cr. You are '+(price9-Math.round(ship.credits))+' short. The tithes will get you there.','#ff8c8c');return;}
-  ship.credits-=price9;S.chapel9[tr9.k]=cur9+1;
+  if(!graceCost9(price9))return;
+  S.chapel9[tr9.k]=cur9+1;
   if(tr9.k==='grace'){const g9=grace9();g9.graceMax=100+((S.chapel9.grace||0)*30);g9.grace=g9.graceMax;}
   try{sfx.buy&&sfx.buy();}catch(e){}
   say('\u2726 '+tr9.nm+' \u2014 TIER '+(cur9+1)+'. '+tr9.eff,'#cfe8ff');
@@ -24195,7 +24394,9 @@ function drawChapel9(){
   ctx.fillStyle='#0a0e16';ctx.fillRect(0,0,W,H);
   txt('\u2726 THE CHAPTER HOUSE \u2726',W/2,64,'#cfe8ff',24,'center');
   txt(SYSTEMS[ship.sys].name+' builds what you need, and charges only for materials.',W/2,90,'#7a8aa0',12,'center','normal');
-  txt(Math.round(ship.credits)+' cr',W-60,64,'#ffe9b0',16,'right');
+  {const g9h=grace9();
+   txt('\u2726 '+Math.round(g9h.grace||0)+' / '+Math.round(g9h.graceMax||100)+' GRACE',W-60,64,'#ffe9b0',16,'right');
+   txt(Math.round(ship.credits)+' cr',W-60,84,'#6a7a8a',11,'right','normal');}
   const held9=Object.keys(S.pacified9||{}).filter(k=>pacified9(+k)).length;
   txt(held9+' world'+(held9===1?'':'s')+' at peace \u2022 '+(S.saint9.healed||0)+' healed \u2022 '+(S.saint9.sent||0)+' sent home \u2022 '+(S.saint9.stilled||0)+' stilled',
       W/2,108,'#8899bb',12,'center','normal');
@@ -24220,7 +24421,7 @@ function drawChapel9(){
       const own=h.trophy9||S.chapel9.skins9.indexOf(h.sk)>=0,worn=(S.hullSkin===h.sk);
       rr(70,y-ch9*0.42,W-140,ch9,10,sel?'#16202e':'#101620');
       txt(h.nm,92,y-2,sel?(h.trophy9?'#ffe9b0':'#cfe8ff'):(h.trophy9?'#ffe1a0':'#c9d4e2'),Math.min(17,ch9*0.28),'left',sel?'bold':'normal');
-      txt(worn?'FLYING HER':(h.trophy9?'\u2726 TROPHY \u2014 [E] fly her':(own?'OWNED \u2014 [E] fly her':(h.p+' cr'))),W-100,y-2,
+      txt(worn?'FLYING HER':(h.trophy9?'\u2726 TROPHY \u2014 [E] fly her':(own?'OWNED \u2014 [E] fly her':(hullGrace9(h)+' \u2726'))),W-100,y-2,
           worn?'#8fd0ff':(h.trophy9?'#ffe9b0':(own?'#7fd98a':(ship.credits>=h.p?'#ffe9b0':'#8a6a6a'))),14,'right');
       txtFit(h.d,92,y+ch9*0.30,'#8899bb',12,W-370,'left','normal');
       // show the actual hull she builds, right in the row
@@ -24235,7 +24436,7 @@ function drawChapel9(){
     rr(70,y-26,W-140,74,10,sel?'#16202e':'#101620');
     txt(tr.nm,92,y,sel?'#cfe8ff':'#c9d4e2',17,'left',sel?'bold':'normal');
     for(let t=0;t<3;t++){ctx.fillStyle=t<lv?'#8fd0ff':'#243040';ctx.fillRect(W-260+t*26,y-14,20,14);}
-    txt(lv>=3?'MAX':(CHAPPRICE9[lv]+' cr'),W-100,y,lv>=3?'#6a7a8a':(ship.credits>=CHAPPRICE9[lv]?'#ffe9b0':'#8a6a6a'),14,'right');
+    txt(lv>=3?'MAX':(CHAPPRICE9[lv]+' \u2726'),W-100,y,lv>=3?'#6a7a8a':((grace9().grace||0)>=CHAPPRICE9[lv]?'#ffe9b0':'#8a6a6a'),14,'right');
     txt(tr.d,92,y+22,'#8899bb',12,'left','normal');
     txt(tr.eff,92,y+40,'#6a8098',11,'left','normal');
     if(IS_TOUCH)uiRects9.push({x:70,y:y-26,w:W-140,h:74,fn:(function(ix,was){return function(){
@@ -24243,16 +24444,23 @@ function drawChapel9(){
     };})(i,sel)});
   }
   {const t9s=S.pacified9&&S.pacified9[ship.sys];
-   if(pacified9(ship.sys))txt((t9s&&t9s.shrine9)?'\u2726 A SHRINE STANDS HERE \u2014 this peace is permanent, it can never be lost':('[S] CONSECRATE A SHRINE ('+shrineCost9()+' cr) \u2014 this world\u2019s peace becomes PERMANENT, never lost to war again'),W/2,H-76,(t9s&&t9s.shrine9)?'#eaf3ff':'#cfe8ff',12,'center','normal');}
+   if(pacified9(ship.sys))txt((t9s&&t9s.shrine9)?'\u2726 A SHRINE STANDS HERE \u2014 this peace is permanent, it can never be lost':('[S] CONSECRATE A SHRINE ('+shrineCost9()+' \u2726 grace) \u2014 this world\u2019s peace becomes PERMANENT, never lost to war again'),W/2,H-76,(t9s&&t9s.shrine9)?'#eaf3ff':'#cfe8ff',12,'center','normal');}
   {const nd9=(typeof teleNodes9==='function')?teleNodes9():{};const almsHere9=(nd9[ship.sys]==='alms'||nd9[ship.sys]==='hospital');
-   txt('[H] THE WHITE LIBRARY \u2014 six hulls built for mending'+(pacified9(ship.sys)?(almsHere9?'   \u2022   \u2726 AN ALMSHOUSE STANDS HERE \u2014 fold straight to it from the map':('   \u2022   [A] ENDOW AN ALMSHOUSE ('+almsCost9()+' cr) \u2014 teleport here, no rift')):''),W/2,H-58,'#9fd8ff',12,'center','normal');}
+   txt('[H] THE WHITE LIBRARY \u2014 six hulls built for mending'+(pacified9(ship.sys)?(almsHere9?'   \u2022   \u2726 AN ALMSHOUSE STANDS HERE \u2014 fold straight to it from the map':('   \u2022   [A] ENDOW AN ALMSHOUSE ('+almsCost9()+' \u2726 grace) \u2014 teleport here, no rift')):''),W/2,H-58,'#9fd8ff',12,'center','normal');}
+  {const t9r=S.pacified9&&S.pacified9[ship.sys];
+   const rl9=(t9r&&t9r.relic9);
+   txtFit(rl9?('\u2726 A RELIQUARY STANDS HERE \u2014 ships mend in this sky, and every world you keep sends more'):
+          ((typeof relicOk9==='function'&&!relicOk9())?('[R] RAISE A RELIQUARY ('+RELIC_GRACE9+' \u2726 grace) \u2014 a fold-point, a mending sky, and a deeper well everywhere'):''),
+          W/2,H-96,rl9?'#eaf3ff':'#ffe9b0',12,W-80,'center','normal');}
   if(IS_TOUCH){
     const by9=H-52, t9p=S.pacified9&&S.pacified9[ship.sys], canS9=pacified9(ship.sys)&&!(t9p&&t9p.shrine9);
     uiBtn9(40,by9,120,44,'BUILD','#ffd86b','#2a2418',()=>chapBuy9());
     uiBtn9(168,by9,160,44,S.chapPage9?'\u2039 TRACKS':'WHITE LIBRARY','#9fd8ff','#16283e',()=>{S.chapPage9=S.chapPage9?0:1;S.chapSel9=0;});
     uiBtn9(336,by9,140,44,'SHRINE',canS9?'#cfe8ff':'#55606c',canS9?'#16283e':'#141a22',()=>saintShrine9());
     uiBtn9(484,by9,150,44,'ALMSHOUSE',pacified9(ship.sys)?'#cfe8ff':'#55606c',pacified9(ship.sys)?'#16283e':'#141a22',()=>almsEndow9());
-    uiClose9(()=>{S.screen=S.chapBack9||'space';},'\u2715 BACK',W-140,by9);
+    {const rOk9=(typeof relicOk9==='function')&&!relicOk9();
+     uiBtn9(642,by9,150,44,'RELIQUARY',rOk9?'#ffe9b0':'#55606c',rOk9?'#2a2418':'#141a22',()=>relicMake9());}
+    uiClose9(()=>{S.screen=S.chapBack9||'space';},'\u2715 BACK',W-172,by9);
   } else txt('[\u2191\u2193] choose \u2022 [E] build \u2022 [Esc] back',W/2,H-38,'#6a7a8a',13,'center','normal');
 }
 function openEmpire9(){
@@ -24453,7 +24661,7 @@ function drawRaisePrompt9(){
     let msg9=null,col9='#cfe8ff';
     if(typeof isSaint9==='function'&&isSaint9()&&typeof pacified9==='function'&&pacified9(ship.sys)){
       const t9=S.pacified9&&S.pacified9[ship.sys];
-      if(t9&&!t9.shrine9)msg9='✦ [Y] RAISE A SHRINE HERE'+((typeof shrineCost9==='function')?' ('+shrineCost9()+' cr)':'')+' — no starbase needed';
+      if(t9&&!t9.shrine9)msg9='✦ [Y] RAISE A SHRINE HERE'+((typeof shrineCost9==='function')?' ('+shrineCost9()+' ✦ grace)':'')+' — no starbase needed';
     } else if(typeof isVorlan9==='function'&&isVorlan9()&&typeof conquered9==='function'&&conquered9(ship.sys)){
       const nd9=(typeof teleNodes9==='function')?teleNodes9():{};
       if(nd9[ship.sys]!=='monument'){msg9='☠ [Y] RAISE A MONUMENT HERE'+((typeof monumentCost9==='function')?' ('+monumentCost9()+' cr)':'')+' — no starbase needed';col9='#c9b7e8';}
@@ -24505,7 +24713,10 @@ function drawTeleFx9(){
   ctx.restore();
 }
 function shrineCount9(){let n9=0;if(S.pacified9)for(const k9 in S.pacified9){if(S.pacified9[k9]&&S.pacified9[k9].shrine9)n9++;}return n9;}
-function shrineCost9(){return Math.round(25000*Math.pow(1.4,shrineCount9()));}   // 25k, 35k, 49k, ... so you cannot blanket the sector cheaply
+// GRACE, not credits, and it rises gently: 60, 68, 76 ... you cannot blanket the sector in one
+// pass, but the well refills through mercy, so the sector is reachable by anyone who keeps at it.
+function shrineCost9(){return Math.round(60+8*shrineCount9());}
+function hullGrace9(h9){return Math.max(25,Math.round(((h9&&h9.p)||9000)/900)*5);}   // 50 to 280 grace across the white hulls
 function saintShrine9(){
   saintInit9();
   if(!isSaint9())return;
@@ -24515,8 +24726,8 @@ function saintShrine9(){
   if(t9&&t9.waver9){say('Still the guns here first — a shrine is raised over a world at rest, not one still fraying.','#ff8c8c');return;}
   if(enemies.some(e9=>e9&&e9.alive&&e9.detected&&!e9.friendly9&&!e9.charmed9&&!e9.neutral9&&!e9.disabledBySaint9)){say('Not while there is still fighting in this sky.','#ff8c8c');return;}
   const cost9=shrineCost9();
-  if(ship.credits<cost9){say('A shrine and its keepers come to '+cost9+' cr. You are '+(cost9-Math.round(ship.credits))+' short. The tithes will get you there.','#ff8c8c');return;}
-  ship.credits-=cost9;t9.shrine9=true;t9.waver9=false;t9.waverAge9=0;t9.loyal=100;
+  if(!graceCost9(cost9))return;
+  t9.shrine9=true;t9.waver9=false;t9.waverAge9=0;t9.loyal=100;
   if(S.lostPeace9)delete S.lostPeace9[ship.sys];
   try{const g9=grace9();g9.grace=g9.graceMax;}catch(e){}
   try{mercyGive9&&mercyGive9(Math.round(cost9*.5));}catch(e){}
@@ -24524,7 +24735,7 @@ function saintShrine9(){
   try{fireworks9();sfx.fanfare&&sfx.fanfare();}catch(e){}
   say('✦✦ A SHRINE RISES over '+SYSTEMS[ship.sys].name+' — white stone and a light that does not go out. This peace is PERMANENT now: it will never waver, and it can never be lost to war again. ('+shrineCount9()+' shrine'+(shrineCount9()===1?'':'s')+' standing.) ✦✦','#cfe8ff');
 }
-function almsCost9(){return Math.round(20000*Math.pow(1.5,S.alms9||0));}
+function almsCost9(){return Math.round(75+15*(S.alms9||0));}   // GRACE. Each one deepens the well by 20, so they pay themselves back.
 function almsEndow9(){
   saintInit9();
   if(!isSaint9())return;
@@ -24532,9 +24743,8 @@ function almsEndow9(){
   const nd=teleNodes9();
   if(nd[ship.sys]==='alms'||nd[ship.sys]==='hospital'){say('This world already has its house. Its people are well.','#9fd8ff');return;}
   const cost9=almsCost9();
-  if(ship.credits<cost9){say('An almshouse and its stores come to '+cost9+' cr. You are '+(cost9-Math.round(ship.credits))+' short. The tithes will get you there.','#ff8c8c');return;}
-  ship.credits-=cost9;S.alms9=(S.alms9||0)+1;nd[ship.sys]='alms';
-  try{const g9=grace9();g9.grace=g9.graceMax;}catch(e){}
+  if(!graceCost9(cost9))return;
+  S.alms9=(S.alms9||0)+1;nd[ship.sys]='alms';
   try{S.saint9.healed=(S.saint9.healed||0)+50;}catch(e){}
   try{mercyGive9&&mercyGive9(Math.round(cost9*.5));}catch(e){}
   try{awardScore&&awardScore(2500);}catch(e){}
@@ -24926,6 +25136,7 @@ function frameInner(now){
     if(riftAnim){drawRiftAnim();return;} // arrival frame falls through to a normal draw
   }
   if(!S.paused&&!S.menu){
+    if(S.screen==='meditate'&&S.med9)S.med9.t=(S.med9.t||0)+dt;
     if(S.screen==='space')updateSpace(dt);
     else if(S.screen==='away'){
       const drag9=!!(AW&&AW.fireAura9), h09=(AW&&AW.cap)?AW.cap.hp:null;
@@ -24951,6 +25162,7 @@ function frameInner(now){
   else if(S.screen==='empire'){drawEmpire9();}
   else if(S.screen==='taoledger'){drawTaoLedger9();}
   else if(S.screen==='chapel'){drawChapel9();}
+  else if(S.screen==='meditate'){drawMeditate9();}
   else if(S.screen==='away'){drawAway();if(S.qmAway)drawQOverlayAway();}
   else if(S.screen==='missions')drawMissions();
   else if(S.screen==='keyref')drawKeyRef();
