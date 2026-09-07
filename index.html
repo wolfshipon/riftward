@@ -556,7 +556,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.87';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.92';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -1352,6 +1352,74 @@ const TRACKS={
    {inst:'saw',vol:.09,seq:[['A3+C4+E4',1],['A3+C4+E4',1],['F3+A3+C4',1],['F3+A3+C4',1],['C4+E4+G4',1],['C4+E4+G4',1],['G3+B3+D4',1],['G3+B3+D4',1]]},
    {inst:'bass',vol:.16,seq:[['A2',.5],['A2',.5],['A2',.5],['A2',.5],['F2',.5],['F2',.5],['F2',.5],['F2',.5],['C3',.5],['C3',.5],['C3',.5],['C3',.5],['G2',.5],['G2',.5],['G2',.5],['G2',.5]]}]}
  ]},
+ boss2:{movements:[  // THE HULL BREAKER — E minor, the big one has already fired
+  {bpm:168,len:26,dr:{k:1,h:1,c:1,vol:.20},layers:[
+   {inst:'bass',vol:.23,seq:[['E1',.5],['E1',.25],['E1',.25],['E1',.5],['G1',.5],['E1',.5],['E1',.25],['D1',.25],['B0',1]]},
+   {inst:'saw',vol:.11,seq:[['E3+B3',1],['E3+B3',.5],['G3+D4',.5],['Fs3+Cs4',1],['E3+B3',1]]},
+   {inst:'square',vol:.05,seq:[['B5',.25],['R',.25],['E6',.25],['R',.25],['D6',.25],['R',.75]]}]},
+  {bpm:168,len:34,dr:{k:2,h:1,c:1,vol:.23},layers:[  // the theme, over the top of the guns
+   {inst:'lead',vol:.16,seq:[['E5',.5],['G5',.5],['B5',.75],['A5',.25],['G5',1],['Fs5',.5],['E5',.5],
+                             ['D5',.5],['E5',.5],['G5',1],['B5',.5],['C6',.5],['B5',1.5],['R',.5]]},
+   {inst:'bass',vol:.24,seq:[['E1',.5],['E1',.5],['C1',.5],['C1',.5],['D1',.5],['D1',.5],['B0',1]]},
+   {inst:'saw',vol:.09,seq:[['E3+G3+B3',2],['C3+E3+G3',2],['D3+Fs3+A3',2],['B2+D3+Fs3',2]]}]},
+  {bpm:150,len:22,dr:{k:1,h:0,c:0,vol:.13},layers:[  // III. THE LULL — smoke, and something still moving in it
+   {inst:'keys',vol:.10,seq:[['E4+B4',2],['C4+G4',2],['D4+A4',2],['B3+Fs4',2]]},
+   {inst:'pluck',vol:.06,seq:[['B5',.5],['A5',.5],['G5',.5],['Fs5',1.5]]},
+   {inst:'bass',vol:.18,seq:[['E1',2],['C1',2],['D1',2],['B0',2]]}]}]},
+ boss3:{movements:[  // COUNTING THE GUNS — C minor, half-time, enormous
+  {bpm:132,len:30,dr:{k:1,h:1,c:1,vol:.21},layers:[
+   {inst:'bass',vol:.26,seq:[['C1',1],['C1',.5],['Eb1',.5],['C1',1],['G1',.5],['F1',.5],['C1',2]]},
+   {inst:'saw',vol:.12,seq:[['C3+Eb3+G3',2],['Ab2+C3+Eb3',2],['Bb2+D3+F3',2],['G2+Bb2+D3',2]]},
+   {inst:'pluck',vol:.06,seq:[['C5',.5],['Eb5',.5],['G5',.5],['R',.5],['F5',.5],['Eb5',.5],['C5',1]]}]},
+  {bpm:132,len:36,dr:{k:2,h:1,c:1,vol:.24},layers:[
+   {inst:'lead',vol:.17,seq:[['G5',1],['Ab5',.5],['G5',.5],['F5',1],['Eb5',1],
+                             ['C5',.5],['Eb5',.5],['G5',1],['Bb5',1],['Ab5',1],
+                             ['G5',2],['R',1]]},
+   {inst:'bass',vol:.26,seq:[['C1',.5],['C1',.5],['C1',.5],['Bb0',.5],['Ab0',1],['G0',1]]},
+   {inst:'square',vol:.05,seq:[['C6',.25],['R',.25],['G5',.25],['R',.25],['Eb6',.25],['R',.75]]}]}]},
+ boss4:{movements:[  // THE LONG BROADSIDE — F sharp minor, no let-up anywhere in it
+  {bpm:176,len:24,dr:{k:1,h:1,c:0,vol:.20},layers:[
+   {inst:'bass',vol:.24,seq:[['Fs1',.25],['Fs1',.25],['Fs1',.25],['Fs1',.25],['E1',.25],['E1',.25],['D1',.25],['Cs1',.25]]},
+   {inst:'saw',vol:.10,seq:[['Fs3+A3+Cs4',1],['E3+G3+B3',1],['D3+Fs3+A3',1],['Cs3+E3+Gs3',1]]},
+   {inst:'square',vol:.06,seq:[['Fs6',.25],['E6',.25],['D6',.25],['E6',.25]]}]},
+  {bpm:176,len:32,dr:{k:2,h:1,c:1,vol:.23},layers:[
+   {inst:'lead',vol:.16,seq:[['Fs5',.25],['A5',.25],['Cs6',.5],['B5',.5],['A5',.5],
+                             ['Gs5',.25],['A5',.25],['B5',.5],['A5',1],
+                             ['Fs5',.25],['A5',.25],['D6',.5],['Cs6',.5],['B5',.5],['A5',1.5]]},
+   {inst:'bass',vol:.25,seq:[['Fs1',.5],['Fs1',.5],['D1',.5],['D1',.5],['B0',.5],['B0',.5],['Cs1',1]]},
+   {inst:'saw',vol:.09,seq:[['Fs3+Cs4',2],['D3+A3',2],['B2+Fs3',2],['Cs3+Gs3',2]]}]},
+  {bpm:190,len:20,dr:{k:1,h:1,c:1,vol:.26},layers:[  // III. it speeds up. That is the whole idea.
+   {inst:'bass',vol:.26,seq:[['Fs1',.25],['Fs1',.25],['Fs1',.25],['A1',.25]]},
+   {inst:'lead',vol:.15,seq:[['Cs6',.25],['B5',.25],['A5',.25],['Fs5',.25],['A5',.5],['B5',.5]]},
+   {inst:'saw',vol:.10,seq:[['Fs3+A3+Cs4',1],['Fs3+A3+Cs4',1]]}]}]},
+ boss5:{movements:[  // WHAT THE BIG ONES SOUND LIKE — A minor, it opens SLOW and it does not stay slow
+  {bpm:104,len:26,dr:{k:1,h:0,c:0,vol:.11},layers:[
+   {inst:'keys',vol:.12,seq:[['A3+E4',3],['F3+C4',3],['G3+D4',3],['E3+B3',3]]},
+   {inst:'bass',vol:.20,seq:[['A0',3],['F0',3],['G0',3],['E0',3]]},
+   {inst:'pluck',vol:.05,seq:[['A5',.5],['R',2.5],['G5',.5],['R',2.5]]}]},
+  {bpm:146,len:32,dr:{k:1,h:1,c:1,vol:.22},layers:[
+   {inst:'bass',vol:.25,seq:[['A1',.5],['A1',.5],['A1',.5],['C2',.5],['G1',.5],['G1',.5],['F1',1]]},
+   {inst:'lead',vol:.16,seq:[['A5',.5],['C6',.5],['B5',.5],['A5',.5],['G5',1],
+                             ['E5',.5],['G5',.5],['A5',1.5],['R',.5],
+                             ['C6',.5],['B5',.5],['A5',.5],['G5',.5],['E5',2]]},
+   {inst:'saw',vol:.10,seq:[['A3+C4+E4',2],['F3+A3+C4',2],['G3+B3+D4',2],['E3+G3+B3',2]]}]},
+  {bpm:146,len:26,dr:{k:2,h:1,c:1,vol:.25},layers:[
+   {inst:'bass',vol:.26,seq:[['A1',.25],['A1',.25],['G1',.25],['F1',.25],['E1',1]]},
+   {inst:'saw',vol:.12,seq:[['A3+E4',1],['G3+D4',1],['F3+C4',1],['E3+B3',1]]},
+   {inst:'square',vol:.06,seq:[['E6',.25],['A6',.25],['R',.5]]}]}]},
+ boss6:{movements:[  // NOBODY IS COMING — B minor, the one that plays when the odds are honest
+  {bpm:152,len:28,dr:{k:1,h:1,c:1,vol:.19},layers:[
+   {inst:'bass',vol:.24,seq:[['B0',.5],['B0',.5],['B0',.5],['R',.5],['A0',.5],['A0',.5],['G0',1]]},
+   {inst:'saw',vol:.11,seq:[['B3+Fs4',1.5],['A3+E4',1.5],['G3+D4',1.5],['Fs3+Cs4',1.5]]},
+   {inst:'pluck',vol:.07,seq:[['Fs5',.5],['E5',.5],['D5',.5],['Cs5',.5],['B4',2]]}]},
+  {bpm:152,len:34,dr:{k:2,h:1,c:1,vol:.23},layers:[
+   {inst:'lead',vol:.17,seq:[['B5',.75],['A5',.25],['Fs5',1],['G5',.75],['Fs5',.25],['E5',1],
+                             ['D5',.5],['E5',.5],['Fs5',1],['A5',1],['B5',1.5],['R',.5]]},
+   {inst:'bass',vol:.25,seq:[['B0',.5],['B0',.5],['G0',.5],['G0',.5],['D1',.5],['D1',.5],['A0',1]]},
+   {inst:'saw',vol:.09,seq:[['B3+D4+Fs4',2],['G3+B3+D4',2],['D3+Fs3+A3',2],['A3+Cs4+E4',2]]}]},
+  {bpm:152,len:20,dr:{k:0,h:1,c:0,vol:.10},layers:[  // III. one held breath before it comes round again
+   {inst:'keys',vol:.11,seq:[['B3+D4+Fs4',4],['Fs3+A3+Cs4',4]]},
+   {inst:'bass',vol:.17,seq:[['B0',4],['Fs0',4]]}]}]},
  boss:{movements:[
   {bpm:158,len:22,dr:{k:2,h:2,c:1,vol:.19},layers:[ // I. THE APPROACH — war drums under a held breath
    {inst:'bass',vol:.17,seq:[['D2',.5],['D2',.5],['D2',.5],['R',.5],['D2',.5],['D2',.5],['As1',.5],['R',.5],
@@ -1822,6 +1890,7 @@ function vorBecome9(e){
   if(e){e.alive=false;e.detected=false;}
   S.vorlan9.on=true;S.vorlan9.capital=true;S.vorlan9.tier=5;S.vorlan9.dread=20;
   S.qLock9=true;S.qmode=false;S.qmAway=false;S.standing=0;S.fcred=0;   // taking the dark ends any Q overlay — Orson steps back to the door
+  S.disease=null;   // whatever they were carrying, they are not carrying it in a body any more
   S.wrath9={cur:100,max:100};S.vorDone9=true;
   S.hullSkin=throneSkin9();S.vorHull9=S.hullSkin;
   ship.hangar=true;ship.fighters=(typeof wingSize==='function'?wingSize():12);
@@ -3564,6 +3633,7 @@ function vorInit9(){
 }
 function isVorlan9(){return !!(vorInit9().on);}
 const TRACKTITLES9={
+  boss:'Something Very Large Has Noticed You',boss2:'The Hull Breaker',boss3:'Counting the Guns',boss4:'The Long Broadside',boss5:'What the Big Ones Sound Like',boss6:'Nobody Is Coming',
   saint_space:'The White Road',saint_space2:'The Mended Sky',saint_space3:'A Quiet Round',saint_space4:'Silver Drift',saint_space5:'The Open Hand',saint_space6:'What the Light Remembers',saint_space7:'A Roof for the Stranger',saint_space8:'The Long Mercy',
   saint_combat:'The Thing That Mends',saint_combat2:'Stand Between',saint_combat3:'Hold the Line',
   saint_away:'A Glad World',saint_away2:'The Road Is Kind',saint_away3:'Hands to the Hurt',
@@ -3575,7 +3645,7 @@ const TRACKTITLES9={
   vor_away:'A Lost World',vor_away2:'A World That Knelt',vor_away3:'Ashes Underfoot',vor_board:'He Does Not Knock',vor_dock:'The Seat of the Reign',vor_quiet:'The Cold Below',
   casino2:'The Velvet Hour',casino3:'The Lucky Lady Orchestra',casino4:'After the Last Hand',casino_chase:'The Lady Turns'
 };
-const AREANAMES9={space:'Open Space',base:'Starbase',away:'Away Team',board:'Boarding Action',casino:'The Casino Floor',map:'The Star Chart',splash:'Riftward'};
+const AREANAMES9={boss:'Capital Engagement',space:'Open Space',base:'Starbase',away:'Away Team',board:'Boarding Action',casino:'The Casino Floor',map:'The Star Chart',splash:'Riftward'};
 function trackTitle9(nm){
   if(TRACKTITLES9[nm])return TRACKTITLES9[nm];
   const m9=(''+nm).match(/^([a-z_]+?)(\d+)$/);
@@ -3585,9 +3655,10 @@ function trackTitle9(nm){
   return base9+(num9>1?(' '+(ROM9[num9]||num9)):'');
 }
 const POOLS9={space:['space','space2','space3','space4','space5','space6','space7','space8','space9','space10','space11','space12','space13','space14','space15','space16','space17','space18','space19','space20','space21','space22'],base:['base','base2','base3','base4','base5','base6','base7','base8','base9','base10','base11','base12'],away:['away','away2','away3','away4','away5','away6','away7','away8'],board:['board','board2','board3','board4'],
+    boss:['boss','boss2','boss3','boss4','boss5','boss6'],
     vor_space:['vor_space','vor_space2','vor_space3','vor_space4','vor_space5','vor_space6','vor_space7','vor_space8'],vor_boss:['vor_boss','vor_boss2','vor_boss3'],vor_away:['vor_away','vor_away2','vor_away3'],
     saint_space:['saint_space','saint_space2','saint_space3','saint_space4','saint_space5','saint_space6','saint_space7','saint_space8'],saint_combat:['saint_combat','saint_combat2','saint_combat3'],saint_away:['saint_away','saint_away2','saint_away3']};
-const COMBATPOOL9={vor_boss:1,saint_combat:1};
+const COMBATPOOL9={boss:1,vor_boss:1,saint_combat:1};   // boss joined the rotation in v0.9.88: a mortal captain used to get ONE track for every capital fight in the game
 function musKey9(want){
   // what setMusic would ACTUALLY resolve this request to, so the director can compare like with like
   try{
@@ -3673,7 +3744,10 @@ function setMusic(name,force9){
     if(now>mvUntil){ // next movement — or hand off to the next track in this area's pool
       mvUntil=now+3; // dead-man: whatever happens below, this branch must never machine-gun the riser
       if(mv+1>=suite.length){
-        const POOLS={space:['space','space2','space3','space4','space5','space6','space7','space8','space9','space10','space11','space12'],base:['base','base2','base3','base4','base5','base6','base7','base8','base9','base10','base11','base12'],away:['away','away2','away3','away4','away5','away6','away7','away8'],board:['board','board2','board3','board4']};
+        // was a stale LOCAL copy of the pools: only 12 space tracks (there are 22) and no combat
+        // pools at all, so a boss suite that reached its end just looped itself until the fight
+        // ended. POOLS9 is the one true list.
+        const POOLS=POOLS9;
         for(const area in POOLS){
           const pl=POOLS[area],ix=pl.indexOf(music.name);
           if(ix>=0){const nx=pl[(ix+1)%pl.length];musTrans(now+.05);music.name=null;setMusic(nx);return;} // name cleared so the area-guard can't swallow the pool wrap
@@ -8028,6 +8102,7 @@ function newGamePlus(){
   S.ng=(S.ng||0)+1;buffClear9();
   // a fresh tour walks a fresh moral road: wipe BOTH story arcs and the mercy ledger so Saint AND Vorlan can be earned again (was: these persisted, so once you'd worn the stole or the crown the path stayed shut forever)
   S.saint9=null;S.saintWas9=false;S.saintAsked9=0;S.saintHint9=false;S.saintTier9=0;S.canonized9=false;S.chapel9=null;S.saintHullWas9=null;S.saintUpWas9=null;S.saintKillMark9=0;S.saintSentHere9=0;S.pacified9={};S.tao9=null;
+  S.ruledRift9=false;S.rule9=null;S.ruleConsolidated9=false;S.korvVassal9=false;S.korvAsked9=false;S.korvBetrayed9=false;S.korvOathT9=0;S.knifeWarn9=false;S.arenaFame9=0;S.arenaChamps9=null;
   S.vorlan9=null;S.vorWas9=false;S.vorSucc9=false;S.vorDone9=false;S.vorSeeded9=false;S.vorRestart9=0;S.vorSeedGrace9=0;S.vorReforms9=0;S.vorTheft9=0;S.vorTitleWas9=false;S.vorHull9=0;S.vorHullBonus9=0;S.vorWingBonus9=0;S.vorCapTier9=0;S.vorChoked9=false;S.vorLeechSaid9=false;S.vorlanCold=false;S.vorlanDead=false;S.vorlanLeft=false;S.vorlanTalked=false;S.vorlanCaught9=0;S.vorlanship=null;S.empire9=null;S.tribute9=null;S.wrath9=null;S.qLock9=false;
   S.mercy9={spared:0,saved:0,given:0,killed:0};
   ship.hull=100;ship.shields=100;ship.energy=100;ship.rift=100;
@@ -9192,11 +9267,29 @@ function updateSpace(dt){
     if(et.deploys&&e.detected&&!peaceful9&&e.hp>e.maxHp*CAPITAL_BAYS){
       e.depT=(e.depT===undefined?4:e.depT)-dt;
       const kids=enemies.filter(x=>x.alive&&x.type==='fighter'&&x.parent===e).length;
-      if(e.depT<=0&&kids<(et.wingCap||5)){
-        e.depT=(et.depRate||7);
-        const f2=spawnEnemy('fighter',{noTier:true});
-        f2.x=e.x+rnd(-30,30);f2.y=e.y+rnd(-30,30);f2.parent=e;f2.detected=true;if(e.liner)f2.linerKid9=true;if(e.type==='lightbringer9'){f2.lbKid9=true;f2.hp=f2.maxHp=(f2.maxHp||2)*2.2;if(f2.et)f2.et=Object.assign({},f2.et,{dmg:(f2.et.dmg||3)*1.8,col:'#ff5a3a'});}
-        say(e.type==='carrier'?'THE CARRIER OPENS HER BAYS \u2014 fighters POURING out!':'The flagship is launching fighters!','#ff8c8c');sfx.pew();
+      const cap9=(et.wingCap||5);
+      if(e.depT<=0&&kids<cap9){
+        // A FLIGHT, not a fighter. The first launch of a fight is the full scramble; after that
+        // she tops the wing back up in smaller sorties, because a carrier that can re-scramble
+        // four every four seconds is not a fight, it is a wall.
+        const first9=!e.scrambled9;
+        e.scrambled9=true;
+        const want9=first9?CAP_FLIGHT9:Math.min(CAP_FLIGHT9,2+Math.floor(rnd(0,2)));
+        const num9=Math.max(1,Math.min(want9,cap9-kids));
+        e.depT=(et.depRate||7)*(first9?2.2:1.8);   // longer between launches, because more comes out of each
+        for(let q9=0;q9<num9;q9++){
+          const f2=spawnEnemy('fighter',{noTier:true});
+          if(!f2)break;
+          const ang9=rnd(0,6.283), rr9=rnd(18,46);
+          f2.x=e.x+Math.cos(ang9)*rr9;f2.y=e.y+Math.sin(ang9)*rr9;f2.parent=e;f2.detected=true;
+          if(e.liner)f2.linerKid9=true;
+          if(e.type==='lightbringer9'){f2.lbKid9=true;f2.hp=f2.maxHp=(f2.maxHp||2)*2.2;if(f2.et)f2.et=Object.assign({},f2.et,{dmg:(f2.et.dmg||3)*1.8,col:'#ff5a3a'});}
+        }
+        if(num9>0){
+          say((e.type==='carrier'?'THE CARRIER OPENS HER BAYS \u2014 ':(first9?'THE FLAGSHIP SCRAMBLES HER WING \u2014 ':'She puts up another sortie \u2014 '))+num9+(num9===1?' fighter':' fighters')+' away!','#ff8c8c');
+          sfx.pew();
+          if(first9&&num9>=3){try{alarm(((et.nm||'THE FLAGSHIP'))+' LAUNCHES '+num9+' FIGHTERS');}catch(e9){}}
+        }
       }
     }
     // THE WORLD EATER hunts with a brood: an escort of MOON EATERS when it wakes, and it CALVES more as it feeds
@@ -10834,7 +10927,11 @@ function endAwayNow(success){
   BC('endAway success='+!!success);
   S.qmAway=false;
   AW.active=false;AW.outT=0;S.screen='space';setMusic('space');sayBridge();
-  if(!S.disease&&Math.random()<.08){
+  // The Emperor beams down ALONE (AW.solo9) and his officers are wraiths. Rolling a planetside
+  // fever on an officer who never left the ship, and who does not have a body to run a fever in,
+  // was pure noise: a MED BAY errand generated by a mission nobody but Vorlan attended.
+  const noPlague9=(typeof isVorlan9==='function'&&isVorlan9())||!!(AW&&AW.solo9);
+  if(!S.disease&&!noPlague9&&Math.random()<.08){
     const who=1+Math.floor(rnd(0,4));
     const dn=['VIRIDIAN FEVER','THE GREY CREEP','NEURAL RUST'][Math.floor(rnd(0,3))];
     S.disease={who,name:dn};
@@ -11542,7 +11639,11 @@ function corruptWave9(){
   if(S.screen!=='space')return false;
   if(heldCount9()<2){say('The dark is not deep enough yet. Hold TWO systems and it will answer a call this large. [V]','#8899bb');try{sfx.fail&&sfx.fail();}catch(e){}return false;}
   if((S.corruptCd9||0)>S.t){say('The corruption has to gather again — '+Math.ceil((S.corruptCd9||0)-S.t)+'s.','#8899bb');try{sfx.fail&&sfx.fail();}catch(e){}return false;}
-  const foes9=enemies.filter(e9=>e9&&e9.alive&&e9.et&&!e9.friendly9&&!e9.charmed9&&!e9.neutral9&&!e9.corruptAlly9);
+  // A named claimant does not answer a mass call. Ordinary capitals still turn, which is the whole
+  // point of the power; what is excluded is anything with a NAME and a reason to want your chair.
+  const unturnable9=e9=>!!(e9&&(e9.pretender9||e9.unique9||e9.boss||e9.knifed9||(e9.et&&e9.et.noSurrender)));
+  const foes9=enemies.filter(e9=>e9&&e9.alive&&e9.et&&!e9.friendly9&&!e9.charmed9&&!e9.neutral9&&!e9.corruptAlly9&&!unturnable9(e9));
+  const proud9=enemies.filter(e9=>e9&&e9.alive&&e9.detected&&unturnable9(e9));
   if(!foes9.length){say('Nothing here to corrupt.','#8899bb');return false;}
   if(!wrathSpend9(35,'The dark does not open that wide right now.'))return false;
   S.corruptCd9=S.t+45;
@@ -11564,7 +11665,99 @@ function corruptWave9(){
   dreadAdd9(3);
   try{alarm('CORRUPTION WAVE — THEIR HULLS ANSWER TO YOU NOW');}catch(e){}
   say('☠☠ CORRUPTION WAVE — the whole sky goes to its knees. '+turned9+' hull'+(turned9===1?'':'s')+' come about and turn their guns on the ones that stood beside them a breath ago. ☠☠','#c07ae8');
+  if(dread9()<45&&!S.knifeWarn9){S.knifeWarn9=true;
+    say('☠ None of them chose this. At DREAD '+Math.round(dread9())+' the hold is thin, and a thin hold slips in the middle of a fight. Be feared more, or watch your own wing.','#c9b7e8');}
+  if(proud9.length){
+    const nm9=(proud9[0].nm||proud9[0].et&&proud9[0].et.nm||'One hull');
+    say('☠ '+nm9+' does not go to its knees with the rest. Whatever you just put through that sky went through them too, and they are still pointed at you. Some things you have to do with your own hand.','#e86ad9');
+  }
   return true;
+}
+
+/* --- the knife: nobody on this wing chose to be on it ---------------- */
+const KNIFE9={
+  grace:9,        // seconds after turning before a hull can shake it off at all
+  base:0.011,     // per second, at zero dread, per corrupted hull. Tuned so that a wave of four
+                  // loses about one of them: 'sometimes', not 'always', and dread visibly moves it.
+  hurtMul:2.4,    // a hull being shot by its own old side remembers faster
+  lowMul:1.9,     // and so does one that is nearly gone
+  korvGrace:70,   // he keeps the oath at least this long before the thought occurs
+  korvBase:0.0010 // per second, and only when the empire is already fraying. Deliberately rare:
+                  // this is a once-a-campaign story beat, not a recurring tax. At dread 20 it is
+                  // about 1 in 10 across a long fight in a revolting system, 1 in 5 if you are
+                  // also bleeding, and roughly half that once you are properly feared.
+};
+function knifeHold9(){
+  // dread is the leash. At 0 they slip constantly; at 100 they barely twitch.
+  return Math.max(0.12,1-(dread9()/118));
+}
+function corruptBreak9(e9){
+  // A hull throws off the corruption. It does not thank you.
+  e9.corruptAlly9=false;e9.charmed9=false;e9.friendly9=false;
+  e9.holdFire=false;e9.disarmed=false;e9.neutral9=false;
+  e9.fire=Math.max(e9.fire||0,1);e9.detected=true;
+  e9.knifed9=true;                       // once it has slipped, it never turns again
+  e9.hp=Math.max(e9.hp,(e9.maxHp||40)*0.30);
+  QSTATE.flash=1.1;S.shake=Math.max(S.shake||0,2);
+  try{sfx.alert&&sfx.alert();}catch(e8){}
+  const nm9=(e9.nm||(e9.et&&e9.et.nm)||'A hull');
+  say('☠ '+nm9+' COMES OFF THE LEASH. Whatever you put in that crew wears off mid-turn, and the '+
+      'first thing they do with their own hands back is point them at you.','#ff5c5c');
+  dreadAdd9(-2);   // the sky saw it happen
+}
+function korvBetray9(k9){
+  const R9=S.rule9;if(!R9)return;
+  S.korvVassal9=false;S.korvBetrayed9=true;S.korvHereSys9=-1;
+  R9.pretenderDone=false;R9.pretenderActive=true;R9.pretenderSys=ship.sys;
+  if(k9){
+    k9.korvVassal9=false;k9.corruptAlly9=false;k9.charmed9=false;k9.friendly9=false;
+    k9.holdFire=false;k9.disarmed=false;k9.neutral9=false;
+    k9.pretender9=true;k9.boss=true;k9.detected=true;k9.idKnown=true;
+    k9.fire=Math.max(k9.fire||0,1);
+    k9.nm='KORVAAN, WHO LIED';
+    k9.hp=Math.max(k9.hp,(k9.maxHp||100)*0.75);
+  }
+  S.korvAsked9=true;   // there is no second kneeling. He used that.
+  QSTATE.flash=2.2;S.shake=Math.max(S.shake||0,5);
+  try{sfx.alert&&sfx.alert();}catch(e9){}
+  try{alarm('KORVAAN BREAKS THE OATH');}catch(e9){}
+  say('☠☠☠ He takes station off your flank the way he has for weeks, and then he does not. '+
+      'On the open channel, in the same level voice he used to swear it: "You should have taken my head. '+
+      'You wanted to be the kind of thing that did not have to." KORVAAN, WHO LIED, brings his guns round. ☠☠☠','#e86ad9');
+  say('There is no second kneeling. You had the choice once and you spent it.','#c9b7e8');
+}
+function knifeTick9(dt){
+  if(!isVorlan9())return;
+  if(S.screen!=='space')return;
+  const hold9=knifeHold9();
+  for(const e9 of enemies){
+    if(!e9||!e9.alive||!e9.corruptAlly9||e9.korvVassal9)continue;
+    e9.caAge9=(e9.caAge9||0)+dt;
+    if(e9.caAge9<KNIFE9.grace)continue;
+    let ch9=KNIFE9.base*hold9*dt;
+    if(e9.caHurt9&&S.t<e9.caHurt9)ch9*=KNIFE9.hurtMul;             // being shot at focuses the mind
+    if(e9.maxHp&&e9.hp<e9.maxHp*0.35)ch9*=KNIFE9.lowMul;
+    if(Math.random()<ch9)corruptBreak9(e9);
+  }
+  // KORVAAN. Rarer, slower, and only when the empire is already coming apart, because a man who
+  // knelt in front of his own bridge does not move until he thinks he can win.
+  if(S.korvVassal9&&!S.korvBetrayed9){
+    S.korvOathT9=(S.korvOathT9||0)+dt;
+    if(S.korvOathT9>KNIFE9.korvGrace){
+      const t9=S.tribute9&&S.tribute9[ship.sys];
+      // Only two things give him the opening: the system under you is in revolt, or you are
+      // visibly losing. An early reign is NOT by itself an opening; that clause made a stable
+      // empire with a full hull read as fraying, and he knifed you in the first fight after kneeling.
+      const fraying9=!!(t9&&(t9.rebel9||t9.revolted));
+      const bleeding9=(ship.hull<=34);
+      if(fraying9||bleeding9){
+        const k9=enemies.find(x9=>x9&&x9.alive&&x9.korvVassal9);
+        if(k9&&Math.random()<KNIFE9.korvBase*knifeHold9()*(bleeding9?2.2:1)*dt){
+          korvBetray9(k9);
+        }
+      }
+    }
+  }
 }
 function corruptAllyTick9(dt){
   // corrupted hulls fight FOR you, hosing the nearest un-turned hostile
@@ -11581,6 +11774,7 @@ function corruptAllyTick9(dt){
       e9.caFire9=1;
       S.beamFx.push({x1:e9.x,y1:e9.y,x2:t9.x,y2:t9.y,t:.12,hit:true,col:'rgba(192,122,232,.9)'});
       hurtEnemy(t9,6);
+      if(bd9<300)e9.caHurt9=S.t+3;   // close enough that the old side is shooting back
     }
   }
 }
@@ -11700,6 +11894,78 @@ function ruleSpawnPretender9(){
   say('☠☠ Something the size of a challenge drops out of the dark, flying colours that are almost yours. KORVAAN, THE PRETENDER, tells the whole band on every channel that the throne was never yours to sit. There is only one answer he will hear. ☠☠','#e86ad9');
   try{setMusic('boss');}catch(e){}
 }
+
+/* --- KORVAAN: the head, or the knee -------------------------------- */
+const KORV_KNEE9=0.22;   // he does not break until the hull is genuinely gone
+
+function korvVassalTick9(){
+  // KORVAAN, WHO KNELT, keeps his oath across systems. Enemies are rebuilt on every arrival, so a
+  // vassal who only existed in the array he knelt in was a vassal for one system. He re-forms
+  // wherever there is something to point him at, once per system, and only in a fight.
+  if(!S.korvVassal9||!isVorlan9())return;
+  if(S.screen!=='space')return;
+  if(enemies.some(e9=>e9&&e9.alive&&e9.korvVassal9))return;
+  if(S.korvHereSys9===ship.sys)return;
+  const hot9=enemies.some(e9=>e9&&e9.alive&&e9.detected&&!e9.friendly9&&!e9.charmed9&&!e9.neutral9&&!e9.corruptAlly9&&e9.et);
+  if(!hot9)return;
+  S.korvHereSys9=ship.sys;
+  const k9=spawnEnemy('unm_herald',{noTier:true,nm:'KORVAAN, WHO KNELT'});
+  if(!k9)return;
+  k9.korvVassal9=true;k9.corruptAlly9=true;k9.charmed9=true;k9.friendly9=true;
+  k9.holdFire=true;k9.disarmed=true;k9.detected=true;k9.idKnown=true;k9.pretender9=false;
+  k9.x=ship.x+rnd(-160,160);k9.y=ship.y+rnd(-160,160);k9.caFire9=0;
+  say('☠ A shape you used to have to worry about drops in off your flank and takes station without being asked. KORVAAN, WHO KNELT.','#c07ae8');
+}
+function korvKneelCheck9(){
+  // Offered ONCE, when his hull is broken and he is still in the sky with you.
+  if(!isVorlan9())return;
+  if(S.screen!=='space')return;
+  const R9=S.rule9;if(!R9||R9.pretenderDone)return;
+  if(S.korvAsked9)return;
+  const k9=enemies.find(e9=>e9&&e9.alive&&e9.pretender9);
+  if(!k9||!k9.maxHp)return;
+  if(k9.hp>k9.maxHp*KORV_KNEE9)return;
+  S.korvAsked9=true;
+  k9.holdFire=true;k9.fire=0;k9.korvBroken9=true;
+  try{sfx.alert&&sfx.alert();}catch(e9){}
+  QSTATE.flash=1.6;
+  showEnc('KORVAAN IS BROKEN',
+    'His drive is gone and half his hull is somewhere behind him, and he still has the channel open, still telling anyone listening that it should have been him. '+
+    'You can hear his own bridge crew in the background. They have stopped arguing with him.\n\n'+
+    'You do not have to kill him. You have never had to kill any of them. That is the part nobody believes about the crown.',
+    [
+     {label:'TAKE HIS HEAD. The next one will hear about it.',col:'#2a1018',tcol:'#ff8c8c',
+      fn:()=>{closeEnc();
+        say('☠ You do not answer him. You just finish it, on an open channel, so that the next one who is thinking about it has something specific to picture.','#e86ad9');
+        try{hurtEnemy(k9,9e9);}catch(e9){}
+      }},
+     {label:'MAKE HIM KNEEL. He keeps the hull. You keep the throne.',col:'#1a1428',tcol:'#c9b7e8',
+      fn:()=>{closeEnc();korvKneel9(k9);}}
+    ],'space');
+}
+function korvKneel9(k9){
+  const R9=S.rule9;if(!R9)return;
+  R9.pretenderActive=false;R9.pretenderDone=true;
+  S.korvVassal9=true;
+  if(k9){
+    k9.pretender9=false;                 // the claim is what dies here, not the man
+    k9.korvVassal9=true;k9.corruptAlly9=true;k9.charmed9=true;k9.friendly9=true;
+    k9.holdFire=true;k9.disarmed=true;k9.neutral9=false;
+    k9.hp=Math.max(k9.hp,(k9.maxHp||100)*0.55);k9.caFire9=0;
+    k9.nm='KORVAAN, WHO KNELT';
+  }
+  // A knee is worth less than a head on the board and more than a head in the sky: you gain a
+  // capital hull that fights for you, and you give up the score the kill would have paid.
+  awardScore(Math.round(RULE9.pretenderScore*0.55));
+  dreadAdd9(6);
+  QSTATE.flash=2;try{sfx.fanfare&&sfx.fanfare();}catch(e9){}
+  try{alarm('KORVAAN BENDS THE KNEE');}catch(e9){}
+  say('☠☠☠ He is quiet for a long moment, and then he says it, on the open channel, in front of his own bridge and yours: that the throne is yours and was always going to be. '+
+      'He does not sound broken when he says it. He sounds RELIEVED, which is worse, and which you will think about later. '+
+      'THE UNMADE THRONE comes onto your wing and does not leave it. ☠☠☠','#c07ae8');
+  say('You did not need his head. You will notice that nobody else needed to see you take it, either.','#c9b7e8');
+  ruleConsolidateCheck9();
+}
 function ruleConsolidateCheck9(){
   const R9=S.rule9;if(!R9||S.ruleConsolidated9)return;
   if(R9.quelled>=R9.need&&R9.pretenderDone){
@@ -11713,15 +11979,17 @@ function ruleFrame9(){
   if(!(isVorlan9()&&S.ruledRift9&&!S.ruleConsolidated9))return;
   const R9=S.rule9;if(!R9)return;
   if(S.screen!=='space')return;
+  try{korvKneelCheck9();}catch(e9){}
   if(R9.pretenderActive&&!R9.pretenderDone){
     if(ship.sys!==R9.pretenderSys){
-      R9.pretenderActive=false;
+      R9.pretenderActive=false;S.korvAsked9=false;   // he is still out there; the offer comes round again when you are
       say('☠ KORVAAN does not follow you out of the system. He does not have to. He knows you will be back, and so does he.','#c98a8a');
     } else if(!enemies.some(e9=>e9&&e9.alive&&e9.pretender9)){
       R9.pretenderActive=false;R9.pretenderDone=true;
       awardScore(RULE9.pretenderScore);QSTATE.flash=2;
       try{sfx.fanfare();}catch(e){}
       say('☠☠☠ KORVAAN COMES APART, still telling you it should have been him. It is always going to be him, or the next one. You are the only thing in this dark that never gets a turn to want the throne, because you already have it. ☠☠☠','#e86ad9');
+      say('THE CLAIM IS SETTLED. There is no second Korvaan. Whatever comes for the throne after this will have to think of its own name.','#c9b7e8');
       ruleConsolidateCheck9();
     }
   }
@@ -14876,12 +15144,6 @@ addEventListener('keydown',e=>{
     if(k==='q'){arQ9();return;}
     if(AR.esc){if(k==='e'||k==='enter'){arEscFire9();return;}return;}
     if(k==='escape'){if(AR.mode==='bet'){AR.mode=null;return;}arClose9();return;}
-    if(AR.mode==='fight'){
-      if(AR.between9&&k==='n'){AR.between9=false;AR.wave++;arNextWave9();return;}
-      if(AR.between9&&k==='x'){ship.credits+=AR.purse;arSay9('You take '+AR.purse+' cr and walk out on your own feet, which is rarer than it sounds.');AR.mode=null;AR.between9=false;return;}
-      if(k==='e'||k==='enter'){arStrike9();return;}
-      return;
-    }
     if(AR.mode==='bet'){
       if(k==='arrowup'){AR.pick9=(AR.pick9+AR.champs.length-1)%AR.champs.length;return;}
       if(k==='arrowdown'){AR.pick9=(AR.pick9+1)%AR.champs.length;return;}
@@ -17239,6 +17501,8 @@ function saveGame(){
       bl:S.boardLog9||{},blt:S.boardTotal9||0,wr:S.whaleRun9||null,wd:!!S.whaleDone9,wclk:S.whaleClock9||0,bq:S.borkQuest9||null,sgc:S.singerCurio9||null,
       vor:S.vorlan9||null,trb:S.tribute9||null,emp:S.empire9||null,vcau:S.vorlanCaught9||0,vwas:!!S.vorWas9,vsuc:!!S.vorSucc9,vdn:!!S.vorDone9,vrst:(S.vorRestart9==null?-1:S.vorRestart9),lh9:S.lostHold9||{},
       wra:S.wrath9||null,qlk:!!S.qLock9,bst:S.beastTip9||null,trt:S.treasureTip||null,itp:S.intelTip9||null,
+      rr9:!!S.ruledRift9,rul9:S.rule9||null,rcn9:!!S.ruleConsolidated9,kvs9:!!S.korvVassal9,kask9:!!S.korvAsked9,kbt9:!!S.korvBetrayed9,koat9:S.korvOathT9||0,
+      arf9:S.arenaFame9||0,arch9:S.arenaChamps9||null,
       qst:(S.missions||[]).map(m=>({id:(m.def&&m.def.id!=null)?m.def.id:null,gen:(m.def&&m.def.gen)?m.def:null,pr:m.prog||null})),
       crew:crew.map(c=>({lvl:c.lvl,hp:c.hp})),
       done:[...S.completed],gen:S.genCount,cv9:[...(S.completedV9||[])],cs9:[...(S.completedS9||[])],rj9:S.reignJobs9||0,mj9:S.mercyJobs9||0,vrd9:!!S.vorReignDone9,srd9:!!S.saintReignDone9,mon9:S.monuments9||0,alm9:S.alms9||0,tnd9:S.teleNodes9||{},fw9:!!S.freeJump9,lbb9:!!S.lbBoard9,lbc9:(S.lb9&&S.lb9.caught)||0,svd9:(S.sv9&&S.sv9.done)||0,hd9:S.haulerDebt9||0,hn9:[...(S.haulerNames9||[])],hrj9:S.haulerReturnJumps9||0,hcs9:(S.haulerCurioSys9==null?-1:S.haulerCurioSys9),hcv9:S.haulerCurioVal9||0,
@@ -17287,6 +17551,13 @@ function loadGame(n){
   S.vorWas9=!!d.vwas;S.vorSucc9=!!d.vsuc;S.vorDone9=!!d.vdn;S.vorRestart9=(d.vrst==null||d.vrst<0)?null:d.vrst;S.lostHold9=d.lh9||{};
   S.wrath9=d.wra||{cur:100,max:100};
   S.qLock9=!!d.qlk;
+  // the throne, the claim, and the board all survive a reload now
+  S.ruledRift9=!!d.rr9;
+  S.rule9=d.rul9||null;
+  S.ruleConsolidated9=!!d.rcn9;
+  S.korvVassal9=!!d.kvs9;S.korvAsked9=!!d.kask9;S.korvBetrayed9=!!d.kbt9;S.korvOathT9=d.koat9||0;
+  S.arenaFame9=d.arf9||0;
+  S.arenaChamps9=(d.arch9&&d.arch9.length)?d.arch9:null;
   S.beastTip9=d.bst||null;S.treasureTip=d.trt||null;S.intelTip9=d.itp||null; // rumors keep their word across a save now
   ship.cloaked=false;ship.cloakCd=0;
   S.missions=(function(){
@@ -20038,7 +20309,9 @@ function drawAway(){
           for(let bi=-2;bi<=2;bi++){ctx.beginPath();ctx.moveTo(sx+bi*4,sy+bh);ctx.lineTo(sx+bi*4,sy);ctx.stroke();}ctx.restore();}
         rr(sx-14,sy+bh,28,3.5,2,'rgba(255,255,255,.18)');
         rr(sx-14,sy+bh,28*clamp(f.hp/f.maxHp,0,1),3.5,2,'#ff6a6a');
-        if(!f.officer&&f.invT<=0&&f.subT<=0&&!(f.a&&f.a.mech==='mimic'&&!f.revealed))
+        if(f.champ9)
+          txt(f.champNm9+(f.enraged?' \u2022 ENRAGED':''),sx,sy+bh-11,'#ffd86b',9,'center','bold');
+        else if(!f.officer&&f.invT<=0&&f.subT<=0&&!(f.a&&f.a.mech==='mimic'&&!f.revealed))
           txt(f.tp.toUpperCase()+(f.enraged?' \u2022 ENRAGED':''),sx,sy+bh-11,f.enraged?'#ff8c8c':((f.a&&f.a.mech)?'#c9d46a':'#8899bb'),8,'center','normal');
         if(f.officer&&!f.dragon&&!f.vorlan&&(f.a&&f.a.human))txt('OFFICER',sx,sy+bh-22,'#ffd86b',9,'center'); // only a human boarding-crew officer wears the label
       }
@@ -20073,7 +20346,8 @@ function drawAway(){
       g5.addColorStop(0,'rgba(0,0,0,.6)');g5.addColorStop(1,'rgba(0,0,0,0)');
       fg.fillStyle=g5;fg.beginPath();fg.arc(mx,my,CELL*1.15,0,TAU);fg.fill();
     }
-    const vx=cap.x-camX,vy=cap.y-camY,vr=CELL*3.3*(((AW.gloomT||0)>0)?.62:1)*((AW.dustBlind&&S.t<AW.dustBlind)?.72:1);
+    const arf9=(typeof AW.arFog9==='number')?AW.arFog9:0;   // THE DARK, wave 3: vision collapses to arm's length
+    const vx=cap.x-camX,vy=cap.y-camY,vr=CELL*3.3*(((AW.gloomT||0)>0)?.62:1)*((AW.dustBlind&&S.t<AW.dustBlind)?.72:1)*(1-arf9*.70);
     const vg=fg.createRadialGradient(vx,vy,vr*.28,vx,vy,vr);
     vg.addColorStop(0,'rgba(0,0,0,1)');vg.addColorStop(.7,'rgba(0,0,0,.85)');vg.addColorStop(1,'rgba(0,0,0,0)');
     fg.fillStyle=vg;fg.beginPath();fg.arc(vx,vy,vr,0,TAU);fg.fill();
@@ -22556,6 +22830,9 @@ const BORK_ARENA9=250;
 // where the cost should sit. Bork is a ferry, and this is a short hop.
 function borkArena9(){
   if(typeof openArena9!=='function'){say('Bork shrugs. "No sand this side of the rift, friend."','#c9d46a');return;}
+  if(typeof isVorlan9==='function'&&isVorlan9()){   // refuse BEFORE the fare, or the crown pays 250 cr for a shut door
+    say('Bork does not start the engine. "Friend. No." He will not look directly at you any more, which is new. "They would not let you on the sand and I would not drive you there. Ask me for anything else."','#c9d46a');
+    try{sfx.fail&&sfx.fail();}catch(e9){}return;}
   if((S.arena9&&S.arena9.on)||(typeof AW!=='undefined'&&AW&&AW.isArena9)||S.screen==='arena'){
     say('Bork peers at you. "Friend. You are ALREADY in the arena. Look around."','#c9d46a');return;}
   if(ship.credits<BORK_ARENA9){say('Bork spreads his hands. "'+BORK_ARENA9+' credits, friend. I have to pay the man at the gate too."','#ff8c8c');try{sfx.fail&&sfx.fail();}catch(e9){}return;}
@@ -23024,6 +23301,9 @@ addEventListener('wheel',e=>{
 },{passive:true});
 const TRACTOR_HP=.25; // at a quarter hull her weapons die and the beam can grip — a narrow window before she runs at 18%
 const CAPITAL_BAYS=.30, CAPITAL_GUNS=.15; // capitals die harder: bays first, then guns
+// How many fighters come out of a single launch. v0.9.90: capitals used to dribble ONE fighter per
+// depRate, so a wingCap of 8 took over half a minute to fill and the wing was dead before it existed.
+const CAP_FLIGHT9=5;
 function isCapital(e){return !!(e&&e.et&&e.et.deploys);}
 // Ships that cannot be talked off the board, and the same ships that never flee. Words do not delete
 // these; you fight them, board them, or leave. Same class the Purge Wave treats specially: as of
@@ -23092,10 +23372,11 @@ function drawMap(){
     ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
   }
   const tgtSet=new Set();
+  const questSet9=new Set();   // ONLY missions in the queue. Not whispers, not tips, not events.
   S.missions.forEach(m2=>{
     const d2=edef(m2);
-    if(d2.sys!==undefined)tgtSet.add(d2.sys);
-    if(m2.def.ty==='patrol')m2.def.syss.forEach(s3=>{if(!m2.prog.visited[s3])tgtSet.add(s3);});
+    if(d2.sys!==undefined){tgtSet.add(d2.sys);questSet9.add(d2.sys);}
+    if(m2.def.ty==='patrol')m2.def.syss.forEach(s3=>{if(!m2.prog.visited[s3]){tgtSet.add(s3);questSet9.add(s3);}});
   });
   if(S.treasureTip){tgtSet.add(S.treasureTip.sys);SYSTEMS[S.treasureTip.sys].known=true;}
   if(S.tradeTip){tgtSet.add(S.tradeTip.buySys);tgtSet.add(S.tradeTip.sellSys);}
@@ -23120,8 +23401,21 @@ function drawMap(){
     const hd2=Math.hypot(mouse.x-x,mouse.y-y);
     if(hd2<hovD){hovD=hd2;mapHover=i;}
     const isTarget=tgtSet.has(i);
-    if(isTarget){ctx.strokeStyle='rgba(255,216,107,'+(0.5+Math.sin(S.t*4)*.4)+')';
+    const isQuest9=questSet9.has(i);
+    if(isTarget&&!isQuest9){ctx.strokeStyle='rgba(255,216,107,'+(0.5+Math.sin(S.t*4)*.4)+')';
       ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(x,y,15,0,TAU);ctx.stroke();}
+    if(isQuest9){
+      // hard on/off, ~1.6 Hz. Held and pacified worlds all breathe with a sine; nothing else on
+      // this chart blinks, so a blink means one thing and one thing only: you took a job here.
+      const on9=(Math.sin(S.t*5)>0);
+      if(on9){
+        ctx.save();
+        ctx.strokeStyle='#c9ff3d';ctx.shadowColor='#c9ff3d';ctx.shadowBlur=12;
+        ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,15,0,TAU);ctx.stroke();
+        ctx.lineWidth=1.4;ctx.globalAlpha=.75;ctx.beginPath();ctx.arc(x,y,19,0,TAU);ctx.stroke();
+        ctx.restore();
+      }
+    }
     let col=s.base?'#6fb7ff':(s.freeport?'#e86ad9':(s.danger==='borg_probe'?'#5cd8ff':s.danger?'#ff7b7b':'#c9b458'));
     if(!s.known)col='#39404f';
     const rad=(s.base||s.freeport)?7:(i<16?5.5:4);
@@ -23149,6 +23443,7 @@ function drawMap(){
     else if(sai9m&&S.lostPeace9&&S.lostPeace9[i]&&!pacified9(i)){tipCol='#c98a8a';tipTag='PEACE LOST';}   // lost — go mend it again
     else if(vor9m&&S.tribute9&&S.tribute9[i]&&(S.tribute9[i].rebel9||S.tribute9[i].revolted)){tipCol='#ff9a5c';tipTag='REVOLT';}
     else if(vor9m&&S.lostHold9&&S.lostHold9[i]&&!conquered9(i)){tipCol='#c98a8a';tipTag='LOST';}
+    else if(questSet9.has(i)){tipCol='#c9ff3d';tipTag='QUEST';}
     else if(S.tradeTip&&i===S.tradeTip.buySys&&S.tradeTip.left>0&&(ship.cargo[GOODS[S.tradeTip.good][0]]||0)<S.tradeTip.left){tipCol='#4ade6a';tipTag='BUY';}
     else if(S.tradeTip&&i===S.tradeTip.sellSys&&S.tradeTip.left>0){tipCol='#ff5c5c';tipTag='SELL ×5';}
     else if(S.treasureTip&&i===S.treasureTip.sys){tipCol='#ffd86b';tipTag='TIP';}
@@ -24090,26 +24385,6 @@ function drawArena9(){
     ctx.fillStyle='#3a1a1a';ctx.fillRect(34,H-64,272,12);
     ctx.fillStyle=E9.hp>40?'#e8dfa0':'#ff5c5c';ctx.fillRect(34,H-64,272*Math.max(0,E9.hp)/100,12);
     if(E9.hold9>0)txt('HOLDING THE PAD…',E9.pad.x,E9.pad.y-56,'#6fe8c8',13,'center');
-  } else if(AR.mode==='fight'){
-    const n9=(AR.foeHp9||[]).filter(h=>h>0).length;
-    txt('WAVE '+AR.wave+' / 10',W/2,90,'#ffd86b',22,'center');
-    for(let i9=0;i9<(AR.foeHp9||[]).length;i9++){
-      if(AR.foeHp9[i9]<=0)continue;
-      const bx9=W/2-((AR.foeHp9.length-1)*80)/2+i9*80;
-      const big9=(AR.wave===10);
-      ctx.fillStyle=big9?'#7a2a4a':'#4a3a2a';
-      ctx.beginPath();ctx.arc(bx9,240,big9?58:26,0,6.3);ctx.fill();
-      if(big9){ctx.fillStyle='#e86ad9';ctx.beginPath();
-        ctx.moveTo(bx9-70,210);ctx.lineTo(bx9,150);ctx.lineTo(bx9+70,210);ctx.closePath();ctx.fill();}
-      ctx.fillStyle='#ff5c5c';ctx.fillRect(bx9-28,(big9?310:276),56*Math.max(0,AR.foeHp9[i9])/(big9?260:(22+AR.wave*9)),5);
-    }
-    txt((AR.kinds9||[]).join('  •  ').toUpperCase(),W/2,340,'#c9b7a8',12,'center','normal');
-    rr(20,H-96,320,54,10,'#0d1420cc');
-    txt('YOU  —  [E] fire'+qHint9(),34,H-72,'#9fc5ff',13);
-    ctx.fillStyle='#1a2a1a';ctx.fillRect(34,H-64,292,12);
-    ctx.fillStyle=(AR.hp9||0)>40?'#7fd98a':'#ff5c5c';ctx.fillRect(34,H-64,292*Math.max(0,AR.hp9||0)/100,12);
-    txt('purse '+AR.purse+' cr',W-40,H-60,'#ffd86b',13,'right');
-    if(AR.between9)txt('[N] next wave     [X] take the purse and go',W/2,H-140,'#ffd86b',16,'center');
   } else if(AR.mode==='bet'){
     txt('THE BOOK',W/2,80,'#ffd86b',20,'center');
     const st9=Math.max(0,Math.min(AR.pick9-6,AR.champs.length-13));
@@ -24142,14 +24417,9 @@ function drawArena9(){
     // bet, take a purse and, above all, leave.
     const ab9=H-118, sa9t=(typeof isSaint9==='function'&&isSaint9());
     if(AR.qMenu9){
-      for(let i9=0;i9<5;i9++)uiBtn9(40+i9*126,ab9,116,46,'ORSON '+(i9+1),'#ff8ce8','#2a1a2e',(function(kk){return function(){arQUse9(kk);};})(''+(i9+1)));
+      uiBtn9(40,ab9,300,46,'RIG THIS FIGHT','#ff8ce8','#2a1a2e',()=>arQUse9('1'));
     } else if(AR.esc){
       uiBtn9(W/2-110,ab9,220,50,'FIRE','#ffd86b','#2a2418',()=>arEscFire9());
-    } else if(AR.mode==='fight'){
-      if(AR.between9){
-        uiBtn9(W/2-250,ab9,230,50,'NEXT WAVE','#ffd86b','#2a2418',()=>{AR.between9=false;AR.wave++;arNextWave9();});
-        uiBtn9(W/2+20,ab9,230,50,'TAKE '+AR.purse+' CR','#7fd98a','#16283e',()=>{ship.credits+=AR.purse;arSay9('You take '+AR.purse+' cr and walk out on your own feet, which is rarer than it sounds.');AR.mode=null;AR.between9=false;});
-      } else uiBtn9(W/2-110,ab9,220,50,'STRIKE','#ffd86b','#2a2418',()=>arStrike9());
     } else if(AR.mode==='bet'){
       uiBtn9(40,ab9,86,50,'\u25b2','#9fd8ff','#16283e',()=>{AR.pick9=(AR.pick9+AR.champs.length-1)%AR.champs.length;});
       uiBtn9(134,ab9,86,50,'\u25bc','#9fd8ff','#16283e',()=>{AR.pick9=(AR.pick9+1)%AR.champs.length;});
@@ -24698,17 +24968,16 @@ function arOdds9(c9){
   const t9=c9.w+c9.l||1,r9=c9.w/t9;
   return Math.max(1.2,Math.min(9,+(1/Math.max(.12,r9)*.9).toFixed(2)));
 }
-function arWaveKinds9(n9){
-  let pool9=[];
-  try{pool9=Object.keys(AWE).filter(k9=>k9!=='dragon');}catch(e){pool9=['creature','guard','brute'];}
-  const cnt9=n9>=3?Math.min(5,1+Math.floor(n9/2)):1;
-  const out9=[];
-  for(let i9=0;i9<cnt9;i9++)out9.push(pool9[Math.floor(rnd(0,pool9.length))]);
-  return out9;
-}
 function openArena9(where9){
   if((S.arena9&&S.arena9.on)||(typeof AW!=='undefined'&&AW&&AW.isArena9)||S.screen==='arena'){return;}   // no arena inside an arena
-  AR={where:where9||'planet',mode:null,wave:0,purse:0,bet:null,betOn:null,
+  // The sand is a place where the outcome is in doubt. Nothing about the crown is in doubt.
+  // Same reasoning as the casino floor, and the same answer: the door does not open.
+  if(typeof isVorlan9==='function'&&isVorlan9()){
+    try{setMusic('vor_away');}catch(e9){}
+    say('The gate hand looks at what is standing in his doorway and does not reach for the bolt. "No. Sand is for men who might lose." Behind him the crowd has already gone quiet in the wrong way, the way a room goes quiet when the thing everyone came to watch turns out to be sitting in the stands. "There is no card we could put you on, Emperor. Whoever we sent out would only be dying for our entertainment, and we are not that kind of house."','#c9b7e8');
+    return;
+  }
+  AR={where:where9||'planet',mode:null,bet:null,betOn:null,   // wave/purse went with the dead press-E arena in v0.9.89
       from9:S.screen,champs:arChamps9(),msg:'',msgT:0,esc:null};
   S.screen='arena';
   try{setMusic('arena')}catch(e){try{setMusic('boarding')}catch(e2){}}
@@ -24744,6 +25013,7 @@ function arClose9(){
 /* --- fighting: ten waves, and the dragon at the top ------------------- */
 function arFight9(){
   if(!AR)return;
+  if(typeof isVorlan9==='function'&&isVorlan9()){arSay9('There is no card they could put you on.');return;}
   const where9=AR.where;
   // The arena used to choose your companion FOR you: the first fit officer out of [1,4,2,3], which
   // is almost always the First Officer, so every trip to the sand was Reyes. An earlier attempt to
@@ -24754,13 +25024,14 @@ function arFight9(){
   const go9=(ci9)=>{
     AR=null;
     S.arena9={on:true,wave:1,purse:0,where:where9};
+    if(typeof AW!=='undefined'&&AW){AW.arFog9=0;AW.fogSay9=false;AW.shoveSay9=0;}
     try{beginAway({t:'THE ARENA',tier:2,obj:'clear',arena9:true,expedition:true},null,ci9);}
     catch(e9){try{S.screen='space';}catch(e8){}return;}
     if(AW)AW.isArena9=true;
     if(!AW||!AW.comp){say('The arena master waves you off: you cannot fight this alone, Captain. Bring an officer who can stand.','#ff8c8c');S.arena9=null;S.screen='space';return;}
     S.screen='away';
     try{setMusic('boarding')}catch(e9){}
-    say('\u2605 THE GATE DROPS BEHIND YOU. Ten waves. A lance, your team, and a great deal of noise. \u2605','#ffd86b');
+    say('\u2605 THE GATE DROPS BEHIND YOU. FIVE waves, and the house has trained every one of them to answer you at range. The last gate has a NAME behind it. \u2605','#ffd86b');
     S.arena9.spawn9=true;   // the watcher puts them on the sand on the next frame
   };
   const fit9=[1,2,3,4].filter(i9=>crew[i9]&&crew[i9].hp>0&&!(S.disease&&S.disease.who===i9));
@@ -24815,119 +25086,245 @@ function arUnstick9(){
     }
   }
 }
+
+/* ===== THE ARENA, rebuilt in v0.9.90 ================================
+   The old sand was nine waves of "pool[random()]" out of all 40 non-human species, scaled by
+   hp*(1+n*.28) and count 1..6. Twenty-two of those forty are melee-only, so the dominant
+   experience was a mob walking at you, nine times, and the only thing that changed between wave 2
+   and wave 9 was how LONG it took. Length is not difficulty.
+
+   Five waves now, each with a job, and every creature that steps onto the sand has been trained
+   up: things that only ever bit you in the wild are given something to throw or a shove to land.
+   ==================================================================== */
+
+// What a species throws once the house has trained it. Melee-only animals get a ranged option,
+// which is the whole point: nothing on the sand is safe to simply walk up to.
+const ARPROJ9={
+ creature:'rock', brute:'rock', burrower:'rock', packhunter:'rock', rockmimic:'rock',
+ stalker:'bolt', swarm:'spore', magmahound:'fire', alphabrute:'rock', lightningeel:'bolt',
+ spore:'spore', craghorn:'rock', gloomcrawler:'bolt', glaciermaw:'ice', dunestrider:'rock',
+ mireleaper:'spore', razorbeak:'bolt', reefsnapper:'ice', crystalhulk:'ice', duskstalker:'bolt',
+ skyraptor:'bolt', coldrider:'ice'
+};
+// Creatures whose arena version SHOVES instead of shooting. A repulse is a different problem to
+// solve than a projectile: it takes the ground away from you rather than the health.
+const ARSHOVE9={brute:1,alphabrute:1,craghorn:1,glaciermaw:1,rockmimic:1,boulderback:1,crystalhulk:1,reefsnapper:1};
+
+// The five waves. `roles` is what the house is TESTING you on, not just what it is throwing.
+const ARWAVE9=[
+ {n:1,nm:'THE OPENERS',      pool:['packhunter','razorbeak','swarm','mireleaper','dunestrider','lightningeel'],
+  cnt:4, hp:1.30, dmg:1.00, spd:1.12,
+  say:'WAVE 1 of 5 — THE OPENERS. Fast, light, and they have all been taught to throw. The crowd is not impressed yet.'},
+ {n:2,nm:'THE RANGE',        pool:['sandspitter','shardcaster','sporelobber','thornbeast','tidecaller','cinderling','pyrewing','emberwisp','staticjelly','voidmoth'],
+  cnt:5, hp:1.55, dmg:1.15, spd:1.00, allRanged:true,
+  say:'WAVE 2 of 5 — THE RANGE. Not one of them will close with you. Standing still is the mistake.'},
+ {n:3,nm:'THE DARK',         pool:['duskstalker','stalker','wisp','voidmoth','razorbeak'],   // no gloomcrawler here: the fogger IS a gloomcrawler and should be the only one
+  cnt:4, hp:1.70, dmg:1.25, spd:1.10, fog:true, blink:2,
+  say:'WAVE 3 of 5 — THE DARK. Somebody kills the lights. Two of them blink. Watch the sand, not the shapes.'},
+ {n:4,nm:'THE WEIGHT',       pool:['alphabrute','glaciermaw','crystalhulk','boulderback','craghorn'],
+  cnt:2, hp:2.10, dmg:1.35, spd:0.95, mender:true, shoveAll:true,
+  say:'WAVE 4 of 5 — THE WEIGHT. Two that will not move and one at the back putting them back together. Pick the right one.'},
+ {n:5,nm:'THE NAME ON THE BOARD', champ:true,
+  cnt:2, hp:1.80, dmg:1.30, spd:1.05,
+  say:''}
+];
+// A champion's style decides what they actually are on the sand. Twenty names, eight styles.
+const ARCHSTYLE9={
+ blade:  {tp:'duskstalker', hp:1.00, spd:1.30, blurb:'fast, and does not telegraph'},
+ net:    {tp:'reefsnapper', hp:1.15, spd:1.00, mech:'grabhold', blurb:'will hold you still while the seconds work'},
+ fists:  {tp:'brute',       hp:1.30, spd:1.05, shove:true, blurb:'closes, and keeps closing'},
+ spear:  {tp:'craghorn',    hp:1.10, spd:1.15, mech:'charge', blurb:'charges on a wind-up you can read, once'},
+ shield: {tp:'boulderback', hp:1.55, spd:0.80, mech:'armorfront', blurb:'armored front; go round'},
+ poison: {tp:'sporelobber', hp:0.90, spd:1.10, proj:'spore', blurb:'never closes, never stops'},
+ beast:  {tp:'alphabrute',  hp:1.45, spd:1.00, mech:'enrage', blurb:'gets faster the closer it is to dying'},
+ hammer: {tp:'glaciermaw',  hp:1.40, spd:0.90, shove:true, mech:'freeze', blurb:'every hit leaves you slow'}
+};
+
+// Take a wild species and put it through the house's training.
+function arKit9(tp9,wv9,opt9){
+  const base9=AWE[tp9]||AWE.creature;
+  const a9=Object.assign({},base9);
+  a9.spd=Math.round((base9.spd||40)*(wv9.spd||1));
+  a9.dmg=(base9.dmg||4)*(wv9.dmg||1);
+  a9.mech=AWMECH[tp9]||null;
+  opt9=opt9||{};
+  // EVERYTHING can answer you from a distance. A melee-only animal gets a throw, and a slow
+  // rate of fire so that a wave of four does not become a wall of projectiles.
+  if((a9.rng||0)<140 && !opt9.shove){
+    a9.rng=160+Math.round(rnd(0,30));
+    a9.proj=ARPROJ9[tp9]||'rock';
+    a9.rate=Math.max(1.5,(base9.rate||1.2)*1.5);
+  }
+  // or a repulse instead, for the ones built like a door
+  if(opt9.shove||(ARSHOVE9[tp9]&&!opt9.noShove)){a9.shove9=true;a9.rng=base9.rng;a9.proj=base9.proj;}
+  if(opt9.blink)a9.mech='blink';
+  if(opt9.mech)a9.mech=opt9.mech;
+  if(opt9.proj){a9.proj=opt9.proj;a9.rng=Math.max(a9.rng||0,170);}
+  return a9;
+}
+function arMakeFoe9(tp9,a9,hp9,extra9){
+  const sp9=arOpenSpot9();
+  return Object.assign({tp:tp9,a:a9,fem:false,x:sp9.x,y:sp9.y,
+    hp:hp9,maxHp:hp9,st:'idle',stT:0,wx:0,wy:0,face:-1,walk:0,cool:rnd(0,.6),dieT:0,
+    pacified:false,vseed:Math.random(),disp:'predator',arena9:true},extra9||{});
+}
+// Wave 5. A live name off the board, scaled by the record they actually earned, with two seconds.
+function arChampPick9(){
+  const all9=arChamps9();
+  const ok9=all9.filter(c9=>!c9.freed9&&!c9.retired9&&!c9.beaten9);
+  const pool9=ok9.length?ok9:all9.filter(c9=>!c9.freed9);
+  if(!pool9.length)return null;
+  return pool9[Math.floor(rnd(0,pool9.length))];
+}
+function arChampSpawn9(){
+  const c9=arChampPick9();
+  const st9=ARCHSTYLE9[(c9&&c9.st)||'blade']||ARCHSTYLE9.blade;
+  const a9=arKit9(st9.tp,{spd:st9.spd,dmg:1.30},{shove:!!st9.shove,mech:st9.mech,proj:st9.proj});
+  a9.dmg=(AWE[st9.tp].dmg||12)*1.30;
+  // their RECORD is their stat line. A name with eighteen wins is a genuinely worse evening.
+  const rec9=c9?(c9.w||0):6;
+  const hp9=(300+rec9*34)*st9.hp*MODE.give0;
+  const f9=arMakeFoe9(st9.tp,a9,hp9,{champ9:true,champNm9:(c9?c9.nm:'THE LAST HONEST MAN'),
+    champRef9:c9,st:'aggro',disp:'predator',officer:true});
+  AW.foes.push(f9);
+  // two seconds, so it is not a duel in an empty room
+  const sec9=['razorbeak','packhunter'];
+  for(let i9=0;i9<2;i9++){
+    const tp9=sec9[i9%sec9.length];
+    const sa9=arKit9(tp9,{spd:1.15,dmg:1.10});
+    const shp9=(AWE[tp9].hp||50)*1.9*MODE.give0;
+    AW.foes.push(arMakeFoe9(tp9,sa9,shp9,{st:'aggro',champSec9:true}));
+  }
+  const note9=c9?(' ('+(c9.w||0)+'-'+(c9.l||0)+(c9.streak9>=3?(', '+c9.streak9+' straight'):'')+')'):'';
+  alarm('WAVE 5 — '+(c9?c9.nm:'THE CHAMPION')+' IS ON THE SAND');
+  say('★ WAVE 5 of 5 — THE NAME ON THE BOARD. The gate opens for '+(c9?c9.nm:'the champion')+note9+
+      ', '+st9.blurb+'. Two of the house’s own come out with them. Beat this and the board carries YOUR name. ★','#ffd86b');
+}
 function arSpawnWave9(n9){
   if(!AW||!S.arena9||!S.arena9.on)return;
   arClearFloor9();
   AW.foes.length=0;
-  const last9=(n9>=10);
-  let pool9=[];
-  try{pool9=Object.keys(AWE).filter(k9=>k9!=='spacedragon'&&AWE[k9]&&!AWE[k9].human);}catch(e){pool9=['creature','brute'];}
-  const cnt9=last9?1:Math.min(6,1+Math.floor(n9*.7));
-  for(let i9=0;i9<cnt9;i9++){
-    const tp9=last9?'spacedragon':pool9[Math.floor(rnd(0,pool9.length))];
-    let a9=AWE[tp9]||AWE.creature;
-    a9=Object.assign({},a9,{spd:Math.round((a9.spd||40)*(1.1+n9*.03)),dmg:(a9.dmg||4)*(1.1+n9*.06),mech:AWMECH[tp9]||null});
-    const hp9=(a9.hp||20)*(1+n9*.28)*MODE.give0*(last9?3:1);
-    const sp9=arOpenSpot9();
-    AW.foes.push({tp:tp9,a:a9,fem:false,
-      x:sp9.x,
-      y:sp9.y,
-      hp:hp9,maxHp:hp9,st:'idle',stT:0,wx:0,wy:0,face:-1,walk:0,cool:rnd(0,.6),dieT:0,pacified:false,
-      vseed:Math.random(),disp:'predator',arena9:true});
-  }
+  AW.arFog9=0;AW.arShove9=[];
+  const wv9=ARWAVE9[Math.max(0,Math.min(ARWAVE9.length-1,n9-1))];
   S.arena9.wave=n9;
-  if(last9){
-    alarm('WAVE 10 — THE FAR GATE IS NOT OPENED, IT IS TORN. THE DRAGON IS ON THE SAND WITH YOU.');
-  } else {
-    say('WAVE '+n9+' of 10 — '+cnt9+' of them, and they are already moving. Kill them all.','#ffd86b');
+  if(wv9.champ){arChampSpawn9();try{setMusic('boss',true);}catch(e9){}return;}
+  // Draw WITHOUT replacement while the pool lasts. Drawing with replacement is how the old sand
+  // produced three of the same animal in a wave of four, which is the repetitiveness itself.
+  const bag9=wv9.pool.slice();
+  for(let z9=bag9.length-1;z9>0;z9--){const r9=Math.floor(rnd(0,z9+1));const t8=bag9[z9];bag9[z9]=bag9[r9];bag9[r9]=t8;}
+  const blinkN9=wv9.blink||0;
+  for(let i9=0;i9<wv9.cnt;i9++){
+    const tp9=bag9.length?bag9[i9%bag9.length]:'creature';
+    const opt9={blink:(i9<blinkN9), shove:!!wv9.shoveAll};
+    if(wv9.allRanged)opt9.noShove=true;
+    const a9=arKit9(tp9,wv9,opt9);
+    const hp9=(AWE[tp9].hp||40)*wv9.hp*MODE.give0;
+    AW.foes.push(arMakeFoe9(tp9,a9,hp9,{st:'aggro'}));
   }
+  // THE DARK: one of them is carrying the lights out with it. Kill it and the sand comes back.
+  if(wv9.fog){
+    const fa9=arKit9('gloomcrawler',wv9,{});
+    fa9.mech='gloom';
+    const fhp9=(AWE.gloomcrawler.hp||140)*wv9.hp*1.25*MODE.give0;
+    AW.foes.push(arMakeFoe9('gloomcrawler',fa9,fhp9,{st:'aggro',arFogger9:true}));
+  }
+  // THE WEIGHT: the one at the back is the answer, and it is not the one hitting you.
+  if(wv9.mender){
+    const ma9=arKit9('tidecaller',wv9,{});
+    ma9.mech='mend';ma9.spd=Math.round(ma9.spd*1.25);
+    const mhp9=(AWE.tidecaller.hp||100)*wv9.hp*MODE.give0;
+    AW.foes.push(arMakeFoe9('tidecaller',ma9,mhp9,{st:'aggro',arMender9:true}));
+  }
+  say(wv9.say,'#ffd86b');
+  if(wv9.fog)alarm('THE LIGHTS GO OUT ON THE SAND');
+}
+const ARWAVEPAY9=[0,900,1500,2400,3600,1200];   // 1-indexed by wave; wave 5 pays mostly through the
+// champion bonus. Five waves total about what ten used to (~17.5k), so this is a difficulty change,
+// not a pay cut: the same money for a shorter, much harder evening.
+function arShoveTick9(dt9){
+  // A REPULSE. Not damage: it takes the ground away from you, which on a floor full of
+  // projectiles is worse. Lives here rather than in the shared away mech switch so that
+  // nothing in the wild bestiary changes behaviour.
+  if(!AW||!AW.cap||!AW.foes)return;
+  const cap9=AW.cap;
+  for(const f9 of AW.foes){
+    if(!f9||f9.hp<=0||!f9.arena9||!(f9.a&&f9.a.shove9))continue;
+    if(f9.pacified||f9.stilled9||f9.st==='fled'||f9.st==='stunned')continue;
+    const dx9=cap9.x-f9.x, dy9=cap9.y-f9.y, d9=Math.hypot(dx9,dy9)||1;
+    if(d9>74)continue;
+    if(S.t<(f9.shoveT9||0))continue;
+    f9.shoveT9=S.t+2.4;
+    const px9=dx9/d9, py9=dy9/d9;
+    cap9.x=clamp(cap9.x+px9*128,30,AWW-30);
+    cap9.y=clamp(cap9.y+py9*128,30,AWH-30);
+    AW.slowT=Math.max(AW.slowT||0,.45);
+    try{sfx.hit&&sfx.hit();}catch(e9){}
+    if(AW.sparks)for(let k9=0;k9<7;k9++)AW.sparks.push({x:cap9.x+rnd(-10,10),y:cap9.y+rnd(-8,8),vx:px9*rnd(40,120),vy:py9*rnd(40,120),life:rnd(.25,.5)});
+    if(!AW.shoveSay9||S.t>AW.shoveSay9){AW.shoveSay9=S.t+7;awToast('IT PUTS YOU ON YOUR BACK','#d8b06a');}
+  }
+}
+function arFogTick9(){
+  // THE DARK. The away view already paints a fog mask with a vision radius; the fogger just
+  // collapses it. Killing the fogger gives the sand back, which is the whole tactic.
+  if(!AW||!AW.foes)return;
+  let live9=false;
+  for(const f9 of AW.foes)if(f9&&f9.hp>0&&f9.arFogger9&&!f9.pacified&&!f9.stilled9&&f9.st!=='fled'){live9=true;break;}
+  if(live9){
+    if(!AW.arFog9){AW.arFog9=1;awToast('THE LIGHTS GO OUT','#8a7ab0');}
+    AW.arFog9=Math.min(1,(AW.arFog9||0)+1/45);
+  } else if((AW.arFog9||0)>0){
+    AW.arFog9=Math.max(0,AW.arFog9-1/30);
+    if(AW.arFog9<=0&&!AW.fogSay9){AW.fogSay9=true;awToast('THE SAND COMES BACK','#ffd86b');}
+  }
+}
+function arChampBeat9(f9){
+  // Beating a name off the board is a change to the WORLD, not a payout. The board remembers.
+  const c9=f9&&f9.champRef9;
+  const rec9=c9?(c9.w||0):6;
+  const bonus9=Math.round(4200+rec9*380);
+  if(c9){
+    c9.beaten9=true;c9.retired9=true;c9.l=(c9.l||0)+1;c9.streak9=Math.min(-1,(c9.streak9||0)-1);
+  }
+  S.arenaFame9=(S.arenaFame9||0)+1;
+  const nm9=(c9&&c9.nm)||'THE CHAMPION';
+  say('★★ '+nm9+' DOES NOT GET UP. The house pays the champion\\u2019s purse: '+bonus9+' cr. '+
+      'They scratch the name off the board and write yours in the space, which is not a thing they do lightly. ★★','#ffd86b');
+  return bonus9;
 }
 function arenaWaveWatch9(){
   const A9=S.arena9;
   if(!A9||!A9.on||!AW||S.screen!=='away')return;
   if(!AW.isArena9){S.arena9=null;return;}   // you left the arena; it does not follow you
+  try{arShoveTick9(1/60);arFogTick9();}catch(e9){}
   if(A9.spawn9){A9.spawn9=false;arSpawnWave9(A9.wave||1);return;}
   if(A9.pending9){A9.pending9-=1/60;if(A9.pending9<=0){A9.pending9=0;arSpawnWave9((A9.wave||1)+1);}return;}
   if(!AW.foes.length)return;
   // a foe that fled, yielded or beamed out is resolved. Without this the wave hangs forever
   // on a creature that broke off, which a Saint causes constantly because she never finishes one.
   if(AW.foes.some(f9=>f9.hp>0&&!f9.pacified&&!f9.stilled9&&f9.st!=='fled'&&f9.st!=='beamout'&&f9.st!=='yield'))return;
-  const pay9=A9.wave*260;
-  A9.purse+=pay9;
+  const wave9=A9.wave||1;
+  A9.purse+=(ARWAVEPAY9[wave9]!=null?ARWAVEPAY9[wave9]:900);
   // the house carts the stunned off the sand between waves — nothing wakes up mid-run
   AW.foes.forEach(f9=>{if(f9&&f9.hp>0&&(f9.pacified||f9.st==='stunned')&&!f9.stilled9){f9.st='fleeing';f9.fleeT=.4;f9.pacified=true;}});
-  if(A9.wave>=10){
-    const total9=A9.purse+6000;
+  if(wave9>=5){
+    const ch9=AW.foes.find(f8=>f8&&f8.champ9);
+    const bonus9=ch9?arChampBeat9(ch9):5000;
+    const total9=A9.purse+bonus9;
     ship.credits+=total9;
     try{gainMat('dil',80)}catch(e){}
     if(typeof awardScore==='function')awardScore(3000);
     if(typeof addInfamy==='function')addInfamy(40);
-    A9.on=false;
-    say('★ THE DRAGON IS DOWN AND THE HOUSE PAYS: '+total9+' cr and 80 riftium. The noise does not stop for a long time. ★','#ffd86b');
+    A9.on=false;AW.arFog9=0;
+    say('★ THE HOUSE SETTLES: '+total9+' cr and 80 riftium. The noise does not stop for a long time. ★','#ffd86b');
     try{sfx.fanfare&&sfx.fanfare()}catch(e){}
     setTimeout(()=>{try{endAway(true)}catch(e){}},1800);
     return;
   }
-  say('WAVE '+A9.wave+' CLEARED. Purse '+A9.purse+' cr banked. Next gate is rattling \u2014 or [B] walks out with the purse.','#7fd98a');
+  const nx9=ARWAVE9[wave9];   // wave9 is 1-based, so this is the NEXT one
+  say('WAVE '+wave9+' of 5 CLEARED. Purse '+A9.purse+' cr banked. Next through that gate: '+
+      (nx9?nx9.nm:'the last of them')+'  \u2014  or [B] walks out with the purse now.','#7fd98a');
   A9.pending9=3.2;
 }
-function arNextWave9(){
-  if(!AR)return;
-  if(AR.wave>10){arWin9();return;}
-  const last9=(AR.wave===10);
-  AR.kinds9=last9?['dragon']:arWaveKinds9(AR.wave);
-  AR.hp9=AR.hp9==null?100:AR.hp9;
-  AR.foeHp9=AR.kinds9.map((k9,i9)=>last9?260:(22+AR.wave*9));
-  AR.waveT9=0;
-  arSay9(last9
-    ?'★ WAVE 10. The gate at the far end is bigger than the others. It does not open — it is TORN open. THE DRAGON COMES ONTO THE SAND. ★'
-    :'WAVE '+AR.wave+' — '+AR.kinds9.length+' of them, and the crowd already knows how this usually goes. [E] fire'+qHint9());
-}
-function arStrike9(){
-  if(!AR||AR.mode!=='fight'||AR.esc)return;
-  const i9=AR.foeHp9.findIndex(h9=>h9>0);
-  if(i9<0)return;
-  const pow9=(AR.qPow9&&AR.qPow9>0)?2:1;
-  AR.foeHp9[i9]-=(9+Math.round(rnd(0,7)))*pow9;
-  if(AR.foeHp9[i9]<=0)arSay9('One down. The sand drinks it. '+AR.foeHp9.filter(h=>h>0).length+' still standing.');
-  if(AR.foeHp9.every(h9=>h9<=0)){
-    const pay9=AR.wave*220*(AR.qMore9?2:1);
-    AR.purse+=pay9;AR.qMore9=false;AR.qPow9=0;
-    if(AR.wave===10){arWin9();return;}
-    arSay9('WAVE '+AR.wave+' DONE. Purse '+AR.purse+' cr. [N] take the next wave  •  [X] walk out with what you have');
-    AR.between9=true;
-  }
-}
-function arTick9(dt9){
-  if(!AR||AR.mode!=='fight'||AR.between9||AR.esc)return;
-  AR.waveT9=(AR.waveT9||0)+dt9;
-  if(AR.waveT9>=1.15){
-    AR.waveT9=0;
-    const live9=AR.foeHp9.filter(h9=>h9>0).length;
-    if(!live9)return;
-    const dmg9=(AR.wave===10?11:3+Math.round(AR.wave*.8))*Math.min(3,live9);
-    AR.hp9-=dmg9;
-    if(AR.hp9<=0)arLose9();
-  }
-}
-function arWin9(){
-  const pay9=AR.purse+6000;
-  ship.credits+=pay9;
-  try{gainMat('dil',80);}catch(e){}
-  if(typeof awardScore==='function')awardScore(3000);
-  if(typeof addInfamy==='function')addInfamy(40);
-  arSay9('★ THE DRAGON KNEELS AND THE HOUSE PAYS. '+pay9+' cr, 80 riftium, and a crowd that will tell this wrong for years. ★');
-  AR.mode=null;AR.wave=0;
-}
-function arLose9(){
-  const keep9=Math.round(AR.purse*.3);
-  ship.credits+=keep9;
-  if(typeof gainStanding==='function')gainStanding(-2);
-  arSay9('The sand comes up to meet you. They carry you out through the wrong gate. You keep '+keep9+' cr and nothing else.');
-  AR.mode=null;AR.hp9=null;AR.wave=0;
-}
-
-
 /* --- betting on other people's violence ------------------------------ */
 function arBet9(){
   if(!AR)return;
@@ -24991,27 +25388,17 @@ function arQ9(){
   if(typeof isVorlan9==='function'&&isVorlan9()){arSay9('You reach for the old god’s hand. It is not there. That road closed the day you took the crown.');return;}
   if(!(S.qmode||S.qUnlocked)){arSay9('You reach for something you do not have.');return;}
   if((S.qCharge9==null?3:S.qCharge9)<=0){arSay9('Nothing left. Whatever ORSON lent you, you have spent it.');return;}
+  if(AR.mode!=='bet'){arSay9('ORSON: "On the SAND I can do things for you. Up here in the stands? There is nothing to meddle with but the book." Put money on somebody first.');return;}
   AR.qMenu9=!AR.qMenu9;
-  if(AR.qMenu9)arSay9('[1] full heal  •  [2] double power  •  [3] more opponents, double purse  •  [4] volcanoes'+(AR.mode==='bet'?'  •  [5] rig this fight':''));
+  if(AR.qMenu9)arSay9('[1] rig this fight  •  [Q] think better of it');
 }
 function arQUse9(n9){
   if(!AR||!AR.qMenu9)return;
+  if(n9!=='1'||AR.mode!=='bet')return;   // rigging the book is the only thing left up here that is real
   AR.qMenu9=false;
   S.qCharge9=(S.qCharge9==null?3:S.qCharge9)-1;
-  if(n9==='1'){AR.hp9=100;arSay9('The wounds close as though they had been a rumour. (ORSON charge left: '+S.qCharge9+')');}
-  else if(n9==='2'){AR.qPow9=1;arSay9('Your lance gets heavier and louder. Double, this wave.');}
-  else if(n9==='3'){
-    AR.qMore9=true;
-    if(AR.foeHp9)AR.foeHp9=AR.foeHp9.concat(AR.foeHp9.map(h9=>h9>0?h9:0));
-    arSay9('You ask for more. The gates open again. The crowd loses its mind. Double purse if you live.');
-  }
-  else if(n9==='4'){
-    AR.volc9=true;
-    if(AR.foeHp9)AR.foeHp9=AR.foeHp9.map(h9=>h9>0?h9-30:h9);
-    AR.hp9=Math.max(1,(AR.hp9||100)-12);
-    arSay9('The floor of the arena splits and something orange comes up through it. It does not care whose side anyone is on.');
-  }
-  else if(n9==='5'&&AR.mode==='bet'){AR.qRig9=true;arSay9('You put a thumb on a fight you are not even in.');}
+  AR.qRig9=true;
+  arSay9('You put a thumb on a fight you are not even in. (ORSON charge left: '+S.qCharge9+')');
   if(rnd(0,1)<.15&&!AR.esc)arCaught9();
 }
 function arRigCheck9(){ if(rnd(0,1)<.15&&!AR.esc)arCaught9(); }
@@ -25825,7 +26212,7 @@ function frameInner(now){
     ship.sys=Math.max(0,Math.min(SYSTEMS.length-1,parseInt(ship.sys,10)||0));
   }
   if(S.prizeCourt9){try{openPrizeCourt9();}catch(e){}}
-  if(isVorlan9()){try{vorTitleCheck9();capitalGrowth9();throneCheck9();ruleFrame9();}catch(e){}}
+  if(isVorlan9()){try{vorTitleCheck9();capitalGrowth9();throneCheck9();ruleFrame9();korvVassalTick9();}catch(e){}}   // the vassal tick sits OUTSIDE ruleFrame9: that function stops running once the reign consolidates, and an oath should outlive the endgame that produced it
   if(!isVorlan9()){try{saintCalling9();}catch(e){}}
   if(isSaint9()&&S.screen==='space'){try{saintPacifySys9();}catch(e){}}
   if(isSaint9()&&S.canonized9){try{saintReignFrame9();}catch(e){}try{saintMendFrame9();}catch(e){}}
@@ -25837,7 +26224,7 @@ function frameInner(now){
   if(S.vorGrabCd9>0)S.vorGrabCd9-=Math.min(.05,dt||.016);
   if(S.screen==='away'&&isVorlan9()){try{vorGripTick9(Math.min(.05,dt||.016));}catch(e){}}
   if(S.conq9){try{conquestTick9();redeemOffer9();}catch(e){}}
-  if(isVorlan9()&&S.screen==='space'){try{redeemWingWatch9();corruptAllyTick9(Math.min(.05,dt||.016));}catch(e){}}
+  if(isVorlan9()&&S.screen==='space'){try{redeemWingWatch9();corruptAllyTick9(Math.min(.05,dt||.016));knifeTick9(Math.min(.05,dt||.016));}catch(e){}}
   if(S.redeemFin9&&(S.t||0)>=S.redeemFin9){S.redeemFin9=0;try{redeemFinish9();}catch(e){}}
   if(S.pendingReignFin9&&S.screen==='space'&&(typeof ENC==='undefined'||!ENC)&&(typeof riftAnim==='undefined'||!riftAnim)&&!S.cut9){const rk9=S.pendingReignFin9;S.pendingReignFin9=null;try{startCutscene9(rk9==='vor'?'vor_reign':'saint_reign');}catch(e){}}
   if(S.screen==='space'){
@@ -25862,7 +26249,7 @@ function frameInner(now){
   if(S.screen==='away'&&S.arena9&&S.arena9.on){try{arenaWaveWatch9();arUnstick9();}catch(e){}}
   if(S.screen==='arena'&&AR){const d8=Math.min(.05,dt||.016);
     if(AR.msgT>0)AR.msgT-=d8;
-    arTick9(d8);arEscTick9(d8);}
+    arEscTick9(d8);}
   // THE LUCKY LADY: if she is in this system and you are in space, she is on the board. Every frame, cheaply.
   if(S.screen==='space'&&(S.linerSys===ship.sys||S.linerOwned)&&!S.linerDead9){
     if((S.linerChk9||0)<S.t){
