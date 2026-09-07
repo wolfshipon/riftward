@@ -329,7 +329,12 @@ function drawTouch(){
     if(cs9[1])B9.push({k:cs9[1][1],l:cs9[1][0],x:W-196,y:H-232,r:38,cx9:true});
   } else {
     B9=[{k:'fire',l:'FIRE',x:W-74,y:H-84,r:46,hold:true},
-        {k:'s',l:(AW&&AW.stun)?'STUN':'KILL',x:W-172,y:H-56,r:30},
+        // The STUN/KILL toggle is LOCKED for both transformations: the stole will not allow lethal,
+        // and the crown has no stun setting. Pressing it only printed a refusal, which is the same
+        // 'button that exists to say no' we removed from Vorlan's Orson slot. Their weapon mode is
+        // already stated on the HUD line, so the slot simply goes away for them.
+        ...(((typeof isSaint9==='function'&&isSaint9())||(typeof isVorlan9==='function'&&isVorlan9()))?[]
+            :[{k:'s',l:(AW&&AW.stun)?'STUN':'KILL',x:W-172,y:H-56,r:30}]),
         {k:'e',l:(typeof isVorlan9==='function'&&isVorlan9())?((AW&&AW.grip9)?'HURL':'GRASP'):'ABLTY',x:W-190,y:H-146,r:28},
         {k:'b',l:'RECALL',x:W-80,y:H-198,r:30},
         {l:'DODGE',x:W-40,y:H-262,r:28,act9:()=>{keys['j']=true;setTimeout(()=>{keys['j']=false;},130);}}];
@@ -551,7 +556,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.84';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.87';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -1793,14 +1798,17 @@ function musicTick9(){
   // the score answers the room, not just the screen
   if(S.screen!=='space')return;
   const want=linerChase9()?'casino_chase':(bossFight()?'boss':'space');
-  const isBossy=(music.name==='boss'||music.name==='casino_chase');
-  if(music.name===want){S.bossMusT=null;S.calmT=null;return;}
+  // These used to compare music.name against the GENERIC names. As Vorlan or the Saint the score is
+  // remapped, so the playing track was 'vor_boss2' while want was 'boss': never equal, never bossy,
+  // and the director spun uselessly while the same combat track played all session.
+  const isBossy=(musPlaying9('boss')||music.name==='casino_chase');
+  if(musPlaying9(want)){S.bossMusT=null;S.calmT=null;return;}
   if(want==='casino_chase'){S.bossMusT=null;S.calmT=null;setMusic('casino_chase');return;} // the Lady's chase SLAMS in — no silent beat
   if(want==='boss'&&!isBossy){
     if(S.bossMusT==null)S.bossMusT=S.t+1.5;   // a beat of dread before the drums start
-    else if(S.t>=S.bossMusT){S.bossMusT=null;S.calmT=null;setMusic('boss');}
+    else if(S.t>=S.bossMusT){S.bossMusT=null;S.calmT=null;setMusic('boss',true);}   // force: a new fight gets a new track
   } else if(want==='boss'&&music.name==='casino_chase'){
-    S.bossMusT=null;S.calmT=null;setMusic('boss');   // her chase ended straight into another heavy fight
+    S.bossMusT=null;S.calmT=null;setMusic('boss',true);   // her chase ended straight into another heavy fight
   } else if(want==='space'&&isBossy){
     S.bossMusT=null;
     if(S.calmT==null)S.calmT=S.t+6;           // let the dust settle before standing down
@@ -1930,11 +1938,11 @@ function vorOffer9(e){
   try{setMusic('vor_quiet');}catch(err){}
   showEnc('HE STOPS FIRING',
     '"Again." The voice does not use the comm; it uses the inside of your skull. "Every time you have put me in a box, the box was a formality. You are the only one who keeps up." The hull hangs there, opened along one seam, waiting. "I am tired, Captain. Not of living. Of being ONE. Take it. Take all of it \u2014 the lightning, the dark, the ships that do not run out. You will never be afraid again."',
-    [{label:'REFUSE \u2014 finish him',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
+    [{label:(typeof isSaint9==='function'&&isSaint9())?'REFUSE \u2014 he does not get to hand this to anyone':'REFUSE \u2014 finish him',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
         closeEnc();
         e.holdFire=false;e.neutral9=false;e.refused9=true;
         e.hp=Math.max(1,Math.round(e.maxHp*.2));
-        say('"...Then you are a disappointment and a comfort at once." His guns come back up. Finish it.','#ff8c8c');
+        say((typeof isSaint9==='function'&&isSaint9())?'"...Then you are a disappointment and a comfort at once." His guns come back up. You have no guns. Still him, and let the sector deal with what is left.':'"...Then you are a disappointment and a comfort at once." His guns come back up. Finish it.','#ff8c8c');
         try{setMusic('boss');}catch(err){}}},
      {label:isSaint9()?'(the Saint cannot take this)':'ACCEPT \u2014 become him',col:'#2a1030',tcol:'#c9b7e8',fn:()=>{
         closeEnc();
@@ -3576,7 +3584,25 @@ function trackTitle9(nm){
   const base9=AREANAMES9[baseK9]||((''+baseK9).replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()));
   return base9+(num9>1?(' '+(ROM9[num9]||num9)):'');
 }
-function setMusic(name){
+const POOLS9={space:['space','space2','space3','space4','space5','space6','space7','space8','space9','space10','space11','space12','space13','space14','space15','space16','space17','space18','space19','space20','space21','space22'],base:['base','base2','base3','base4','base5','base6','base7','base8','base9','base10','base11','base12'],away:['away','away2','away3','away4','away5','away6','away7','away8'],board:['board','board2','board3','board4'],
+    vor_space:['vor_space','vor_space2','vor_space3','vor_space4','vor_space5','vor_space6','vor_space7','vor_space8'],vor_boss:['vor_boss','vor_boss2','vor_boss3'],vor_away:['vor_away','vor_away2','vor_away3'],
+    saint_space:['saint_space','saint_space2','saint_space3','saint_space4','saint_space5','saint_space6','saint_space7','saint_space8'],saint_combat:['saint_combat','saint_combat2','saint_combat3'],saint_away:['saint_away','saint_away2','saint_away3']};
+const COMBATPOOL9={vor_boss:1,saint_combat:1};
+function musKey9(want){
+  // what setMusic would ACTUALLY resolve this request to, so the director can compare like with like
+  try{
+    if(typeof isSaint9==='function'&&isSaint9()){const M9={space:'saint_space',boss:'saint_combat',combat:'saint_combat',away:'saint_away'};if(M9[want])return M9[want];}
+    if(typeof isVorlan9==='function'&&isVorlan9()){const M9={space:'vor_space',boss:'vor_boss',combat:'vor_boss',away:'vor_away'};if(M9[want])return M9[want];}
+  }catch(e9){}
+  return want;
+}
+function musPlaying9(want){
+  // is the track we can hear already the right ANSWER to this request, whatever it got remapped to?
+  const k9=musKey9(want);
+  if(POOLS9[k9])return POOLS9[k9].includes(music.name);
+  return music.name===k9;
+}
+function setMusic(name,force9){
   // While you are the Saint, the score turns white and silver.
   if(typeof isSaint9==='function'&&isSaint9()){
     const SMAP9={space:'saint_space',away:'saint_away',base:'saint_dock',map:'saint_quiet',
@@ -3598,12 +3624,27 @@ function setMusic(name){
     const v9=VMAP9[name]||(/^space/.test(name)?'vor_space':(/^away/.test(name)?'vor_away':(/^board/.test(name)?'vor_board':null)));
     if(v9&&TRACKS[v9])name=v9;
   }
-  const POOLS={space:['space','space2','space3','space4','space5','space6','space7','space8','space9','space10','space11','space12','space13','space14','space15','space16','space17','space18','space19','space20','space21','space22'],base:['base','base2','base3','base4','base5','base6','base7','base8','base9','base10','base11','base12'],away:['away','away2','away3','away4','away5','away6','away7','away8'],board:['board','board2','board3','board4'],
-    vor_space:['vor_space','vor_space2','vor_space3','vor_space4','vor_space5','vor_space6','vor_space7','vor_space8'],vor_boss:['vor_boss','vor_boss2','vor_boss3'],vor_away:['vor_away','vor_away2','vor_away3'],
-    saint_space:['saint_space','saint_space2','saint_space3','saint_space4','saint_space5','saint_space6','saint_space7','saint_space8'],saint_combat:['saint_combat','saint_combat2','saint_combat3'],saint_away:['saint_away','saint_away2','saint_away3']};
-  if(POOLS[name]){
-    if(POOLS[name].includes(music.name))return;
-    name=POOLS[name][Math.floor(Math.random()*POOLS[name].length)];
+  if(POOLS9[name]){
+    // Ambient pools (space, base, away, board) should NOT restart when you re-enter the same state,
+    // so 'already playing one of these' means leave it alone. COMBAT pools are the opposite: every
+    // fight should not be the same track. Vorlan heard vor_boss forever because the first one he ever
+    // got was in the pool, so every later request returned early and nothing rotated for the session.
+    const combat9=COMBATPOOL9[name];
+    if(POOLS9[name].includes(music.name)){
+      if(!combat9&&!force9)return;
+      const alt9=POOLS9[name].filter(t9=>t9!==music.name);
+      name=alt9.length?alt9[Math.floor(Math.random()*alt9.length)]:music.name;
+      if(name===music.name)return;
+      if(combat9)S.lastCombatMus9=name;
+    } else {
+      // Coming back to a combat pool after a calm stretch used to re-roll the whole pool, so the
+      // same track could land twice running. Remember the last one and exclude it.
+      let opts9=POOLS9[name];
+      if(combat9&&S.lastCombatMus9)opts9=opts9.filter(t9=>t9!==S.lastCombatMus9)||opts9;
+      if(!opts9||!opts9.length)opts9=POOLS9[name];
+      name=opts9[Math.floor(Math.random()*opts9.length)];
+      if(combat9)S.lastCombatMus9=name;
+    }
   }
   if(music.name===name)return;
   if(music.timer){clearInterval(music.timer);music.timer=null;}
@@ -3776,8 +3817,12 @@ function priceOf(si,gi){ // deterministic per system+good; every good has a real
   if(gi===localGood(si))f*=0.42;                                     // the world's export is CHEAP at its source — your entry good
   return Math.max(1,Math.round(GOODS[gi][1]*f));
 }
-function buyPriceOf(si,gi){return Math.max(1,Math.round(priceOf(si,gi)*(hasTrait('trade')?0.94:1.0)*(S.vellFac||1)));}
-function sellPriceOf(si,gi){return Math.max(1,Math.round(priceOf(si,gi)*sellMultOf(si,gi)*(renCtx()?.9:1)*(S.vellFac||1)*buffMul9('credit')));}
+function vellFac9(){   // Orson's price meddling cannot reach a man he has walked away from
+  if(typeof isVorlan9==='function'&&isVorlan9())return 1;
+  return S.vellFac||1;
+}
+function buyPriceOf(si,gi){return Math.max(1,Math.round(priceOf(si,gi)*(hasTrait('trade')?0.94:1.0)*vellFac9()));}
+function sellPriceOf(si,gi){return Math.max(1,Math.round(priceOf(si,gi)*sellMultOf(si,gi)*(renCtx()?.9:1)*vellFac9()*buffMul9('credit')));}
 const CURIOS=[['Forerunner Obelisk Shard',420],['Ancient Stasis Pod',360],['Lattice Silk Bolt',300],
  ['Quantum Filament',260],['Pedigreed Puffling',240],['Vault-Era Data Slate',500],['Warden Stone Fragment',450],['Jackal Fire Opal',320]];
 const BIOME_THEME={rocky:['desert','cave','ruins'],ice:['ice','crystal'],volcanic:['volcano','cave'],jungle:['jungle','fungal'],ocean:['lagoon','fungal','jungle'],gas:['crystal','lagoon']};
@@ -5774,7 +5819,7 @@ function invTick(){
     S.inv.stage=3;
     showEnc('ACT III — THE TIDE',
       'The starbase\'s sirens are already singing when you arrive. On the long-range plot: a CUBE, escorted by spheres, ploughing toward the core at speeds that should not be possible. The fleet is scattered. The base is here. YOU are here.',
-      [{label:'"This far. No further." — ALL HANDS, DEFEND THE STARBASE',fn:()=>{closeEnc();
+      [{label:(typeof isVorlan9==='function'&&isVorlan9())?'"MINE. Say it to them in a language they compile." — MEET THE CUBE':'"This far. No further." — ALL HANDS, DEFEND THE STARBASE',fn:()=>{closeEnc();
         S.screen='space';setMusic('space');S.orbit=false;
         for(let i9=0;i9<3;i9++){const e9=spawnEnemy('borg_probe',{noTier:true});e9.detected=true;e9.idKnown=true;}
         for(let i9=0;i9<2;i9++){const e9=spawnEnemy('borg_sphere',{noTier:true});e9.detected=true;e9.idKnown=true;}
@@ -8130,12 +8175,12 @@ function amuse(n){
 const QPOWERS=[
  {k:'0',need:0,name:'SEND IN BORK FROM CHORK!',desc:'summon that lovable red menace to fix, fuel, and pester your captain (+amusement)',fn:()=>{
    borkSpawn9();amuse(10);qSay('"Oh, you will LOVE this one. BORK! Yoo-hoo!" A red-and-white carrier covered in triangles blinks in, already telling a joke.');}},
- {k:'a',need:0,name:'PUT ME IN THE ARENA',desc:'he drops your captain in the sand, for the noise (free)',fn:()=>{
+ {k:'a',need:0,noSaint9:true,name:'PUT ME IN THE ARENA',desc:'he drops your captain in the sand, for the noise (free)',fn:()=>{
    if(typeof openArena9!=='function'){qSay('"The sand is closed. Someone lost a lion."');return;}
    amuse(8);
    qSay('"Blood sport! Finally, a use for you." He does not ask whether you agreed.');
    S.qmode=false;openArena9('planet');}},
- {k:'1',need:0,name:'CONJURE AN AMBUSH',desc:'drop hostiles on your little captain (+amusement)',fn:()=>{
+ {k:'1',need:0,noSaint9:true,name:'CONJURE AN AMBUSH',desc:'drop hostiles on your little captain (+amusement)',fn:()=>{
    for(let i=0;i<2+Math.floor(rnd(0,2));i++){const e=spawnEnemy(SYSTEMS[ship.sys].danger||'orion_raider',{noTier:true});e.detected=true;}
    amuse(14);qSay('"Let us see how he WRIGGLES." Hostiles conjured.');}},
  {k:'2',need:0,name:'MEDDLE WITH PRICES',desc:'triple or halve the economy for laughs (+amusement)',fn:()=>{
@@ -8144,7 +8189,7 @@ const QPOWERS=[
    if(PLANET){PLANET.x=twrap(ship.x+rnd(-700,700));PLANET.y=twrap(ship.y+rnd(-700,700));amuse(9);qSay('"Now where did that world GO?" You slide a planet across the map.');}}},
  {k:'4',need:0,name:'PINCH HIS WALLET',desc:'skim his credits into the void (+amusement)',fn:()=>{
    const c=Math.round(ship.credits*.2);ship.credits-=c;amuse(12);qSay('"A modest tithe to entropy." '+c+' credits, gone.');}},
- {k:'5',need:30,name:'SUMMON A LEVIATHAN',desc:'call a space monster to play (needs amusement 30)',fn:()=>{
+ {k:'5',need:30,noSaint9:true,name:'SUMMON A LEVIATHAN',desc:'call a space monster to play (needs amusement 30)',fn:()=>{
    const e=spawnEnemy('leviathan',{noTier:true});e.hp*=2;e.maxHp*=2;e.detected=true;
    amuse(18);qSay('"PLAY with him, my pet." Something vast turns its attention to your captain.');}},
  {k:'6',need:75,name:'A GIFT (ORSON SPENDS GOODWILL)',desc:'bless his ship with an upgrade (needs 75, costs 60)',fn:()=>{
@@ -8712,6 +8757,10 @@ function toggleQMode(){
 function qPower(k){
   if(typeof isVorlan9==='function'&&isVorlan9()){S.qmode=false;return;}
   const p=QPOWERS.find(x=>x.k===k);if(!p)return;
+  if(p.noSaint9&&typeof isSaint9==='function'&&isSaint9()){
+    qSay('"Oh, come ON." He gestures at the white and gets nothing back. "You are no fun at ALL like this."');
+    try{sfx.fail&&sfx.fail();}catch(e9){}return;
+  }
   if((S.amuse||0)<p.need){say('ORSON: "Not yet AMUSED enough for that. Make me laugh first."','#ff8ce8');sfx.fail();return;}
   if(['1','2','3','4','5','i'].includes(p.k)){
     if(S.t<(S.qPrankT||0)){say('ORSON: "Patience. Even omnipotence paces its jokes." ('+Math.ceil(S.qPrankT-S.t)+'s)','#ff8ce8');sfx.fail();return;}
@@ -8725,7 +8774,13 @@ function qCards9(list,am,top,bot){
   // descriptions, the descriptions ran outside the panel entirely, and a 26px row is not a tap
   // target on a phone, it is a guess.
   qRects9=[];
-  const arr9=list.slice().sort((a9,b9)=>((am>=a9.need)?0:1)-((am>=b9.need)?0:1));  // usable first, locked last
+  // The stole comes with you into Orson's chair. He can still meddle, bribe, teleport and redecorate,
+  // but he cannot conjure a fight for a captain who has sworn off them, and she will not be dropped
+  // in the sand for the noise. Hidden outright rather than shown greyed: it is not a locked power,
+  // it is not a power she has.
+  const saint9=(typeof isSaint9==='function'&&isSaint9());
+  const src9=saint9?list.filter(p9=>!(p9&&p9.noSaint9)):list;
+  const arr9=src9.slice().sort((a9,b9)=>((am>=a9.need)?0:1)-((am>=b9.need)?0:1));  // usable first, locked last
   const COLS9=2, MG9=24, GAP9=14;
   const cw9=Math.floor((W-2*MG9-GAP9)/COLS9);
   const rows9=Math.ceil(arr9.length/COLS9);
@@ -9460,9 +9515,15 @@ function updateSpace(dt){
                 if(Math.random()<.6){gainStanding(5);award(120);say('They stand down. the Accord takes them alive — and notes your name kindly. (+standing, +120 cr)','#7fd98a');}
                 else say('They panic and burn hard for the dark. You hope they make it, whoever they were.','#8899bb');
                 closeEnc();}},
-             {label:'Open fire on the desperate',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
+             {label:'Open fire on the desperate',col:'#3a1c1c',tcol:'#ff9a9a',noSaint9:true,fn:()=>{
                 he.holdFire=false;he.fire=.5;S.standing=Math.max(0,(S.standing||50)-4);
-                say('Your crew is very quiet as the weapons charge. (-standing)','#ff8c8c');closeEnc();}}]);
+                say('Your crew is very quiet as the weapons charge. (-standing)','#ff8c8c');closeEnc();}},
+             ...((typeof isSaint9==='function'&&isSaint9())?[{label:'Take them aboard. All of them.',col:'#1c2a3a',tcol:'#eaf3ff',fn:()=>{
+                he.alive=false;he.detected=false;
+                try{const g9=grace9();g9.grace=Math.min(g9.graceMax,g9.grace+22);}catch(e9){}
+                try{gainStanding(4);mercySpare9();}catch(e9){}
+                say('\u2726 You open the bay and they come across with nothing, which is how everyone has ever come to you. The patrol behind them finds an empty lane. (+grace, +standing)','#eaf3ff');
+                closeEnc();}}]:[])]);
         }
         return;
       }
@@ -9995,8 +10056,8 @@ function updateSpace(dt){
     let took9=0;
     for(const e9 of enemies){
       if(!e9||!e9.alive||!e9.detected||e9.friendly9||e9.neutral9||e9.bork9||e9.holdFire)continue;
-      const d9=dist(ship,e9); if(d9>230)continue;
-      const amt9=Math.min(26*(1-d9/230),52-took9/Math.max(dt,.001))*dt;
+      const d9=dist(ship,e9); if(d9>300)continue;
+      const amt9=Math.min(46*(1-d9/300),96-took9/Math.max(dt,.001))*dt;
       if(amt9<=0)continue;
       e9.vdr9=(e9.vdr9||0)+amt9; took9+=amt9;
       if(e9.vdr9>=6){const c9=e9.vdr9;e9.vdr9=0;try{hurtEnemy(e9,c9);}catch(er9){}}
@@ -10650,14 +10711,14 @@ function endAway(success){ // begin dematerialization — the particles take you
   AW.outT=1.0;AW.outOk=!!success;sfx.transporter();
 }
 const QPOWERS_AW=[
- {k:'1',need:0, name:'CONJURE AN AUDIENCE',   desc:'summon hostile locals to liven the scene (+12 amusement)',fn:()=>{
+ {k:'1',need:0, noSaint9:true, name:'CONJURE AN AUDIENCE',   desc:'summon hostile locals to liven the scene (+12 amusement)',fn:()=>{
    const seen9=awReachSeen();const open9=[];
    for(let y9=1;y9<AGH-1;y9++)for(let x9=1;x9<AGW-1;x9++)if(seen9[y9*AGW+x9])open9.push({x:x9*CELL+CELL/2,y:y9*CELL+CELL/2});
    const a9=AWE[(AW.theme==='ship'||AW.theme==='city')?'guard':'creature'];
    for(let i=0;i<3;i++){const c9=open9[Math.floor(Math.random()*open9.length)]||{x:AW.cap.x+120,y:AW.cap.y};
      AW.foes.push({tp:(AW.theme==='ship'||AW.theme==='city')?'guard':'creature',a:a9,x:c9.x,y:c9.y,hp:a9.hp*MODE.give0,maxHp:a9.hp*MODE.give0,st:'aggro',stT:0,wx:c9.x,wy:c9.y,face:-1,walk:0,cool:rnd(0,1),dieT:0,pacified:false,vseed:Math.random(),disp:'predator'});}
    amuse(12);qSay('"Every drama needs EXTRAS."');}},
- {k:'2',need:0, name:'TERRIFY THE LOCALS',    desc:'every hostile flees in existential dread (+8)',fn:()=>{
+ {k:'2',need:0, noSaint9:true, name:'TERRIFY THE LOCALS',    desc:'every hostile flees in existential dread (+8)',fn:()=>{
    AW.foes.forEach(f9=>{if(f9.hp>0&&f9.st!=='stunned'){
      if((f9.a&&f9.a.human)||f9.tp==='drone'){f9.st='beamout';f9.stT=1.1;} // indoors, dread runs for the transporter
      else f9.st='fled';
@@ -10705,6 +10766,10 @@ function toggleQAway(){
 function qPowerAway(k){
   const p=QPOWERS_AW.find(p9=>p9.k===k);
   if(!p)return;
+  if(p.noSaint9&&typeof isSaint9==='function'&&isSaint9()){
+    qSay('"Oh, come ON." He reaches for the scene and the white will not let him hold it. "You are no fun at ALL like this."');
+    try{sfx.fail&&sfx.fail();}catch(e9){}return;
+  }
   if((S.amuse||0)<p.need){qSay('"Amuse me MORE first. ('+p.need+' required.)"');return;}
   if(['1','2','3','4'].includes(p.k)){
     if(S.t<(S.qPrankT||0)){say('ORSON: "Patience. Even omnipotence paces its jokes." ('+Math.ceil(S.qPrankT-S.t)+'s)','#ff8ce8');sfx.fail();return;}
@@ -11107,7 +11172,9 @@ function qPlanetOffer(){
 }
 const AWAY_EVENTS=[
  {env:'any',ti:'A SEALED MEDKIT',bo:'Wedged where someone hid it and never came back. The seals are intact.',
-  o:[['Use it now (heal the team)',()=>{AW.cap.hp=Math.min(crewMaxHp(crew[0]),AW.cap.hp+30);AW.comp.hp=Math.min(crewMaxHp(crew[AW.comp.idx]),AW.comp.hp+30);awToast('+30 HP EACH','#7fd98a');}],
+  o:[['Use it now (heal the team)',()=>{AW.cap.hp=Math.min(crewMaxHp(crew[0]),AW.cap.hp+30);
+        if(!AW.solo9)AW.comp.hp=Math.min(crewMaxHp(crew[AW.comp.idx]),AW.comp.hp+30);
+        awToast(AW.solo9?'+30 HP':'+30 HP EACH','#7fd98a');}],
      ['Leave it for whoever needs it next',()=>{gainStanding(1);say('Logged for rescue services. STANDING +1.','#7fd98a');}]]},
  {env:'ground',ti:'THE FLOOR REMEMBERS BEING A CEILING',bo:'The ground ahead sags over a hollow. Your next step is a vote of confidence.',
   o:[['Cross carefully',()=>{if(Math.random()<.6)say('You read the ground right. Nothing collapses today.','#7fd98a');
@@ -11151,16 +11218,20 @@ const AWAY_EVENTS=[
  {env:'any',ti:'A VOICE IN THE STATIC',bo:'Your comm picks up a loop, decades old: coordinates, repeated by someone long past needing rescue.',
   o:[['Follow the numbers',()=>{let g2=0;for(let i9=0;i9<SYSTEMS.length&&g2<1;i9++){const ri9=Math.floor(rnd(0,SYSTEMS.length));if(!SYSTEMS[ri9].known){SYSTEMS[ri9].known=true;g2++;say('New coordinates charted: '+SYSTEMS[ri9].name,'#9fd8ff');}}if(!g2)say('The numbers point somewhere you already know.','#8899bb');}],
      ['Log it and let the dead rest',()=>{gainStanding(1);say('Graves registration will follow up. STANDING +1.','#7fd98a');}]]},
- {env:'any',ti:'YOUR OFFICER STOPS COLD',bo:'"Captain." They are pointing at your reflection in a polished panel. Your reflection waves independently. Then everything is normal again.',
-  o:[['"We never speak of this."',()=>{say('Agreed, unanimously, forever.','#8899bb');}],
-     ['Wave back',()=>{addInfamy(2);say('Your reflection approves. Somewhere, ORSON giggles.','#ff8ce8');}]]}
+ {env:'any',ti:'YOUR OFFICER STOPS COLD',solo9:{ti:'THE PANEL DOES NOT AGREE WITH YOU',bo:'A polished panel throws your reflection back at you, and it is a half-second late. Then it waves. You did not wave. Nobody else is down here to have seen it.'},
+  bo:'"Captain." They are pointing at your reflection in a polished panel. Your reflection waves independently. Then everything is normal again.',
+  o:[['"We never speak of this."',()=>{say((AW&&AW.solo9)?'There is nobody to say it to. You say it anyway.':'Agreed, unanimously, forever.','#8899bb');}],
+     ['Wave back',()=>{addInfamy(2);say((AW&&AW.solo9)?'It waves back a half-second early this time. Somewhere very far away, ORSON is not laughing.':'Your reflection approves. Somewhere, ORSON giggles.','#ff8ce8');}]]}
 ];
 function awayEvent(){
   if(AW.peace)return; // bought peace holds — the ground stays quiet
   if(AW.evDone)return;AW.evDone=true;
   const pool=AWAY_EVENTS.filter(ev=>ev.env==='any'||(AW.def&&AW.def.boarding?ev.env==='ship':ev.env==='ground'));
   const ev=pool[Math.floor(rnd(0,pool.length))];
-  showEnc(ev.ti,ev.bo,ev.o.map(op=>({label:op[0],fn:()=>{op[1]();closeEnc();}})),'away');
+  // Some of these are written for two people. Vorlan comes down alone, and an event that opens with
+  // an officer pointing at something is nonsense when there is no officer.
+  const so9=(AW.solo9&&ev.solo9)?ev.solo9:null;
+  showEnc(so9&&so9.ti?so9.ti:ev.ti, so9&&so9.bo?so9.bo:ev.bo, ev.o.map(op=>({label:op[0],fn:()=>{op[1]();closeEnc();}})),'away');
 }
 function boomAway9(x,y){
   if(AW.sparks)for(let k9=0;k9<14;k9++)AW.sparks.push({x:x+rnd(-10,10),y:y+rnd(-10,10),vx:rnd(-170,170),vy:rnd(-190,-20),life:rnd(.3,.7)});
@@ -12132,13 +12203,14 @@ function updateAway(dt){
   // Anything alive that comes within a body length or two starts bleeding life into him. This is
   // passive: no key, no wrath, no cooldown. It is what he IS.
   if(typeof isVorlan9==='function'&&isVorlan9()&&!AW.cloak9&&cap.hp>0){
-    let took9=0;
+    let took9=0,near9=0;
     for(const f9 of AW.foes){
       if(!f9||f9.hp<=0||f9.st==='fled'||f9.pacified)continue;
-      const reach9=44+((f9.a&&f9.a.r)||12)*1.6;          // ~62-66 units: one to two body lengths
+      const reach9=58+((f9.a&&f9.a.r)||12)*1.9;          // ~80-85 units: he has a longer reach now
       const d9=Math.hypot(f9.x-cap.x,f9.y-cap.y);
       if(d9>reach9)continue;
-      const amt9=Math.min(12*(1-d9/reach9),30-took9/Math.max(dt,.001))*dt;   // hardest at contact, nothing at the edge, capped ~30/s so a pack does not vaporise
+      near9++;
+      const amt9=Math.min(26*(1-d9/reach9),70-took9/Math.max(dt,.001))*dt;   // anything that closes on him goes down FAST
       if(amt9<=0)continue;
       f9.vdrain9=(f9.vdrain9||0)+amt9;
       took9+=amt9;
@@ -12152,9 +12224,29 @@ function updateAway(dt){
           vx:(cap.x-f9.x)*0.6,vy:(cap.y-f9.y)*0.6-14,life:rnd(.2,.4),col:(Math.random()<.5?'#c07ae8':'#4a1d5c'),r:2});
       }
     }
+    // SURROUNDED: three or more inside the reach and the lightning stops arcing and detonates.
+    if(near9>=3&&(S.vorBurstCd9||0)<=S.t){
+      S.vorBurstCd9=S.t+2.4;
+      const R9=170;let hit9=0;
+      for(const f9 of AW.foes){
+        if(!f9||f9.hp<=0||f9.pacified)continue;
+        const d9=Math.hypot(f9.x-cap.x,f9.y-cap.y);
+        if(d9>R9)continue;
+        const bd9=46*(1-d9/R9)+18;
+        try{hitFoe(f9,bd9);vorLeechAway9(bd9*0.5);}catch(e9){}
+        const a9=Math.atan2(f9.y-cap.y,f9.x-cap.x);
+        f9.x=clamp(f9.x+Math.cos(a9)*44,20,AWW-20);f9.y=clamp(f9.y+Math.sin(a9)*44,20,AWH-20);
+        hit9++;
+      }
+      for(let i9=0;i9<70;i9++){const a9=Math.random()*TAU,sp9=rnd(140,340);
+        parts.push({x:cap.x,y:cap.y,vx:Math.cos(a9)*sp9,vy:Math.sin(a9)*sp9,life:.55,col:(i9%3?'#c07ae8':'#ff5a6a'),r:3});}
+      S.shake=Math.max(S.shake||0,6);
+      try{sfx.lance&&sfx.lance();}catch(e9){}
+      if(hit9)awToast('\u26a1 THE REACH DETONATES \u2014 '+hit9+' thrown off','#c07ae8');
+    }
     if(took9>0){
       const mx9=crewMaxHp(crew[0]);
-      if(cap.hp<mx9)cap.hp=Math.min(mx9,cap.hp+took9*0.45);
+      if(cap.hp<mx9)cap.hp=Math.min(mx9,cap.hp+took9*0.55);
       if(!AW.vdSay9){AW.vdSay9=true;
         say('\u2620 YOU ARE DRAINING LIFEFORCE. Anything that comes close enough to touch you starts to empty into the dark.','#c07ae8');
         try{sfx.ding&&sfx.ding();}catch(e9){}}
@@ -13106,7 +13198,8 @@ function grantLoot(L){
 let ENC=null,encRects=[];
 function showEnc(title,text,options,bg){
   // the white does not plunder, threaten, toll, or shake anyone down: any option tagged pirate9 is stripped for a Saint
-  if(options&&(typeof isSaint9==='function'&&isSaint9()))options=options.filter(o=>!(o&&o.pirate9));
+  // pirate9 = she does not plunder. noSaint9 = she CANNOT do it at all; her guns do not work that way.
+  if(options&&(typeof isSaint9==='function'&&isSaint9()))options=options.filter(o=>!(o&&(o.pirate9||o.noSaint9)));
   ENC={title,text,options,bg:bg||'space'};S.screen='encounter';sfx.ding();}
 function closeEnc(){const back=(typeof CF!=='undefined'&&CF)?'casino':((ENC&&(ENC.bg==='away'||ENC.bg==='ctable'||ENC.bg==='throne9')&&AW.active)?'away':'space');ENC=null;if(S.screen==='encounter')S.screen=back;}
 function drawEncounter(){
@@ -13211,9 +13304,15 @@ function landExpedition(){
             enemies.forEach(e=>{e.alive=false;});
             S.standing=Math.max(0,(S.standing||50)-2);
             say('Paid. They vanish with your money and a little of your pride.','#8899bb');closeEnc();}},
-         {label:'Open fire',col:'#3a1c1c',tcol:'#ff9a9a',fn:()=>{
+         {label:'Open fire',col:'#3a1c1c',tcol:'#ff9a9a',noSaint9:true,fn:()=>{
             gainStanding(2);
-            say('Your answer: shields to full.','#ff9a9a');closeEnc();}}]);
+            say('Your answer: shields to full.','#ff9a9a');closeEnc();}},
+         ...((typeof isSaint9==='function'&&isSaint9())?[{label:'Refuse. Let them look at the white.',col:'#1c2a3a',tcol:'#eaf3ff',fn:()=>{
+            if(Math.random()<0.62){enemies.forEach(e2=>{e2.alive=false;});gainStanding(3);
+              try{const g9=grace9();g9.grace=Math.min(g9.graceMax,g9.grace+14);}catch(e9){}
+              say('\u2726 The commander looks at the hull, and the markings, and the fact that you have not armed anything. The channel closes. They are gone. (+grace)','#eaf3ff');}
+            else{say('\u2726 "A ship that will not shoot is a ship that is already ours." They come anyway. Stay gentle and stay alive.','#ffb56b');}
+            closeEnc();}}]:[])]);
     } else {
       const n=3+Math.floor(rnd(0,3));
       for(let i=0;i<n;i++){const e=spawnEnemy(s2.danger||'orion_raider',{noTier:true});e.detected=true;}
@@ -18181,7 +18280,9 @@ function drawHud(){
   if(isVorlan9()){
     const heldV9=heldCount9(),cdV9=(S.corruptCd9||0)-S.t;
     const zTxt9=heldV9<2?'[Z] locked (hold 2)':(cdV9>0?'[Z] CORRUPTION '+Math.ceil(cdV9)+'s':'[Z] CORRUPTION ● READY');
-    const rulV9=(S.ruledRift9&&heldCount9()>=6)?'  ·  ENTHRONED':(throneReady9()?'  ·  ☠ THRONE AWAITS — clear a held system':'');
+    // Enthronement is a ONE-TIME event (S.ruledRift9 latches forever). The label used to require six
+    // held systems as well, so losing a world made you look un-crowned when you were not.
+    const rulV9=S.ruledRift9?'  ·  ENTHRONED':(throneReady9()?'  ·  ☠ THRONE AWAITS — clear a held system':'');
     txt('☠ '+vorTitle9()+'  ·  '+heldV9+' held  ·  DREAD '+Math.round(dread9())+'   '+zTxt9+rulV9,
         W/2,18,(heldV9>=2&&cdV9<=0)?'#e086ff':'#c9b7e8',11,'center');
     txt('[SPACE] Lightning (drains life)  \u00b7  [Z] Corruption  \u00b7  [V] Claim system  \u00b7  [W] Blink'+(ship.hasCloak?'  \u00b7  [C] Cloak':'')+(conquered9(ship.sys)?'  \u00b7  [Y] EMPIRE \u2014 raise a MONUMENT':'  \u00b7  [Y] Empire'),W/2,32,'#b8a0cc',10,'center','normal');
