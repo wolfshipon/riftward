@@ -556,7 +556,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v0.9.93';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v0.9.94';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -7854,6 +7854,14 @@ function hurtEnemy(e,dmg){
   dmg=saintNoKill9(e,dmg);
   if(e.liner&&e.owned9){e.hp=Math.min(e.maxHp,e.hp+dmg);return;} // you cannot damage a casino you own
   if(e.bork9){if(!S.borkGuardT9||S.t>S.borkGuardT9){S.borkGuardT9=S.t+3;say('Orson blinks into your gunner\u2019s seat, delighted. "Ah ah AH. Not Bork. Bork is UNDER MY PROTECTION, and frankly he is funnier than you." Your weapons will not answer.','#ff8ce8');}return;}
+  // Your own wing. A corrupted hull and a claimant who knelt are on your side until the moment they
+  // are not, and while they are, firing on them should be as impossible as firing on your fighters.
+  // The instant one of them takes the knife, friendly9 clears and this guard stops applying.
+  if(e.friendly9||e.charmed9||e.corruptAlly9||e.korvVassal9){
+    if(!S.allyGuardT9||S.t>S.allyGuardT9){S.allyGuardT9=S.t+4;
+      say('Your gunners will not fire on '+(e.nm||(e.et&&e.et.nm)||'your own wing')+'. They fly under your colours, Majesty.','#c9b7e8');}
+    return;
+  }
   if(e.liner&&e.neutral9){
     e.warnHits9=(e.warnHits9||0)+1;
     if(e.warnHits9<3&&S.t>(e.warnT9||0)){
@@ -16656,7 +16664,7 @@ function drawShipStatus(){
   const bars=[['HULL',ship.hull,100,'#7fd98a'],['SHIELDS',ship.shields,maxShields(),'#8fd0ff'],['ENERGY',ship.energy,100,'#ffd86b'],['RIFT CORE',ship.rift,100,'#c98aff']];
   let by=R1Y+54;
   for(const[nm,v,mx,col]of bars){
-    txt(nm,426,by,'#dfe8f2',10);
+    txtFit(nm,426,by,'#dfe8f2',10,76,'left');   // 'RIFT CORE' at the floored touch size overran the bar at x=508
     rr(508,by-11,140,12,5,'rgba(255,255,255,.08)');
     rr(508,by-11,140*clamp(v/mx,0,1),12,5,col);
     ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;ctx.strokeRect(508,by-11,140,12);
@@ -16665,13 +16673,17 @@ function drawShipStatus(){
     by+=30;
   }
   rr(426,by-14,298,2,1,'rgba(255,255,255,.08)');by+=6;
-  txt('TORPEDOES',426,by,'#dfe8f2',10);
+  txt('TORPEDOES',426,by,'#dfe8f2',10);   // fits; what collided was the 'building' tag, moved into the bar below
   rr(656,by-13,70,17,5,'#0a111c');txt(ship.torps+' / '+maxTorps(),691,by,'#ffd86b',10,'center');
-  if(ship.torps<maxTorps()&&ship.dil>0){rr(508,by-11,140,12,5,'rgba(255,255,255,.08)');rr(508,by-11,140*clamp(ship.torpProg/torpBuildTime(),0,1),12,5,'#8a6a2a');txt('building',514,by-1,'#c8a86a',8,'left','normal');}
+  if(ship.torps<maxTorps()&&ship.dil>0){rr(508,by-11,140,12,5,'rgba(255,255,255,.08)');rr(508,by-11,140*clamp(ship.torpProg/torpBuildTime(),0,1),12,5,'#8a6a2a');txt('building',578,by-1,'#c8a86a',8,'center','normal');}
   by+=30;
   txt('RIFTIUM',426,by,'#dfe8f2',10);
   rr(656,by-13,70,17,5,'#0a111c');txt('\u29eb '+ship.dil,691,by,'#d580ff',10,'center');
-  txt('CREDITS',508,by,'#dfe8f2',10);txt(ship.credits+' cr',578,by,'#7fd98a',11,'left');
+  // 'CREDITS' was drawn at 508 and the value hard-coded at 578. At the floored touch size the label
+  // is wider than 70px, so it ran straight into the number: CREDITS113744 cr.
+  txt('CREDITS',508,by,'#dfe8f2',10);
+  {const cw8=(function(){try{ctx.save();ctx.font='bold '+txtPx9(10)+'px "Helvetica Neue",Arial,sans-serif';const w=ctx.measureText('CREDITS').width;ctx.restore();return w;}catch(e8){return 70;}})();
+   txt(ship.credits+' cr',508+cw8+10,by,'#7fd98a',11,'left');}
   by+=26;
   const cargoN=cargoCount();
   txtFit('CARGO '+cargoN+'/'+maxCargo()+': '+(cargoN?Object.keys(ship.cargo).map(k9=>ship.cargo[k9]+' '+k9).join(', '):'empty'),426,by,'#b8c8e0',10,300,'left','normal');
@@ -18566,9 +18578,17 @@ function drawHud(){
     // Enthronement is a ONE-TIME event (S.ruledRift9 latches forever). The label used to require six
     // held systems as well, so losing a world made you look un-crowned when you were not.
     const rulV9=S.ruledRift9?'  ·  ENTHRONED':(throneReady9()?'  ·  ☠ THRONE AWAITS — clear a held system':'');
-    txt('☠ '+vorTitle9()+'  ·  '+heldV9+' held  ·  DREAD '+Math.round(dread9())+'   '+zTxt9+rulV9,
-        W/2,18,(heldV9>=2&&cdV9<=0)?'#e086ff':'#c9b7e8',11,'center');
-    txt('[SPACE] Lightning (drains life)  \u00b7  [Z] Corruption  \u00b7  [V] Claim system  \u00b7  [W] Blink'+(ship.hasCloak?'  \u00b7  [C] Cloak':'')+(conquered9(ship.sys)?'  \u00b7  [Y] EMPIRE \u2014 raise a MONUMENT':'  \u00b7  [Y] Empire'),W/2,32,'#b8a0cc',10,'center','normal');
+    // Lay both lines out from the size they will ACTUALLY be painted at, and keep them inside a
+    // band that clears the systems panel on the left and the minimap on the right.
+    const hpx9=txtPx9(11), hgap9=Math.round(hpx9*1.35);
+    const hw9=Math.min(760,W-420);
+    txtFit('☠ '+vorTitle9()+'  ·  '+heldV9+' held  ·  DREAD '+Math.round(dread9())+'   '+zTxt9+rulV9,
+        W/2,16+hpx9*0.5,(heldV9>=2&&cdV9<=0)?'#e086ff':'#c9b7e8',11,hw9,'center');
+    // The second line is a KEYBOARD legend. On a touch device the same six powers are buttons two
+    // inches below it, so it was pure overlap with nothing to offer. Desktop keeps it.
+    if(!IS_TOUCH)
+      txtFit('[SPACE] Lightning (drains life)  \u00b7  [Z] Corruption  \u00b7  [V] Claim system  \u00b7  [W] Blink'+(ship.hasCloak?'  \u00b7  [C] Cloak':'')+(conquered9(ship.sys)?'  \u00b7  [Y] EMPIRE \u2014 raise a MONUMENT':'  \u00b7  [Y] Empire'),
+        W/2,16+hpx9*0.5+hgap9,'#b8a0cc',10,hw9,'center','normal');
   }
   // torpedoes + materials (enlarged as one corner-anchored cluster on phone)
   if(PHONE9){
@@ -18728,8 +18748,11 @@ function drawHud(){
     ctx.font='bold '+asz9+'px "Helvetica Neue",Arial,sans-serif';
     const tw9=ctx.measureText(at9).width;
     const bw9=Math.min(W-40,Math.max(600,tw9+44));
-    rr(W/2-bw9/2,8,bw9,28,13,blink?'rgba(170,25,25,.92)':'rgba(90,10,10,.92)');
-    txtFit(at9,W/2,27,'#fff',13,bw9-28,'center');
+    // The banner sat at y=8 and painted straight over the Emperor's status line, which lives in the
+    // same band. Step it below the header whenever a transformation is drawing up there.
+    const ay9=((typeof isVorlan9==='function'&&isVorlan9())||(typeof isSaint9==='function'&&isSaint9()))?(8+txtPx9(11)+10):8;
+    rr(W/2-bw9/2,ay9,bw9,28,13,blink?'rgba(170,25,25,.92)':'rgba(90,10,10,.92)');
+    txtFit(at9,W/2,ay9+19,'#fff',13,bw9-28,'center');
   }
   // ship-log messages: mid-LEFT, clear of the touch thumbstick (bottom-left) and the FIRE buttons (bottom-right)
   {// The touch ability pills own the upper-left column, so the log has to keep clear of them.
@@ -18748,11 +18771,16 @@ function drawHud(){
        else{mx9=12+2*152+12;mw9=Math.min(470,Math.round(W*0.43));}
      }
    }catch(e9){}}
-   drawMsgs9(mx9,Math.round(H*0.68),'left',mw9,12,mstop9);}
+   // was H*0.68: four lines of combat chatter climbed into the orbit prompt and the ability grid.
+   // The bottom-left status stack runs H-84 upward at 21 per slot, so H-84-3*21-16 is the lowest
+   // baseline that cannot collide with it; take whichever of the two is higher on screen.
+   const manch9=Math.min(Math.round(H*0.74), H-84-3*21-16);
+   drawMsgs9(mx9,manch9,'left',mw9,12,mstop9);}
   if(S.hitFlash>0){
     ctx.fillStyle='rgba(255,40,40,'+S.hitFlash*.5+')';ctx.fillRect(0,0,W,H);
   }
-  {const cr9=enemies.filter(e=>e.alive&&e.detected&&e.disarmed&&!e.tractored);
+  {const cr9=enemies.filter(e=>e.alive&&e.detected&&e.disarmed&&!e.tractored
+     &&!e.friendly9&&!e.charmed9&&!e.corruptAlly9&&!e.korvVassal9);   // your own wing is not a prize
    if(cr9.length&&!S.tractor){
      const e9=cr9[0],ex9=e9.x-cam.x,ey9=e9.y-cam.y;
      if(ex9>-40&&ex9<W+40&&ey9>-40&&ey9<H+40){
