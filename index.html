@@ -556,7 +556,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc1';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc4';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -5331,9 +5331,272 @@ const CGEN=(()=>{
   ].forEach(x=>out.push({t:x[0],eff:x[1],w:3.2})); // people are worth finding — they headline the deck
   return out;
 })();
+
+/* ===== THE LANES: what the little hulls do when a god is in the system ==============
+   Wolf's design. Vorlan's couriers edge away from him, slower than he is, so catching one is a
+   formality rather than a chase. The Saint's drift TOWARD her and hold a respectful distance.
+   Same mechanic, opposite polarity, and the dialogue inverts with it: they beg him and they bring
+   her things.
+
+   THE ECONOMY IS THE HARD PART. The lane holds 6-8 hulls and respawns one every second or two,
+   forever, so any flat per-hull payout out-earns a 40-system empire in under a minute. So a lane
+   is FINITE: each system has a richness that draining depletes and absence restores, and a system
+   whose lane you have stripped pays less tribute, because the tribute was always the trade.
+   An emperor decides whether his own lane is worth more harvested or running. A pirate just robs it.
+   ==================================================================================== */
+function lane9(sys9){
+  S.lanes9=S.lanes9||{};
+  if(sys9==null)sys9=ship.sys;
+  if(!S.lanes9[sys9])S.lanes9[sys9]={r:1};
+  return S.lanes9[sys9];
+}
+function laneRich9(sys9){return Math.max(0,Math.min(1,lane9(sys9).r));}
+function laneDrain9(a9){const L9=lane9(ship.sys);L9.r=Math.max(0,(L9.r==null?1:L9.r)-a9);return L9.r;}
+function laneFeed9(a9){const L9=lane9(ship.sys);L9.r=Math.min(1,(L9.r==null?1:L9.r)+a9);return L9.r;}
+function laneRecover9(){
+  // the lanes heal while you are somewhere else, which is the whole reason to leave
+  S.lanes9=S.lanes9||{};
+  for(const k9 in S.lanes9){
+    if(+k9===ship.sys)continue;
+    const L9=S.lanes9[k9];
+    L9.r=Math.min(1,(L9.r==null?1:L9.r)+0.08);
+  }
+}
+// A stripped lane is a poorer world. Tribute WAS the trade.
+function laneTribMul9(sys9){return 0.35+0.65*laneRich9(sys9);}
+
+// Four ship lengths. The hull draws about 46 units nose to tail, so this is a real, readable gap:
+// close enough to see her clearly, far enough that nobody could accuse them of crowding.
+const SHIPLEN9=46;
+const LANE_REACT9=SHIPLEN9*4;
+
+/* --- what they say when you are close enough to be a problem ---------------------- */
+const LANE_CURIO9=[
+ ['A Reliquary of the Second Concord',9000],['The Ledger of a Dead House',11000],
+ ['A Crown Nobody Has Worn Since',14000],['Ninety Years of Somebody’s Letters',8500],
+ ['The Last Seed-Vault Key',16000],['A Map of Where the Deeps Stop',12500]
+];
+const LANE_SMALLCURIO9=[
+ ['A Case of Unmarked Ampoules',900],['Somebody’s Wedding Silver',1400],
+ ['A Working Orrery, Very Old',2100],['Two Bottles of the Good Stuff',700],
+ ['A Child’s Telescope, Repaired Often',1100]
+];
+function laneCourierNm9(t9){
+  try{return (COURIER_CLASSES[t9.cIdx||0]||COURIER_CLASSES[0]).nm;}catch(e9){return 'A COURIER';}
+}
+function laneUnheld9(){
+  const out9=[];
+  for(let i9=0;i9<SYSTEMS.length;i9++){ if(i9===ship.sys)continue;
+    if(typeof conquered9==='function'&&conquered9(i9))continue;
+    if((S.teleNodes9||{})[i9]==='monument')continue;
+    out9.push(i9); }
+  return out9;
+}
+/* ---- VORLAN: they beg ------------------------------------------------------------ */
+function laneBeg9(t9){
+  if(!t9||t9.shook9)return false;
+  t9.shook9=true;
+  const nm9=laneCourierNm9(t9);
+  const rich9=laneRich9(ship.sys);
+  const pay9=0.45+0.55*rich9;   // a worked lane still carries SOMETHING; nobody flies empty
+  const roll9=Math.random();
+
+  // Not everyone begs. If they all did, the begging would stop meaning anything by the third one.
+  if(roll9<0.08){
+    say('☠ '+nm9+' blows her own hold. Whatever she was carrying goes out into the dark in a long bright line, and the pilot says one word on an open channel that the translator declines to render. She has nothing for you now. That was the point.','#c9d46a');
+    t9.leaving=true;t9.sp*=1.7;t9.leaveT=rnd(3,5);t9.lang=t9.ang||Math.random()*TAU;
+    try{dreadAdd9(1);}catch(e9){}
+    return true;
+  }
+  if(roll9<0.15){
+    showEnc('SHE WILL NOT ANSWER',
+      nm9+' holds her heading and does not open a channel. She has seen what is behind her and she has decided to spend the rest of her life not talking to it.\n\nThere is nothing aboard worth this. There is nothing aboard worth anything. She simply will not.',
+      [{label:'Let her go. She earned the heading.',col:'#2a281a',tcol:'#e8dfa0',
+        fn:()=>{closeEnc();say('You let her run. Somewhere ahead of her she will tell this badly for forty years and every version will be true.','#c9b7e8');try{dreadAdd9(-1);}catch(e9){}}},
+       {label:'Unmake her for it.',col:'#2a1018',tcol:'#ff8c8c',
+        fn:()=>{closeEnc();say('☠ You take the heading away from her. The lane will hear about it, and the lane will be quieter for a while, and that is a price you have decided to pay.','#e86ad9');
+          try{dreadAdd9(3);}catch(e9){}laneDrain9(0.25);}}],'space');
+    return true;
+  }
+  if(roll9<0.22){
+    const c9=Math.round((600+rnd(0,900))*pay9);
+    ship.credits+=vorTake9(c9);
+    say('☠ '+nm9+' does not answer because there is nobody aboard to answer. She has been flying her last routing for eleven days with a full hold and a cold bridge. You take what is in her. Nobody begs. Nobody refuses. (+'+vorTake9(c9)+' cr)','#c9b7e8');
+    laneDrain9(0.04);
+    return true;
+  }
+
+  // THE MONUMENT. Rare, repeatable, and only a lane with something left can promise it.
+  const unheld9=laneUnheld9();
+  if(roll9<0.25&&rich9>0.55&&unheld9.length&&(S.monuments9||0)<12){
+    const sy9=unheld9[Math.floor(rnd(0,unheld9.length))];
+    SYSTEMS[sy9].known=true;
+    showEnc('SHE IS CARRYING SOMEBODY IMPORTANT',
+      nm9+' opens a channel before you ask, and the voice on it is not a courier pilot’s. It belongs to somebody who signs things.\n\n'+
+      '"We will build it. '+SYSTEMS[sy9].name+' will raise a monument to you, at our cost, in black stone, and it will stand where the whole system can see it. We will do it gladly and we will be photographed doing it gladly."\n\n'+
+      'Nobody has offered you a world before. They are offering to build the thing that says they are yours, so that you do not have to come and make them.',
+      [{label:'Accept. Let them build it themselves.',col:'#1a1428',tcol:'#c07ae8',
+        fn:()=>{closeEnc();
+          S.tribute9=S.tribute9||{};S.tribute9[sy9]={held:true,loyal:100,conq9:true};
+          const nd9=teleNodes9();nd9[sy9]='monument';
+          S.monuments9=(S.monuments9||0)+1;
+          try{dreadAdd9(6);}catch(e9){}try{awardScore&&awardScore(2500);}catch(e9){}
+          try{sfx.fanfare&&sfx.fanfare();}catch(e9){}QSTATE.flash=1.8;
+          say('☠☠ '+SYSTEMS[sy9].name+' RAISES A MONUMENT TO YOU AND YOU WERE NEVER THERE. It kneels before you arrive, which is a thing that has not happened before and will happen more now. (Monument '+S.monuments9+'.)','#c07ae8');
+          laneDrain9(0.85);   // the system spent everything it had to avoid you
+        }},
+       {label:'"I would rather come and take it."',col:'#2a1018',tcol:'#ff8c8c',
+        fn:()=>{closeEnc();say('☠ You decline. The channel stays open a moment longer than it should, while whoever signs things works out what that means for them. Then it closes.','#e86ad9');try{dreadAdd9(2);}catch(e9){}}}],'space');
+    return true;
+  }
+
+  // the ordinary shakedown, scaled by what is left in the lane
+  const big9=(roll9<0.45&&rich9>0.35);
+  const mid9=(roll9<0.62);
+  const opts9=[];
+  if(big9){
+    const cu9=LANE_CURIO9[Math.floor(rnd(0,LANE_CURIO9.length))];
+    const val9=Math.round(cu9[1]*pay9);
+    opts9.push({label:'Take it. ('+cu9[0]+', ~'+val9+' cr)',col:'#1a1428',tcol:'#c07ae8',
+      fn:()=>{closeEnc();ship.curios.push({name:cu9[0],value:val9});
+        say('☠ They hand it across without being asked twice. '+cu9[0]+'. It was not theirs either.','#c07ae8');
+        laneDrain9(0.20);try{dreadAdd9(2);}catch(e9){}}});
+  } else if(mid9){
+    const cu9=LANE_SMALLCURIO9[Math.floor(rnd(0,LANE_SMALLCURIO9.length))];
+    const val9=Math.round(cu9[1]*pay9);
+    opts9.push({label:'Take it. ('+cu9[0]+', ~'+val9+' cr)',col:'#1a1428',tcol:'#c07ae8',
+      fn:()=>{closeEnc();ship.curios.push({name:cu9[0],value:val9});
+        say('☠ It comes across in a crate somebody packed carefully a long time ago. '+cu9[0]+'.','#c07ae8');
+        laneDrain9(0.05);try{dreadAdd9(1);}catch(e9){}}});
+  }
+  const cr9=Math.round((320+rnd(0,620))*pay9*(big9?2.2:1));
+  opts9.push({label:'Take the purse. ('+vorTake9(cr9)+' cr)',col:'#2a2418',tcol:'#ffd86b',
+    fn:()=>{closeEnc();ship.credits+=vorTake9(cr9);
+      say('☠ Every chit aboard, and the pilot’s own, which nobody asked for. (+'+vorTake9(cr9)+' cr)','#ffd86b');
+      laneDrain9(0.08);try{dreadAdd9(1);}catch(e9){}}});
+  opts9.push({label:'Let them pass. Say nothing.',col:'#2a281a',tcol:'#e8dfa0',
+    fn:()=>{closeEnc();
+      say('You let them go by. The channel stays open the whole way past, and nobody aboard breathes out until you are a long way behind them. Word of that travels too.','#c9b7e8');
+      laneFeed9(0.04);}});
+
+  showEnc('THEY ARE BEGGING',
+    nm9+' has been edging away from you for two minutes and has worked out that she cannot. The channel opens on its own.\n\n'+
+    '"Anything. Take anything. Take the cargo, take the manifest, take my share, take the ship. There are four of us aboard and none of us are anybody. Please."\n\n'+
+    (rich9<0.35?'You have been through this lane before. There is not much left in it, and they know that too, and they are offering it anyway.':'They mean it. That is the part that does not get easier.'),
+    opts9,'space');
+  return true;
+}
+/* ---- THE SAINT: they come to her ------------------------------------------------- */
+function laneBless9(t9){
+  if(!t9||t9.shook9)return false;
+  t9.shook9=true;
+  const nm9=laneCourierNm9(t9);
+  const roll9=Math.random();
+  if(roll9<0.18){
+    showEnc('THEY ARE ASKING FOR SOMETHING',
+      nm9+' comes alongside at a distance that is almost formal and asks for nothing you can put in a hold.\n\n'+
+      '"There is somebody aboard who is not going to make the next port. We are not asking you to fix it. We are asking whether you would say something to her. That is all. We know what you are."',
+      [{label:'Go across. Sit with her.',col:'#16283e',tcol:'#cfe8ff',
+        fn:()=>{closeEnc();
+          try{graceGain9(22);}catch(e9){}try{mercySpare9&&mercySpare9();}catch(e9){}
+          laneFeed9(0.10);
+          say('✦ You go across. It takes an hour and it changes nothing about the outcome and it changes everything about the hour. Nobody aboard will describe it accurately to anyone, ever, and all of them will try.','#cfe8ff');}},
+       {label:'You cannot stop for every one of them.',col:'#2a281a',tcol:'#e8dfa0',
+        fn:()=>{closeEnc();say('You hold your heading. They say they understand, and they do, and that is somehow worse.','#8899bb');}}],'space');
+    return true;
+  }
+  const give9=Math.round(180+rnd(0,420));
+  const opts9=[{label:'Bless them, and take what they press on you. (+'+give9+' cr)',col:'#16283e',tcol:'#cfe8ff',
+    fn:()=>{closeEnc();ship.credits+=give9;
+      try{graceGain9(10);}catch(e9){}
+      laneFeed9(0.08);
+      say('✦ You give them the only thing you have that costs you nothing, and they give you credits they cannot spare, and both of you know the exchange is uneven in the other’s favour. (+'+give9+' cr)','#cfe8ff');}},
+   {label:'Bless them and refuse the money.',col:'#16283e',tcol:'#eaf3ff',
+    fn:()=>{closeEnc();
+      try{graceGain9(26);}catch(e9){}
+      laneFeed9(0.16);
+      say('✦ You will not take it. They argue. You win, barely, and they fly on lighter in a way that has nothing to do with the hold. The lane will be busier here for a while.','#eaf3ff');}},
+   {label:'Wave them on. They have a schedule.',col:'#2a281a',tcol:'#e8dfa0',
+    fn:()=>{closeEnc();say('They dip a wing going past, which couriers do not do, and which somebody aboard will have to explain to a supervisor.','#9fd8ff');laneFeed9(0.03);}}];
+  if(Math.random()<0.12){
+    const cu9=LANE_SMALLCURIO9[Math.floor(rnd(0,LANE_SMALLCURIO9.length))];
+    opts9.splice(1,0,{label:'They want you to have it. ('+cu9[0]+')',col:'#16283e',tcol:'#cfe8ff',
+      fn:()=>{closeEnc();ship.curios.push({name:cu9[0],value:cu9[1]});
+        try{graceGain9(14);}catch(e9){}laneFeed9(0.12);
+        say('✦ It has been in a family for four generations and they are not going to take it back aboard, and they say so in a tone that ends the discussion. '+cu9[0]+'.','#cfe8ff');}});
+  }
+  showEnc('THEY CAME TO YOU',
+    nm9+' has been drifting closer for a while now, holding a polite distance, the way people stand near a fire they have not been invited to.\n\n'+
+    '"We saw the white. We were not going to bother you." A pause. "We were going to, obviously. That is why we came over."',
+    opts9,'space');
+  return true;
+}
+/* ---- and the trigger: close enough is close enough -------------------------------- */
+function laneContact9(){
+  if(S.screen!=='space'||ENC)return;
+  const vor9=(typeof isVorlan9==='function'&&isVorlan9());
+  const sai9=(typeof isSaint9==='function'&&isSaint9());
+  if(!vor9&&!sai9)return;
+  if(S.t<(S.laneCd9||0))return;
+  if(typeof hostiles9==='function'&&hostiles9())return;   // not in the middle of a fight
+  for(const t9 of traffic){
+    if(!t9||t9.shook9||t9.tractored||t9.leaving)continue;
+    const d9=Math.hypot(t9.x-ship.x,t9.y-ship.y);
+    if(sai9&&!t9.curious9)continue;                 // she blesses the ones who came to her, not the ones she cornered
+    if(d9>(vor9?110:LANE_REACT9+40))continue;
+    S.laneCd9=S.t+14;   // one conversation at a time
+    try{ if(vor9)laneBeg9(t9); else laneBless9(t9); }catch(e9){}
+    return;
+  }
+}
+function laneTick9(dt){
+  if(typeof traffic==='undefined'||!traffic||!traffic.length)return;
+  const vor9=(typeof isVorlan9==='function'&&isVorlan9());
+  const sai9=(typeof isSaint9==='function'&&isSaint9());
+  if(!vor9&&!sai9)return;
+  for(const t9 of traffic){
+    if(!t9||t9.tractored||t9.leaving)continue;
+    const dx9=t9.x-ship.x, dy9=t9.y-ship.y, d9=Math.hypot(dx9,dy9)||1;
+    if(vor9){
+      // They edge away. Deliberately slower than you: this is not a chase, it is a formality.
+      if(d9<420){
+        const sp9=Math.min(t9.sp*1.15, 150);   // the throne does 290+; they cannot outrun it and they know
+        t9.x+=(dx9/d9)*sp9*dt; t9.y+=(dy9/d9)*sp9*dt;
+        t9.ang=Math.atan2(dy9,dx9);
+        t9.fled9=true;
+      }
+    } else if(sai9){
+      // She does not gather them. She goes past, and the ones she goes PAST turn and follow.
+      // Nothing crosses the system to reach her; a courier three hundred units away never noticed.
+      if(!t9.curious9){
+        if(d9<170){
+          t9.curious9=true;
+          if(!S.laneWakeSay9||S.t>S.laneWakeSay9){S.laneWakeSay9=S.t+25;
+            say('\u2726 A courier you went past turns in your wake and follows, holding a careful distance, the way people walk behind something they are not sure they are allowed to look at.','#cfe8ff');}
+        }
+        continue;
+      }
+      // Curious now: trail her at four ship lengths. Never closer. It would not be respectful.
+      if(d9>LANE_REACT9+24){
+        const sp9=Math.min(t9.sp*0.9,200);
+        t9.x-=(dx9/d9)*sp9*dt; t9.y-=(dy9/d9)*sp9*dt;
+        t9.ang=Math.atan2(-dy9,-dx9);
+      } else if(d9<LANE_REACT9-24){
+        const sp9=t9.sp*0.5;
+        t9.x+=(dx9/d9)*sp9*dt; t9.y+=(dy9/d9)*sp9*dt;
+      } else {
+        t9.ang=Math.atan2(-dy9,-dx9);   // holding station, nose toward her
+      }
+      if(d9>760)t9.curious9=false;   // she outran them; they go back to work
+    }
+  }
+}
 function spawnTraffic(free){
   if(typeof bossHere9==='function'&&bossHere9())return;   // the lanes are closed while something that size is out there
-  if(typeof isVorlan9==='function'&&isVorlan9())return;   // and they do not open again for the Unmaker at all
+  // SAME OVER-APPLICATION as the civilian transports, in a second, independent gate I missed when I
+  // fixed that one. Couriers do not refuse the Emperor everywhere. They refuse him where he is not
+  // the law. In a system that pays him tribute the lanes are HIS, and the little hulls fly them.
+  if(typeof isVorlan9==='function'&&isVorlan9()&&!(typeof conquered9==='function'&&conquered9(ship.sys)))return;
   if(free){ // a courier just passing through this system
     const v=Math.random()<.5;
     const a={x:v?rnd(0,ARENA):(Math.random()<.5?-60:ARENA+60),y:v?(Math.random()<.5?-60:ARENA+60):rnd(0,ARENA)};
@@ -6282,6 +6545,7 @@ function arriveSystem(){
     for(let i=0;i<2;i++)spawnEnemy('fed_escort',{});
     say('ACCORD PURSUIT WING \u2014 they know what you are becoming.','#9fd8ff');
   }
+  try{laneRecover9();}catch(e9){}   // the lanes heal while you are somewhere else
   S.noLand=null;S.secCalled=false;
   if(S.ambCaptive){
     S.ambCaptive=false;
@@ -8194,7 +8458,7 @@ function newGamePlus(){
   S.ng=(S.ng||0)+1;buffClear9();
   // a fresh tour walks a fresh moral road: wipe BOTH story arcs and the mercy ledger so Saint AND Vorlan can be earned again (was: these persisted, so once you'd worn the stole or the crown the path stayed shut forever)
   S.saint9=null;S.saintWas9=false;S.saintAsked9=0;S.saintHint9=false;S.saintTier9=0;S.canonized9=false;S.chapel9=null;S.saintHullWas9=null;S.saintUpWas9=null;S.saintKillMark9=0;S.saintSentHere9=0;S.pacified9={};S.tao9=null;
-  S.ruledRift9=false;S.rule9=null;S.ruleConsolidated9=false;S.korvVassal9=false;S.korvAsked9=false;S.korvBetrayed9=false;S.korvOathT9=0;S.korvThrall9=false;S.korvThrallAsked9=false;S.knifeWarn9=false;S.vthrone9=false;S.vthroneSeen9=false;S.scomm9=false;S.scommSeen9=false;S.vorDom9=false;S.saintDom9=false;S.vorLaneSay9=false;S.arenaFame9=0;S.arenaChamps9=null;
+  S.ruledRift9=false;S.rule9=null;S.ruleConsolidated9=false;S.korvVassal9=false;S.korvAsked9=false;S.korvBetrayed9=false;S.korvOathT9=0;S.korvThrall9=false;S.korvThrallAsked9=false;S.knifeWarn9=false;S.vthrone9=false;S.vthroneSeen9=false;S.scomm9=false;S.scommSeen9=false;S.lanes9={};S.laneCd9=0;S.vorDom9=false;S.saintDom9=false;S.vorLaneSay9=false;S.arenaFame9=0;S.arenaChamps9=null;
   S.vorlan9=null;S.vorWas9=false;S.vorSucc9=false;S.vorDone9=false;S.vorSeeded9=false;S.vorRestart9=0;S.vorSeedGrace9=0;S.vorReforms9=0;S.vorTheft9=0;S.vorTitleWas9=false;S.vorHull9=0;S.vorHullBonus9=0;S.vorWingBonus9=0;S.vorCapTier9=0;S.vorChoked9=false;S.vorLeechSaid9=false;S.vorlanCold=false;S.vorlanDead=false;S.vorlanLeft=false;S.vorlanTalked=false;S.vorlanCaught9=0;S.vorlanship=null;S.empire9=null;S.tribute9=null;S.wrath9=null;S.qLock9=false;
   S.mercy9={spared:0,saved:0,given:0,killed:0};
   ship.hull=100;ship.shields=100;ship.energy=100;ship.rift=100;
@@ -9964,6 +10228,7 @@ function updateSpace(dt){
         if(friendly.hull<=0){boom(friendly.x,friendly.y,50);const mr9=friendly.mRef;friendly=null;failMission(mr9,'the transport was destroyed.');}
       } else if(b.forCiv&&civ&&Math.hypot(b.x-civ.x,b.y-civ.y)<26){
         civ.hull-=b.dmg*(civ.kind==='distress'?0.4:1);gone=true;sfx.hit();
+        civ.wasHit9=(civ.wasHit9||0)+1;
         if(civ.hull<=0){boom(civ.x,civ.y,46);say(civ.name+' is lost. The raiders turn on you.','#ff8c8c');
           enemies.forEach(e=>{if(e.civTgt===civ)e.civTgt=null;});civ=null;}
       } else if(!gone&&pFighters.some((pf,pi)=>{
@@ -10103,6 +10368,7 @@ function updateSpace(dt){
   {
     if(dockSys()){if(traffic.length<8&&Math.random()<dt*.75)spawnTraffic();}
     else if(traffic.length<6&&Math.random()<dt*.5)spawnTraffic(true);
+    try{laneTick9(dt);laneContact9();}catch(e9x){}
     for(let ti2=traffic.length-1;ti2>=0;ti2--){
       const tr3=traffic[ti2];
       if(tr3.tractored)continue; // her engines whine; the beam wins
@@ -10151,27 +10417,48 @@ function updateSpace(dt){
     civ.x=clamp(civ.x+civ.vx*dt,60,ARENA-60);
     civ.y=clamp(civ.y+civ.vy*dt,60,ARENA-60);
     civ.timer-=dt;
+    if(civ&&civ.kind==='distress'&&!civ.saved){
+      const at9=enemies.filter(e=>e.alive&&e.civTgt===civ).length;
+      if(at9>(civ.attackers9||0))civ.attackers9=at9;   // remember the worst of it, not what is left
+    }
     if(civ.kind==='distress'&&!civ.saved&&!enemies.some(e=>e.alive&&e.civTgt===civ)){
       civ.saved=true;
       // a cold drive does not warm up because the shooting stopped — she still needs the tow
       if(civ.stranded){civ.timer=999;civ.vx=0;civ.vy=0;
         say(civ.name+': "Raiders are off us, Captain, but we are still dead in the water. We are not going anywhere without your beam." (Lock [G] and haul her in.)','#ffb56b');}
       else civ.timer=8;
-      ship.dil+=1;
-      gainStanding(3);
+      // How bad was it? A ship jumped by four raiders is worth more to have saved than one jumped
+      // by one, and the people aboard know the difference better than anybody.
+      const hard9=Math.max(1,Math.min(4,(civ.wasHit9?1:0)+(civ.attackers9||1)));
+      const tier9=1+((SYSTEMS[ship.sys]&&SYSTEMS[ship.sys].danger)?0.35:0);
+      const mul9=hard9*tier9;
+      ship.dil+=1+Math.floor(hard9/2);
+      gainStanding(3+Math.floor(hard9/2));
       const roll=Math.random();
-      if(roll<.25){
-        awardScore(40);
-        say(civ.name+': "We\'re cleaned out, Captain... but every port will hear your name." (+1 riftium)','#7fd98a');
-      } else if(roll<.7){
-        const rew=40+Math.floor(rnd(0,80));award(rew);
-        say(civ.name+': "Take this, with our thanks." (+'+rew+' cr, +1 riftium)','#7fd98a');
-      } else if(roll<.95){
-        const rew=150+Math.floor(rnd(0,100));award(rew);
-        say(civ.name+': "You saved our cargo AND our hides — share the profit!" (+'+rew+' cr, +1 riftium)','#7fd98a');
+      if(roll<.20){
+        // Even the poorest of them gives something real. "Nothing" was never an acceptable outcome
+        // for winning a fight on somebody else's behalf.
+        awardScore(120);gainStanding(3);
+        ship.dil+=2;
+        try{gainMat&&gainMat('plasma',3);}catch(e9){}
+        say(civ.name+': "We are cleaned out, Captain. Take the coils off our spare rack \u2014 they are worth more than we are, and we would like that on the record." (+3 riftium, +3 plasma coils, +standing)','#7fd98a');
+      } else if(roll<.62){
+        const rew=Math.round((320+rnd(0,380))*mul9);award(rew);
+        say(civ.name+': "Take it. Take all of it. We have been out here two years and you are the first hull that ever turned toward us." (+'+rew+' cr, +riftium)','#7fd98a');
+      } else if(roll<.87){
+        const rew=Math.round((900+rnd(0,700))*mul9);award(rew);
+        try{gainMat&&gainMat('dur',4);}catch(e9){}
+        say(civ.name+': "You saved the cargo AND the crew. The cargo was insured. The crew was not. Share the profit, Captain." (+'+rew+' cr, +4 duranium)','#7fd98a');
+      } else if(roll<.97){
+        const rew=Math.round((2100+rnd(0,1400))*mul9);award(rew);
+        ship.curios.push({name:'A Shipping House\u2019s Token of Obligation',value:2600});
+        say(civ.name+': "My family owns half a shipping line, Captain, and we pay our debts in front of witnesses." (+'+rew+' cr, +a token of obligation)','#ffd86b');
       } else {
-        const rew=300+Math.floor(rnd(0,150));award(rew);
-        say(civ.name+': "My family owns half a shipping line, Captain. We pay our debts." (+'+rew+' cr, +1 riftium)','#ffd86b');
+        const rew=Math.round((5200+rnd(0,3000))*mul9);award(rew);
+        S.fcred=Math.min(100,fcv()+6);
+        ship.curios.push({name:'A Standing Invitation, Signed',value:4200});
+        say('\u2605 '+civ.name+' was carrying somebody who does not give their name, and who watched the whole engagement from a jump seat without saying one word. At the end of it they write a figure on a card and hand it across. (+'+rew+' cr, +fringe credit, +a signed invitation) \u2605','#ffd86b');
+        try{sfx.fanfare&&sfx.fanfare();}catch(e9){}
       }
       sfx.cheer();
     }
@@ -11898,7 +12185,7 @@ function tributeCollect9(){
   for(const k9 in S.tribute9){
     const t9=S.tribute9[k9];if(!t9||t9.revolted)continue;
     n9++;
-    total9+=Math.round(650*((t9.loyal||0)/100)*dm9);
+    total9+=Math.round(650*((t9.loyal||0)/100)*dm9*((typeof laneTribMul9==='function')?laneTribMul9(+k9):1));   // you ate the trade; the tribute was the trade
     if(+k9===ship.sys)t9.loyal=100; // the system you stand over renews its oath
   }
   if(n9&&total9>0){
@@ -17901,7 +18188,7 @@ function saveGame(){
       bl:S.boardLog9||{},blt:S.boardTotal9||0,wr:S.whaleRun9||null,wd:!!S.whaleDone9,wclk:S.whaleClock9||0,bq:S.borkQuest9||null,sgc:S.singerCurio9||null,
       vor:S.vorlan9||null,trb:S.tribute9||null,emp:S.empire9||null,vcau:S.vorlanCaught9||0,vwas:!!S.vorWas9,vsuc:!!S.vorSucc9,vdn:!!S.vorDone9,vrst:(S.vorRestart9==null?-1:S.vorRestart9),lh9:S.lostHold9||{},
       wra:S.wrath9||null,qlk:!!S.qLock9,bst:S.beastTip9||null,trt:S.treasureTip||null,itp:S.intelTip9||null,
-      rr9:!!S.ruledRift9,rul9:S.rule9||null,rcn9:!!S.ruleConsolidated9,kvs9:!!S.korvVassal9,kask9:!!S.korvAsked9,kbt9:!!S.korvBetrayed9,koat9:S.korvOathT9||0,kthr9:!!S.korvThrall9,kta9:!!S.korvThrallAsked9,vts9:!!S.vthroneSeen9,scs9:!!S.scommSeen9,vdm9:!!S.vorDom9,sdm9:!!S.saintDom9,
+      rr9:!!S.ruledRift9,rul9:S.rule9||null,rcn9:!!S.ruleConsolidated9,kvs9:!!S.korvVassal9,kask9:!!S.korvAsked9,kbt9:!!S.korvBetrayed9,koat9:S.korvOathT9||0,kthr9:!!S.korvThrall9,kta9:!!S.korvThrallAsked9,vts9:!!S.vthroneSeen9,scs9:!!S.scommSeen9,lan9:S.lanes9||null,vdm9:!!S.vorDom9,sdm9:!!S.saintDom9,
       arf9:S.arenaFame9||0,arch9:S.arenaChamps9||null,
       qst:(S.missions||[]).map(m=>({id:(m.def&&m.def.id!=null)?m.def.id:null,gen:(m.def&&m.def.gen)?m.def:null,pr:m.prog||null})),
       crew:crew.map(c=>({lvl:c.lvl,hp:c.hp})),
@@ -17959,7 +18246,7 @@ function loadGame(n){
   S.ruledRift9=!!d.rr9;
   S.rule9=d.rul9||null;
   S.ruleConsolidated9=!!d.rcn9;
-  S.korvVassal9=!!d.kvs9;S.korvAsked9=!!d.kask9;S.korvBetrayed9=!!d.kbt9;S.korvOathT9=d.koat9||0;S.korvThrall9=!!d.kthr9;S.korvThrallAsked9=!!d.kta9;S.vthroneSeen9=!!d.vts9;S.scommSeen9=!!d.scs9;S.scomm9=false;S.vorDom9=!!d.vdm9;S.saintDom9=!!d.sdm9;S.vthrone9=false;
+  S.korvVassal9=!!d.kvs9;S.korvAsked9=!!d.kask9;S.korvBetrayed9=!!d.kbt9;S.korvOathT9=d.koat9||0;S.korvThrall9=!!d.kthr9;S.korvThrallAsked9=!!d.kta9;S.vthroneSeen9=!!d.vts9;S.scommSeen9=!!d.scs9;S.scomm9=false;S.lanes9=d.lan9||{};S.vorDom9=!!d.vdm9;S.saintDom9=!!d.sdm9;S.vthrone9=false;
   S.arenaFame9=d.arf9||0;
   S.arenaChamps9=(d.arch9&&d.arch9.length)?d.arch9:null;
   S.beastTip9=d.bst||null;S.treasureTip=d.trt||null;S.intelTip9=d.itp||null; // rumors keep their word across a save now
