@@ -556,7 +556,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc4';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc5';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -3217,7 +3217,7 @@ function drawTaoLedger9(){
     const m9=list9[i9],sel9=(i9===T9.sel),md9=T9.mastered.indexOf(m9)>=0;
     rr(40,104+vi9*36,268,30,8,sel9?'#16202e':'#101620');
     txt(taoNum9(m9),54,124+vi9*36,sel9?'#cfe8ff':'#8899bb',11,'left',sel9?'bold':'normal');
-    txtFit(TAO9[m9].t,98,124+vi9*36,sel9?'#c9d4e2':'#7a8a9a',12,178,'left','normal');
+    txtFit(TAO9[m9].t,98,124+vi9*36,sel9?'#c9d4e2':'#7a8a9a',13,178,'left','normal');
     txt(md9?'✓':'?',296,124+vi9*36,md9?'#7fd98a':'#ffe9b0',13,'right','normal');
     // tap a row to select it; tap the row you already have selected to answer for understanding
     taoRects9.push({x:40,y:104+vi9*36,w:268,h:30,fn:(function(idx9,was9){return function(){
@@ -3227,11 +3227,13 @@ function drawTaoLedger9(){
   if(top9>0)txt('▲ '+top9+' more',165,98,'#6a8098',10,'center','normal');
   if(top9+VIS9<list9.length)txt('▼ '+(list9.length-top9-VIS9)+' more',165,104+VIS9*36+6,'#6a8098',10,'center','normal');
   if(n9&&TAO9[n9]){
-    txt(taoNum9(n9)+'  ·  '+TAO9[n9].t,320,124,'#cfe8ff',17,'left');
-    let y9=158;
+    txtFit(taoNum9(n9)+'  ·  '+TAO9[n9].t,320,126,'#cfe8ff',18,W-372,'left');
+    let y9=166;
+    // This is the one screen in the game whose whole job is READING, and it carried the smallest
+    // body text in the game. 12 -> 15, with the line spacing and the panel opened up to match.
     for(const pg9 of TAO9[n9].full.split('\n\n')){
-      if(y9>H-(IS_TOUCH?116:80))break;
-      y9=wrapText(pg9,320,y9,W-380,12,'#c9d4e2')+16;
+      if(y9>H-(IS_TOUCH?112:76))break;
+      y9=wrapText(pg9,320,y9,W-360,15,'#d6e0ec')+20;
     }
   }
   if(IS_TOUCH){
@@ -5393,6 +5395,358 @@ function laneUnheld9(){
   return out9;
 }
 /* ---- VORLAN: they beg ------------------------------------------------------------ */
+const EARTH9=[
+{p:"San Francisco, California",f:"my neighbourhood was one of the most expensive places to rent in the United States",y:2020},
+{p:"Death Valley, California",f:"the hottest air temperature ever reliably recorded on Earth was measured near where I grew up",y:2020},
+{p:"Juneau, Alaska",f:"my state capital had no road connecting it to the rest of the country",y:2020},
+{p:"Yuma, Arizona",f:"we had more hours of sunshine per year than anywhere else on Earth",y:2020},
+{p:"New Orleans, Louisiana",f:"a good part of my city sat below sea level",y:2020},
+{p:"Chicago, Illinois",f:"they reversed the direction of our river on purpose, back in 1900",y:2020},
+{p:"Boston, Massachusetts",f:"our subway was the oldest in the United States",y:2020},
+{p:"Key West, Florida",f:"we were closer to Havana than to Miami",y:2020},
+{p:"Mount Washington, New Hampshire",f:"for sixty years we held the record for the fastest wind ever measured by people on the ground",y:2020},
+{p:"Portland, Oregon",f:"we had a bookstore that filled an entire city block",y:2020},
+{p:"Seattle, Washington",f:"we were closer to Russia than to Washington DC, if you went the right way",y:2020},
+{p:"Detroit, Michigan",f:"you could look south across the river into Canada",y:2020},
+{p:"Anchorage, Alaska",f:"half my state's people lived in my one city",y:2020},
+{p:"Las Vegas, Nevada",f:"our whole city was built on a desert valley with almost no water of its own",y:2020},
+{p:"Phoenix, Arizona",f:"we were the hottest big city in the United States",y:2020},
+{p:"Houston, Texas",f:"we had no zoning code at all, so anything could be built next to anything",y:2020},
+{p:"Hawaii",f:"we were the only US state growing coffee commercially",y:2020},
+{p:"Barrow, Alaska",f:"the sun did not set for about eighty days each summer",y:2020},
+{p:"Salt Lake City, Utah",f:"our lake was so salty almost nothing could live in it but brine shrimp",y:2020},
+{p:"Yellowstone, Wyoming",f:"we lived on top of one of the largest volcanic systems on Earth",y:2020},
+{p:"Nashville, Tennessee",f:"we had a full-size replica of the Parthenon, built for a fair",y:2020},
+{p:"Roswell, New Mexico",f:"more people knew my town for a rumour than for anything we actually did",y:2020},
+{p:"Pittsburgh, Pennsylvania",f:"we had more bridges than Venice",y:2020},
+{p:"Minneapolis, Minnesota",f:"we had miles of enclosed skyways so you could cross downtown in winter without going outside",y:2020},
+{p:"Savannah, Georgia",f:"our whole downtown was laid out around twenty-two public squares",y:2020},
+{p:"Charleston, South Carolina",f:"we passed one of the first historic preservation laws in the country",y:2020},
+{p:"Toronto, Ontario",f:"more than half the people in my city were born in another country",y:2020},
+{p:"Vancouver, British Columbia",f:"you could ski in the morning and sit on a beach in the afternoon",y:2020},
+{p:"Montreal, Quebec",f:"we had one of the largest underground pedestrian networks in the world",y:2020},
+{p:"Churchill, Manitoba",f:"polar bears walked through my town and there was a jail for the ones that would not leave",y:2020},
+{p:"Yellowknife, Northwest Territories",f:"we were one of the best places on Earth to see the northern lights",y:2020},
+{p:"Newfoundland",f:"we had our own time zone, offset by half an hour from the next one",y:2020},
+{p:"Mexico City",f:"my city was sinking, some years by tens of centimetres, because we pumped water from beneath it",y:2020},
+{p:"Oaxaca, Mexico",f:"we had more than a dozen distinct indigenous languages still spoken in one state",y:2020},
+{p:"Guanajuato, Mexico",f:"our main roads ran through tunnels under the city, in old river channels",y:2020},
+{p:"Cancun, Mexico",f:"our whole resort strip was planned by a computer model in the 1970s",y:2020},
+{p:"Havana, Cuba",f:"cars from the 1950s were still working taxis on my street",y:2020},
+{p:"Panama City, Panama",f:"ships crossing our canal went from the Pacific to the Atlantic heading north-west",y:2020},
+{p:"San Jose, Costa Rica",f:"my country had no standing army, and had not had one since 1948",y:2020},
+{p:"Belize",f:"we were the only country in Central America where English was the official language",y:2020},
+{p:"Nuuk, Greenland",f:"my island was the largest on Earth and most of it was ice",y:2020},
+{p:"La Paz, Bolivia",f:"our airport was so high that planes needed a longer run just to get off the ground",y:2020},
+{p:"Salar de Uyuni, Bolivia",f:"after rain our salt flat became the largest natural mirror in the world",y:2020},
+{p:"Quito, Ecuador",f:"you could stand with one foot in each hemisphere near my city",y:2020},
+{p:"Bogota, Colombia",f:"we closed a hundred kilometres of road to cars every Sunday so people could cycle",y:2020},
+{p:"Medellin, Colombia",f:"we built cable cars as public transport up the steep hillsides",y:2020},
+{p:"Lima, Peru",f:"it almost never rained on us, though the sky was grey most of the year",y:2020},
+{p:"Cusco, Peru",f:"our stonework fitted so closely you could not slide a blade between the blocks",y:2020},
+{p:"Iquitos, Peru",f:"no road reached my city; you came by river or by air",y:2020},
+{p:"Manaus, Brazil",f:"an opera house stood in the middle of our rainforest, built with rubber money",y:2020},
+{p:"Rio de Janeiro, Brazil",f:"our city sat between mountains and the sea in a way no planner would have dared design",y:2020},
+{p:"Sao Paulo, Brazil",f:"we had one of the largest helicopter fleets of any city on Earth",y:2020},
+{p:"Brasilia, Brazil",f:"our whole capital was designed and built from nothing in about four years",y:2020},
+{p:"Santiago, Chile",f:"on a clear day the Andes stood over the city like a wall",y:2020},
+{p:"Atacama Desert, Chile",f:"some of our weather stations had never recorded rain",y:2020},
+{p:"Valparaiso, Chile",f:"we got around by public lifts built into the hillsides",y:2020},
+{p:"Ushuaia, Argentina",f:"we called ourselves the city at the end of the world, and meant it",y:2020},
+{p:"Buenos Aires, Argentina",f:"our widest avenue had more than a dozen lanes across",y:2020},
+{p:"Iguazu",f:"our waterfalls spread across nearly three kilometres of river",y:2020},
+{p:"Montevideo, Uruguay",f:"my country ran almost entirely on renewable electricity",y:2020},
+{p:"Asuncion, Paraguay",f:"most people around me spoke an indigenous language alongside Spanish, by law and by habit",y:2020},
+{p:"Caracas, Venezuela",f:"the tallest uninterrupted waterfall on Earth was in my country",y:2020},
+{p:"Georgetown, Guyana",f:"much of my capital sat below sea level behind a long sea wall",y:2020},
+{p:"Galapagos, Ecuador",f:"the animals where I lived had no fear of people at all",y:2020},
+{p:"Venice, Italy",f:"my city was built on more than a hundred small islands and had no cars at all",y:2020},
+{p:"Rome, Italy",f:"there was a whole country inside my city, and it was the smallest in the world",y:2020},
+{p:"Naples, Italy",f:"we lived in the shadow of a volcano that had buried a Roman town",y:2020},
+{p:"Milan, Italy",f:"our cathedral took nearly six hundred years to finish",y:2020},
+{p:"Bologna, Italy",f:"we had the oldest continuously operating university in Europe",y:2020},
+{p:"Matera, Italy",f:"people had lived in the caves of my town for thousands of years without a break",y:2020},
+{p:"Reykjavik, Iceland",f:"nearly all our heating and electricity came out of the ground",y:2020},
+{p:"Iceland",f:"my country had no mosquitoes at all",y:2020},
+{p:"Amsterdam, Netherlands",f:"we had more bicycles than people",y:2020},
+{p:"Netherlands",f:"about a quarter of my country lay below sea level",y:2020},
+{p:"Rotterdam, Netherlands",f:"our port was the busiest in Europe",y:2020},
+{p:"Bruges, Belgium",f:"our whole old town was a single protected site",y:2020},
+{p:"Brussels, Belgium",f:"my city ran the machinery of a union of twenty-seven countries",y:2020},
+{p:"Luxembourg",f:"public transport across my whole country became free to ride",y:2020},
+{p:"Paris, France",f:"our most famous tower was meant to be temporary",y:2020},
+{p:"Lyon, France",f:"we had a network of covered passageways used to move silk in the rain",y:2020},
+{p:"Marseille, France",f:"my city was founded by Greek sailors around 600 BC",y:2020},
+{p:"Chamonix, France",f:"the tunnel under our mountain ran for more than eleven kilometres into Italy",y:2020},
+{p:"Barcelona, Spain",f:"our great church had been under construction for more than a century and was not finished",y:2020},
+{p:"Madrid, Spain",f:"we had one of the oldest restaurants still operating anywhere",y:2020},
+{p:"Seville, Spain",f:"our cathedral was the largest Gothic church in the world",y:2020},
+{p:"Granada, Spain",f:"the palace above my town had water running through nearly every room",y:2020},
+{p:"Canary Islands, Spain",f:"we were closer to Africa than to the rest of Spain",y:2020},
+{p:"Lisbon, Portugal",f:"an earthquake in 1755 rebuilt my city's whole centre in one style",y:2020},
+{p:"Porto, Portugal",f:"the wine named after my city was aged across the river, not in it",y:2020},
+{p:"Azores, Portugal",f:"my islands sat on the line where two continental plates pull apart",y:2020},
+{p:"London, England",f:"our underground railway was the oldest in the world",y:2020},
+{p:"Bath, England",f:"the Romans built baths on our hot springs and the water still ran",y:2020},
+{p:"Edinburgh, Scotland",f:"our castle sat on the plug of an extinct volcano",y:2020},
+{p:"Isle of Skye, Scotland",f:"there were more sheep than people where I grew up",y:2020},
+{p:"Cardiff, Wales",f:"my country had more castles per square mile than anywhere in Europe",y:2020},
+{p:"Dublin, Ireland",f:"a single day in one novel is celebrated across my city every June",y:2020},
+{p:"Cliffs of Moher, Ireland",f:"our cliffs dropped more than two hundred metres straight into the Atlantic",y:2020},
+{p:"Belfast, Northern Ireland",f:"the ship everyone knows was built in my city's yards",y:2020},
+{p:"Oslo, Norway",f:"my country sold more electric cars per person than anywhere on Earth",y:2020},
+{p:"Svalbard, Norway",f:"there was a seed vault in our mountain holding crops from all over the world",y:2020},
+{p:"Tromso, Norway",f:"the sun did not rise for weeks in our winter",y:2020},
+{p:"Bergen, Norway",f:"it rained on about two days in three where I lived",y:2020},
+{p:"Stockholm, Sweden",f:"my city was spread across fourteen islands",y:2020},
+{p:"Kiruna, Sweden",f:"we moved our whole town, buildings and all, because the mine beneath it was spreading",y:2020},
+{p:"Gothenburg, Sweden",f:"we had a canal system laid out by Dutch engineers",y:2020},
+{p:"Helsinki, Finland",f:"my country had more saunas than cars",y:2020},
+{p:"Lapland, Finland",f:"we could see the northern lights on perhaps two hundred nights a year",y:2020},
+{p:"Copenhagen, Denmark",f:"more people commuted by bicycle than by car in my city",y:2020},
+{p:"Faroe Islands, Denmark",f:"we had grass growing on the roofs of houses to keep the heat in",y:2020},
+{p:"Berlin, Germany",f:"my city was cut in half by a wall for twenty-eight years",y:2020},
+{p:"Munich, Germany",f:"our beer festival started as a royal wedding party in 1810",y:2020},
+{p:"Hamburg, Germany",f:"we had more bridges than Venice, Amsterdam and London put together",y:2020},
+{p:"Black Forest, Germany",f:"the cuckoo clock came from my corner of the country",y:2020},
+{p:"Cologne, Germany",f:"our cathedral took more than six hundred years to complete",y:2020},
+{p:"Vienna, Austria",f:"my city's tap water came straight from mountain springs by pipeline",y:2020},
+{p:"Hallstatt, Austria",f:"we had been mining salt in the same place for around seven thousand years",y:2020},
+{p:"Zurich, Switzerland",f:"we had a river so clean people swam through the middle of the city",y:2020},
+{p:"Jungfraujoch, Switzerland",f:"the highest railway station in Europe was above my town",y:2020},
+{p:"Bern, Switzerland",f:"the whole old centre of my city was a protected site",y:2020},
+{p:"Prague, Czechia",f:"our astronomical clock had been running since 1410",y:2020},
+{p:"Cesky Krumlov, Czechia",f:"our castle kept live bears in the moat for centuries",y:2020},
+{p:"Budapest, Hungary",f:"we had more than a hundred thermal springs under my city",y:2020},
+{p:"Krakow, Poland",f:"there was a cathedral carved entirely out of salt in a mine near my home",y:2020},
+{p:"Warsaw, Poland",f:"our old town was rebuilt from paintings after being destroyed",y:2020},
+{p:"Bialowieza, Poland",f:"one of the last old-growth lowland forests in Europe was on my border",y:2020},
+{p:"Bucharest, Romania",f:"the heaviest building in the world sat in the middle of my city",y:2020},
+{p:"Transylvania, Romania",f:"brown bears still lived in the forests behind my village",y:2020},
+{p:"Sofia, Bulgaria",f:"my city had been lived in continuously for about seven thousand years",y:2020},
+{p:"Athens, Greece",f:"my city has been inhabited for more than three thousand years without a break",y:2020},
+{p:"Santorini, Greece",f:"we lived on the rim of a volcano that blew its middle out",y:2020},
+{p:"Meteora, Greece",f:"monasteries sat on top of rock pillars you once reached by rope basket",y:2020},
+{p:"Dubrovnik, Croatia",f:"you could walk a complete circuit of my city on its walls",y:2020},
+{p:"Plitvice, Croatia",f:"our lakes fell into one another down natural dams of travertine",y:2020},
+{p:"Ljubljana, Slovenia",f:"my city closed its whole centre to cars",y:2020},
+{p:"Mostar, Bosnia",f:"young men dived twenty metres off our bridge into cold river water",y:2020},
+{p:"Kotor, Montenegro",f:"our bay looked like a fjord but was a drowned river canyon",y:2020},
+{p:"Tirana, Albania",f:"my country was dotted with hundreds of thousands of small concrete bunkers",y:2020},
+{p:"Belgrade, Serbia",f:"my city sat where two big rivers meet and had been fought over for centuries",y:2020},
+{p:"Istanbul, Turkey",f:"my city stood on two continents at once",y:2020},
+{p:"Cappadocia, Turkey",f:"people carved homes and whole underground cities into soft volcanic rock",y:2020},
+{p:"Pamukkale, Turkey",f:"hot springs left white terraces down our hillside like frozen water",y:2020},
+{p:"Moscow, Russia",f:"our metro stations were built to look like palaces",y:2020},
+{p:"Saint Petersburg, Russia",f:"the sky never went fully dark for a few weeks each summer",y:2020},
+{p:"Lake Baikal, Russia",f:"our lake held about a fifth of the world's unfrozen fresh water",y:2020},
+{p:"Kaliningrad, Russia",f:"my region did not touch the rest of my country",y:2020},
+{p:"Kyiv, Ukraine",f:"one of our metro stations was among the deepest in the world",y:2020},
+{p:"Chernobyl, Ukraine",f:"wildlife came back in numbers to the land people left",y:2020},
+{p:"Minsk, Belarus",f:"my city was rebuilt almost entirely after the war in one sweeping style",y:2020},
+{p:"Vilnius, Lithuania",f:"a neighbourhood of my city declared itself an independent republic, mostly as a joke",y:2020},
+{p:"Riga, Latvia",f:"my city had one of the largest collections of art nouveau buildings anywhere",y:2020},
+{p:"Tallinn, Estonia",f:"my country let people vote online in national elections",y:2020},
+{p:"Malta",f:"my island nation had one of the oldest free-standing stone temples on Earth",y:2020},
+{p:"Cyprus",f:"my capital was the last divided capital city in Europe",y:2020},
+{p:"Monaco",f:"my country was small enough to walk across in an afternoon",y:2020},
+{p:"San Marino",f:"my country claimed to be the oldest surviving republic in the world",y:2020},
+{p:"Andorra",f:"we had no airport and no railway at all",y:2020},
+{p:"Liechtenstein",f:"my country was one of only two in the world that is doubly landlocked",y:2020},
+{p:"Gibraltar",f:"we had wild monkeys living on the rock above town",y:2020},
+{p:"Cairo, Egypt",f:"the last of the seven ancient wonders still standing was on my doorstep",y:2020},
+{p:"Aswan, Egypt",f:"our dam made one of the largest artificial lakes in the world",y:2020},
+{p:"Siwa, Egypt",f:"my oasis sat below sea level in the middle of a desert",y:2020},
+{p:"Marrakesh, Morocco",f:"our old town was a maze nobody could navigate by map alone",y:2020},
+{p:"Chefchaouen, Morocco",f:"almost every wall in my town was painted blue",y:2020},
+{p:"Sahara",f:"the desert where I grew up was about the size of the United States",y:2020},
+{p:"Timbuktu, Mali",f:"my city held libraries of manuscripts hundreds of years old",y:2020},
+{p:"Djenne, Mali",f:"our great mosque was the largest mud-brick building on Earth, replastered every year by the whole town",y:2020},
+{p:"Dakar, Senegal",f:"my city sat on the westernmost point of the African mainland",y:2020},
+{p:"Lagos, Nigeria",f:"my city was one of the fastest growing on Earth",y:2020},
+{p:"Accra, Ghana",f:"we measured time from a meridian that ran through the sea just south of us",y:2020},
+{p:"Addis Ababa, Ethiopia",f:"we used a calendar with thirteen months and ran about seven years behind the rest of the world",y:2020},
+{p:"Lalibela, Ethiopia",f:"our churches were carved downward out of solid rock",y:2020},
+{p:"Danakil, Ethiopia",f:"one of the hottest inhabited places on Earth was where my family worked the salt",y:2020},
+{p:"Nairobi, Kenya",f:"we had a national park with lions inside the city limits",y:2020},
+{p:"Maasai Mara, Kenya",f:"more than a million wildebeest crossed our river every year",y:2020},
+{p:"Kilimanjaro, Tanzania",f:"the highest mountain in Africa stood alone out of the plain near my home",y:2020},
+{p:"Zanzibar, Tanzania",f:"the shortest war in recorded history was fought here and lasted under an hour",y:2020},
+{p:"Serengeti, Tanzania",f:"the animal migration across our plains was the largest overland movement on Earth",y:2020},
+{p:"Kampala, Uganda",f:"the source of the Nile ran out of our lake",y:2020},
+{p:"Kigali, Rwanda",f:"my country banned plastic bags years before most of the world",y:2020},
+{p:"Victoria Falls, Zambia",f:"the spray from our falls could be seen from twenty kilometres away",y:2020},
+{p:"Windhoek, Namibia",f:"we had the oldest desert in the world on our coast",y:2020},
+{p:"Sossusvlei, Namibia",f:"our sand dunes were among the tallest anywhere, some over three hundred metres",y:2020},
+{p:"Skeleton Coast, Namibia",f:"shipwrecks sat in the sand kilometres from the current shoreline",y:2020},
+{p:"Gaborone, Botswana",f:"my country turned an inland river delta into one of the great wildlife refuges",y:2020},
+{p:"Cape Town, South Africa",f:"our mountain had a flat top and its own cloth of cloud",y:2020},
+{p:"Johannesburg, South Africa",f:"my city grew out of the largest gold find in history and had no river of its own",y:2020},
+{p:"Durban, South Africa",f:"we had one of the busiest ports in Africa",y:2020},
+{p:"Madagascar",f:"most of the animals and plants around me lived nowhere else on Earth",y:2020},
+{p:"Seychelles",f:"we had the largest seed in the plant world growing on our islands",y:2020},
+{p:"Mauritius",f:"the dodo lived on my island and nowhere else, until it did not",y:2020},
+{p:"Djibouti",f:"three tectonic plates pulled apart under my country",y:2020},
+{p:"Algiers, Algeria",f:"my country was the largest in Africa by area",y:2020},
+{p:"Tunis, Tunisia",f:"the ruins of Carthage were a tram ride from my house",y:2020},
+{p:"Tripoli, Libya",f:"almost my whole country was desert, and nearly everyone lived on the coast",y:2020},
+{p:"Luanda, Angola",f:"my city was for some years the most expensive in the world for foreign workers",y:2020},
+{p:"Kinshasa, DR Congo",f:"my city and the capital across the river were the closest pair of capitals in the world",y:2020},
+{p:"Sao Tome",f:"my island country sat almost exactly on the equator",y:2020},
+{p:"Asmara, Eritrea",f:"my whole city centre was a protected site for its 1930s architecture",y:2020},
+{p:"Jerusalem",f:"three faiths counted my city as holy and had for a very long time",y:2020},
+{p:"Dead Sea",f:"the lowest land on Earth was where I learned to float without trying",y:2020},
+{p:"Petra, Jordan",f:"our city was carved into a rose-coloured cliff face",y:2020},
+{p:"Wadi Rum, Jordan",f:"film crews came to my desert whenever they needed to show Mars",y:2020},
+{p:"Beirut, Lebanon",f:"my city had been destroyed and rebuilt many times over thousands of years",y:2020},
+{p:"Damascus, Syria",f:"mine was one of the oldest continuously inhabited cities on Earth",y:2020},
+{p:"Dubai, UAE",f:"the tallest building in the world was in my city",y:2020},
+{p:"Abu Dhabi, UAE",f:"we built a mosque with the largest hand-knotted carpet ever made",y:2020},
+{p:"Doha, Qatar",f:"my country had the largest single natural gas field in the world offshore",y:2020},
+{p:"Muscat, Oman",f:"we had frankincense trees growing wild in the south of my country",y:2020},
+{p:"Riyadh, Saudi Arabia",f:"my country had no permanent rivers at all",y:2020},
+{p:"Sanaa, Yemen",f:"our tower houses were built of mud brick and stood many storeys high",y:2020},
+{p:"Socotra, Yemen",f:"the trees on my island looked like umbrellas and grew nowhere else",y:2020},
+{p:"Tehran, Iran",f:"we had underground channels called qanats carrying water for thousands of years",y:2020},
+{p:"Isfahan, Iran",f:"our central square was one of the largest in the world",y:2020},
+{p:"Baghdad, Iraq",f:"my city was once the largest in the world and a centre of learning",y:2020},
+{p:"Baku, Azerbaijan",f:"natural gas fires had been burning on our hillsides for centuries",y:2020},
+{p:"Yerevan, Armenia",f:"my country was the first to adopt Christianity as a state religion",y:2020},
+{p:"Tbilisi, Georgia",f:"people had been making wine in my country for about eight thousand years",y:2020},
+{p:"Ashgabat, Turkmenistan",f:"a gas crater near us had been burning continuously since 1971",y:2020},
+{p:"Samarkand, Uzbekistan",f:"my city was a crossroads on the old silk routes",y:2020},
+{p:"Almaty, Kazakhstan",f:"my country was the largest landlocked country on Earth",y:2020},
+{p:"Bishkek, Kyrgyzstan",f:"most of my country sat above fifteen hundred metres",y:2020},
+{p:"Kabul, Afghanistan",f:"my city sat in a bowl of mountains at nearly eighteen hundred metres",y:2020},
+{p:"Tokyo, Japan",f:"my city and its region made the largest urban area on Earth",y:2020},
+{p:"Kyoto, Japan",f:"we had more than a thousand Buddhist temples inside one city",y:2020},
+{p:"Osaka, Japan",f:"people stood on the opposite side of the escalator from the rest of my country",y:2020},
+{p:"Aogashima, Japan",f:"my village sat inside the crater of an active volcano",y:2020},
+{p:"Hokkaido, Japan",f:"we got some of the heaviest snowfall of any inhabited place",y:2020},
+{p:"Naoshima, Japan",f:"my small island turned itself into a museum you walked around in",y:2020},
+{p:"Seoul, South Korea",f:"our public transport ran so late that people planned their nights around it",y:2020},
+{p:"Jeju, South Korea",f:"women divers on my island worked without air tanks into their seventies",y:2020},
+{p:"Pyongyang, North Korea",f:"my city's metro was among the deepest anywhere",y:2020},
+{p:"Beijing, China",f:"the wall near my home ran for thousands of kilometres in pieces",y:2020},
+{p:"Shanghai, China",f:"our magnetic train reached over four hundred kilometres an hour to the airport",y:2020},
+{p:"Chongqing, China",f:"a light rail line ran straight through an apartment block in my city",y:2020},
+{p:"Zhangjiajie, China",f:"our sandstone pillars stood in the mist like something drawn",y:2020},
+{p:"Harbin, China",f:"we carved a whole city out of ice every winter",y:2020},
+{p:"Lhasa, Tibet",f:"the palace above my town had more than a thousand rooms",y:2020},
+{p:"Hong Kong",f:"my city had more skyscrapers than any other on Earth",y:2020},
+{p:"Macau",f:"my territory had the highest population density in the world",y:2020},
+{p:"Taipei, Taiwan",f:"our tallest tower had a giant steel ball inside it to steady it against typhoons",y:2020},
+{p:"Ulaanbaatar, Mongolia",f:"mine was the coldest capital city in the world",y:2020},
+{p:"Gobi Desert, Mongolia",f:"families near me still moved their homes several times a year",y:2020},
+{p:"Hanoi, Vietnam",f:"a working railway ran between the houses on one of our streets",y:2020},
+{p:"Ha Long Bay, Vietnam",f:"nearly two thousand limestone islands stood out of our water",y:2020},
+{p:"Ho Chi Minh City, Vietnam",f:"there were millions of motorbikes and crossing the road was a skill",y:2020},
+{p:"Bangkok, Thailand",f:"the full ceremonial name of my city was the longest place name in the world",y:2020},
+{p:"Chiang Mai, Thailand",f:"we had hundreds of temples inside the old moat",y:2020},
+{p:"Phuket, Thailand",f:"my island was joined to the mainland by a single bridge",y:2020},
+{p:"Luang Prabang, Laos",f:"monks walked the streets collecting alms before dawn every day",y:2020},
+{p:"Phnom Penh, Cambodia",f:"the largest religious monument in the world was a few hours from my home",y:2020},
+{p:"Yangon, Myanmar",f:"our great pagoda was covered in real gold",y:2020},
+{p:"Bagan, Myanmar",f:"thousands of temples stood on one plain near where I grew up",y:2020},
+{p:"Singapore",f:"my country had no natural fresh water supply of its own worth speaking of",y:2020},
+{p:"Kuala Lumpur, Malaysia",f:"our twin towers were joined by a bridge halfway up",y:2020},
+{p:"Borneo",f:"the rainforest where I lived was among the oldest on Earth",y:2020},
+{p:"Jakarta, Indonesia",f:"my city was sinking fast enough that we planned to move the capital",y:2020},
+{p:"Bali, Indonesia",f:"our rice terraces were irrigated by a cooperative system a thousand years old",y:2020},
+{p:"Krakatoa, Indonesia",f:"the eruption near my islands in 1883 was heard thousands of kilometres away",y:2020},
+{p:"Komodo, Indonesia",f:"the largest lizards on Earth lived on my island",y:2020},
+{p:"Manila, Philippines",f:"my city was one of the most densely populated on the planet",y:2020},
+{p:"Palawan, Philippines",f:"we had an underground river running for kilometres through limestone",y:2020},
+{p:"Banaue, Philippines",f:"our rice terraces were cut into the mountains two thousand years ago",y:2020},
+{p:"Kathmandu, Nepal",f:"eight of the ten highest mountains on Earth were in my country",y:2020},
+{p:"Pokhara, Nepal",f:"a wall of eight-thousand-metre peaks rose behind our lake",y:2020},
+{p:"Thimphu, Bhutan",f:"my country measured itself by happiness and had no traffic lights in the capital",y:2020},
+{p:"Delhi, India",f:"my city had been built and destroyed many times in the same place",y:2020},
+{p:"Mumbai, India",f:"a network of carriers delivered thousands of home-cooked lunches daily, almost never losing one",y:2020},
+{p:"Varanasi, India",f:"mine was one of the oldest continuously inhabited cities in the world",y:2020},
+{p:"Mawsynram, India",f:"we had some of the heaviest rainfall recorded anywhere on Earth",y:2020},
+{p:"Jaipur, India",f:"our old city was painted pink for a royal visit and stayed that way",y:2020},
+{p:"Kerala, India",f:"we had more than nine hundred kilometres of interconnected backwaters",y:2020},
+{p:"Ladakh, India",f:"we had a monastery on nearly every hilltop and almost no rain",y:2020},
+{p:"Kolkata, India",f:"our tram system was the oldest still running in Asia",y:2020},
+{p:"Goa, India",f:"Portuguese was still spoken by some of my neighbours",y:2020},
+{p:"Colombo, Sri Lanka",f:"my island was shaped like a teardrop and grew some of the best tea in the world",y:2020},
+{p:"Male, Maldives",f:"my country was the lowest-lying on Earth",y:2020},
+{p:"Dhaka, Bangladesh",f:"my country had hundreds of rivers running through it",y:2020},
+{p:"Sundarbans, Bangladesh",f:"tigers swam between the islands of our mangrove forest",y:2020},
+{p:"Karachi, Pakistan",f:"my city was one of the largest in the world by population",y:2020},
+{p:"Hunza, Pakistan",f:"three great mountain ranges met near my valley",y:2020},
+{p:"Sydney, Australia",f:"our opera house roof was covered in more than a million tiles",y:2020},
+{p:"Melbourne, Australia",f:"we had the largest tram network in the world",y:2020},
+{p:"Perth, Australia",f:"mine was one of the most isolated big cities on Earth",y:2020},
+{p:"Uluru, Australia",f:"the rock near my home was mostly underground, like an iceberg",y:2020},
+{p:"Great Barrier Reef, Australia",f:"our reef was the largest living structure on the planet",y:2020},
+{p:"Coober Pedy, Australia",f:"most of my town lived underground to escape the heat",y:2020},
+{p:"Tasmania, Australia",f:"we had some of the cleanest air measured anywhere on Earth",y:2020},
+{p:"Auckland, New Zealand",f:"my city was built on a field of about fifty volcanoes",y:2020},
+{p:"Wellington, New Zealand",f:"mine was the southernmost capital city in the world",y:2020},
+{p:"Rotorua, New Zealand",f:"the whole town smelled faintly of sulphur from the hot springs",y:2020},
+{p:"Fiordland, New Zealand",f:"one of our sounds got several metres of rain a year",y:2020},
+{p:"Port Moresby, Papua New Guinea",f:"more than eight hundred languages were spoken in my country",y:2020},
+{p:"Suva, Fiji",f:"my country was made of more than three hundred islands",y:2020},
+{p:"Nauru",f:"my country was one of the smallest and had no official capital",y:2020},
+{p:"Tuvalu",f:"my country made real money from renting out its internet domain",y:2020},
+{p:"Kiribati",f:"my country straddled the equator and the date line at once",y:2020},
+{p:"Vanuatu",f:"you could walk up to the rim and look down into an active lava lake",y:2020},
+{p:"Easter Island",f:"we were one of the most remote inhabited places on Earth",y:2020},
+{p:"Tonga",f:"my country was never colonised",y:2020},
+{p:"Samoa",f:"we skipped a day entirely in 2011 to change which side of the date line we were on",y:2020},
+{p:"Palau",f:"we swam in a lake full of jellyfish that had lost their sting",y:2020},
+{p:"Guam",f:"the deepest point in any ocean was not far from my island",y:2020},
+{p:"Antarctica",f:"I worked a season where no one is from and the sun did not set for months",y:2020},
+];
+
+// Who is aboard, and how they ask. The blessing is the point; the fact is what they give back.
+const EARTHWHO9=['the pilot','the pilot’s mother','a cargo hand','the navigator','an old man in the jump seat',
+ 'a woman with flour on her hands','the engineer','somebody’s daughter','the cook','a retired teacher',
+ 'the second pilot','a man who will not give his name','the loadmaster','a young woman travelling alone',
+ 'the owner, who flies her himself'];
+const EARTHASK9=[
+ 'asks, without any preamble at all, whether you would bless the ship',
+ 'wants to know if a blessing costs anything, and does not believe the answer',
+ 'asks for a blessing for the run, not for themselves',
+ 'asks you to bless the hull, because the hull is what is between them and the dark',
+ 'asks for a blessing and then apologises for asking',
+ 'asks whether you do blessings, in the tone of someone asking whether a shop is open',
+ 'asks for a blessing for somebody who is not aboard',
+ 'has the whole crew standing behind them and asks on their behalf',
+ 'asks for a blessing and is already holding out a hand toward the scanner',
+ 'asks quietly, off the main channel, so the others will not hear'];
+function earthLine9(){
+  const e9=EARTH9[Math.floor(rnd(0,EARTH9.length))];
+  return '"When I was on Earth, '+e9.f+'." ('+e9.p+', '+e9.y+')';
+}
+function saintCourierBless9(t9){
+  // ONLY the little peaceful hulls. Not the transports, not a fighter, not anything with a gun.
+  if(!t9||t9.blessed9)return false;
+  t9.blessed9=true;
+  const nm9=(function(){try{return (COURIER_CLASSES[t9.cIdx||0]||COURIER_CLASSES[0]).nm;}catch(e9){return 'A COURIER';}})();
+  const who9=EARTHWHO9[Math.floor(rnd(0,EARTHWHO9.length))];
+  const ask9=EARTHASK9[Math.floor(rnd(0,EARTHASK9.length))];
+  showEnc('A COURIER ASKS',
+    nm9+'. Your scan goes across her and the channel opens from the other end before you have finished.\n\n'+
+    'Aboard, '+who9+' '+ask9+'. Then, while you are deciding, and as though it were the natural next thing to say:\n\n'+
+    earthLine9(),
+    [{label:'Bless the ship and everyone in her.',col:'#16283e',tcol:'#cfe8ff',
+      fn:()=>{closeEnc();
+        try{graceGain9(12);}catch(e9){}
+        try{laneFeed9(0.06);}catch(e9){}
+        say('✦ You give it. It takes four seconds and costs nothing and they will talk about it for a year. The lane remembers things like that.','#cfe8ff');}},
+     {label:'Bless them, and ask what else they remember.',col:'#16283e',tcol:'#eaf3ff',
+      fn:()=>{closeEnc();
+        try{graceGain9(16);}catch(e9){}
+        try{laneFeed9(0.08);}catch(e9){}
+        say('✦ They tell you two more before the channel drops, talking over each other. '+earthLine9(),'#eaf3ff');}},
+     {label:'Hold your heading. Say nothing.',col:'#2a281a',tcol:'#e8dfa0',
+      fn:()=>{closeEnc();say('You let it pass. The channel stays open a moment, then closes politely, which is worse than if they had been rude about it.','#8899bb');}}],
+    'space');
+  return true;
+}
 function laneBeg9(t9){
   if(!t9||t9.shook9)return false;
   t9.shook9=true;
@@ -16242,6 +16596,12 @@ addEventListener('keydown',e=>{
       for(const t of traffic){const dd=Math.hypot(t.x-ship.x,t.y-ship.y);if(dd<td2){td2=dd;tg2=t;}}
       if(tg2){
         sfx.scanb();
+        // THE WHITE SCANS A COURIER. She does not get a cargo manifest; she gets a person.
+        // Only these little hulls: the bigger transports and anything with a gun are not this.
+        if(typeof isSaint9==='function'&&isSaint9()){
+          if(tg2.blessed9){say('You have already been across to her. She keeps her heading and her crew keep waving.','#9fd8ff');return;}
+          try{ if(saintCourierBless9(tg2))return; }catch(e9){}
+        }
         if(!tg2.scanRes){
           const nm4=(COURIER_CLASSES[tg2.cIdx||0]||COURIER_CLASSES[0]).nm;
           const R20=[
@@ -26310,7 +26670,20 @@ function drawChapel9(){
       // show the actual hull she builds, right in the row
       ctx.save();ctx.translate(W-232,y);ctx.rotate(-0.18);ctx.scale(Math.min(1.05,ch9/64),Math.min(1.05,ch9/64));try{drawHullVariant(h.sk);}catch(e9){}ctx.restore();
       ctx.globalAlpha=1;ctx.shadowBlur=0;
+      // THE BUG Wolf hit. The WHITE LIBRARY page drew its rows and then RETURNED, before the
+      // action bar at the bottom of this function. So on this page a touch player had no way to
+      // choose a hull, build one, go back to the tracks, or leave: zero controls, which is exactly
+      // "can't activate anything in there". The tracks page was fine, which is why it looked random.
+      if(IS_TOUCH)uiRects9.push({x:70,y:y-ch9*0.42,w:W-140,h:ch9,fn:(function(ix,was){return function(){
+        if(was)chapBuy9(); else S.chapSel9=ix;
+      };})(i,sel)});
     }
+    if(IS_TOUCH){
+      const by8=H-62;
+      uiBtn9(40,by8,150,44,'BUILD / FLY','#ffd86b','#2a2418',()=>chapBuy9());
+      uiBtn9(200,by8,170,44,'\u2039 THE TRACKS','#9fd8ff','#16283e',()=>{S.chapPage9=0;S.chapSel9=0;});
+      uiClose9(()=>{S.screen=S.chapBack9||'space';},'\u2715 LEAVE',W-172,by8);
+    } else
     txt('[\u2191\u2193] choose \u2022 [E] build or fly \u2022 [H] back to the tracks \u2022 [Esc] leave',W/2,H-24,'#8899bb',12,'center','normal');
     return;
   }
@@ -26692,6 +27065,17 @@ function drawEmpire9(){
     uiClose9(()=>{S.screen=S.empBack9||'space';},'\u2715 BACK',W-172,by9);   // was W-140: a 156-wide button hung 16px off the canvas
     txtFit('tap a track to select it, tap it again to build',W/2,H-76,'#6a6472',11,W-80,'center','normal');
   } else {
+    if(IS_TOUCH){
+      const by8=H-56, mk8=(x8,w8,lab8,col8,bg8,fn8)=>{
+        rr(x8,by8,w8,42,10,bg8);txtFit(lab8,x8+w8/2,by8+27,col8,12,w8-10,'center');
+        uiRects9.push({x:x8,y:by8,w:w8,h:42,fn:fn8});
+      };
+      mk8(24,170,'BUILD','#ffd86b','#2a2418',()=>{empBuy9();});
+      mk8(202,214,'\u2620 MONUMENT ('+monumentCost9()+')','#c9b7e8','#1a1428',()=>{empMonument9();});
+      mk8(424,190,'GIVE SYSTEM BACK','#e8a8a8','#2a1820',()=>{empRelease9();});
+      mk8(622,150,'STEP DOWN','#ff8c8c','#2a1018',()=>{empAbdicate9();});
+      uiClose9(()=>{S.screen=S.empBack9||'space';},'\u2715 BACK',W-172,by8);
+    }
     txt('[\u2191\u2193] choose \u2022 [E] build \u2022 [M] RAISE A MONUMENT ('+monumentCost9()+' cr) \u2022 [R] GIVE THIS SYSTEM BACK \u2022 [Esc] back',W/2,H-40,'#6a6472',13,'center','normal');
     txt('[X]  STEP DOWN FROM THE THRONE \u2014 return to mortal life',W/2,H-20,'#9fd8ff',13,'center','normal');
   }
