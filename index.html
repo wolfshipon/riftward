@@ -556,7 +556,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc5';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc9';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -2337,9 +2337,13 @@ function saintPacifySys9(){
   if(wasV9)say('This one was his. The counting-houses cross a name off a ledger, and somewhere the dark gets smaller.','#ffe9b0');
 }
 // ===================== DOMINION =====================
-// Both paths need 33 systems AND the full campaign. Free-form conquest means you can hit 33 long
+// Both paths need DOM_SYSTEMS9 systems AND the full campaign. Free-form conquest means you can hit it long
 // before mission 25, or the reverse; neither alone is the whole of it.
-const DOM_SYSTEMS9=33;
+const DOM_SYSTEMS9=25;   // was 33. Wolf's number, and his reasoning is the good part: the galaxy generates 250 systems, so
+// 25 is exactly a TENTH of everything there is. Dominion is holding one system in ten. It also
+// mirrors the 25 conquests, so the whole endgame reads as one number: finish twenty-five, hold
+// twenty-five, own a tenth of the sky. 33 was a grind past the end of the campaign and the ultimate
+// should arrive while you still want to use it.
 function vorDomOk9(){
   try{return isVorlan9()&&heldCount9()>=DOM_SYSTEMS9&&((S.completedV9&&S.completedV9.size)||0)>=VMS.length;}catch(e9){return false;}
 }
@@ -3948,14 +3952,14 @@ const CLS={
 ['clan_heavy','veil_talon','mirror_fed','null_sphere','null_bastion','sarrqan'].forEach(k=>ET[k].torp=true);
 // flagship + carrier-launched fighters
 ET.fighter={nm:'TALON-DART',hp:2,dmg:3,rate:1.1,spd:265,rng:130,r:9,cr:15,beh:'orbit',draw:'fighter',col:'#d0a0ff'};
-ET.clan_citadel={nm:'WARLORD CITADEL',hp:34,dmg:13,rate:3.2,spd:60,rng:280,r:36,cr:290,beh:'heavy',draw:'ironjaw9',col:'#b8c86f',twin:true,torp:true,deploys:true};
+ET.clan_citadel={nm:'WARLORD CITADEL',hp:34,dmg:13,rate:3.2,spd:60,rng:280,r:36,cr:290,beh:'heavy',draw:'ironjaw9',col:'#b8c86f',twin:true,torp:true,deploys:true,wingCap:10,flight9:8,depRate:5};
 ET.cruiser_armed={nm:'ARMED HAULER',hp:40,dmg:12,rate:2.6,spd:70,rng:240,r:30,cr:0,beh:'heavy',draw:'hauler',col:'#c9d46a',twin:true};
 CLS.cruiser_armed='ARMED MERCHANT HAULER';
 ET.devourer={nm:'EGG-BORN DEVOURER',hp:14,dmg:0,rate:9,spd:36,rng:0,r:18,cr:120,beh:'ram',draw:'blob',col:'#9adc6a',beast:true};
 CLS.devourer='EGG-BORN DEVOURER';
 ET.fed_escort={nm:'ACCORD ESCORT',hp:18,dmg:11,rate:1.9,spd:170,rng:210,r:21,cr:0,beh:'orbit',draw:'fed',col:'#dfe8f2'};
 ET.fed_cruiser={nm:'ACCORD CRUISER',hp:34,dmg:15,rate:2.4,spd:110,rng:250,r:27,cr:0,beh:'heavy',draw:'fed',col:'#c8d8ee',twin:true,torp:true};
-ET.fed_dread={nm:'ACCORD DREADNOUGHT',hp:55,dmg:18,rate:3,spd:75,rng:300,r:36,cr:0,beh:'boss',draw:'fed',col:'#b8cce8',twin:true,torp:true,beam:true,deploys:true};
+ET.fed_dread={nm:'ACCORD DREADNOUGHT',hp:55,dmg:18,rate:3,spd:75,rng:300,r:36,cr:0,beh:'boss',draw:'fed',col:'#b8cce8',twin:true,torp:true,beam:true,deploys:true,wingCap:12,flight9:10,depRate:4.5};
 CLS.fed_escort='ACCORD ESCORT FRIGATE';
 CLS.fed_cruiser='ACCORD HEAVY CRUISER';
 CLS.fed_dread='ACCORD DREADNOUGHT';
@@ -3975,7 +3979,7 @@ function isBeast9(e){const t=e&&e.et;if(!t)return false;
   return t.draw==='levi'||t.draw==='blob'||t.beast===true||e.type==='leviathan'||e.type==='devourer'||e.type==='parasite';}
 ET.leviathan={nm:'SPACE LEVIATHAN',hp:210,dmg:46,rate:5,spd:60,rng:0,r:50,cr:720,beh:'ram',draw:'levi',col:'#b06aff',regen:1.8,lanceHalf:true,beast:true,leviPulse9:true};
 CLS.leviathan='DEEP-SPACE LEVIATHAN';
-ET.vorlanship={nm:'THE UNMAKER',hp:44,dmg:16,rate:2.6,spd:95,rng:280,r:34,cr:0,beh:'boss',draw:'vorlan',col:'#2a1030',twin:true,torp:true,regen:1.2,noSurrender:true,deploys:true,wingCap:6,depRate:4,lanceHalf:true};
+ET.vorlanship={nm:'THE UNMAKER',hp:44,dmg:16,rate:2.6,spd:95,rng:280,r:34,cr:0,beh:'boss',draw:'vorlan',col:'#2a1030',twin:true,torp:true,regen:1.2,noSurrender:true,deploys:true,wingCap:12,flight9:10,depRate:4,lanceHalf:true};
 CLS.vorlanship='THE UNMAKER \u2014 he is not supposed to be flying';
 const VORTIER9=[
  null,
@@ -3986,31 +3990,31 @@ const VORTIER9=[
  {nm:'VORLAN ETERNAL',     hp:500,dmg:44, verb:'offer', line:'He does not fire. He waits, which is worse.'}
 ];
 function vorTier9(){vorInit9();const c9=S.vorlanCaught9||0;const n9=(c9>=3)?5:Math.max(1,c9);return VORTIER9[n9]||VORTIER9[5];}
-ET.carrier={nm:'CITADEL CARRIER',hp:60,dmg:9,rate:3.6,spd:45,rng:260,r:40,cr:520,beh:'boss',draw:'ironjaw9',col:'#ff9a5c',twin:true,torp:true,deploys:true,wingCap:8,depRate:4.5};
+ET.carrier={nm:'CITADEL CARRIER',hp:60,dmg:9,rate:3.6,spd:45,rng:260,r:40,cr:520,beh:'boss',draw:'ironjaw9',col:'#ff9a5c',twin:true,torp:true,deploys:true,wingCap:16,flight9:14,depRate:4.5};
 CLS.carrier='CITADEL CARRIER \u2014 FIGHTER-WING SHIP';
-ET.starliner={nm:'THE LUCKY LADY',hp:70,dmg:8,rate:4.2,spd:38,rng:250,r:44,cr:900,beh:'boss',draw:'liner',col:'#ffd86b',deploys:true,wingCap:9,depRate:3.5};
+ET.starliner={nm:'THE LUCKY LADY',hp:70,dmg:8,rate:4.2,spd:38,rng:250,r:44,cr:900,beh:'boss',draw:'liner',col:'#ffd86b',deploys:true,wingCap:15,flight9:12,depRate:3.5};
 // ===== FACTION HULLS (installment 1) — original, fork-safe =====
 // PIRATES — the Jackal Cartel: fast, cheap, aggressive
 ET.pir_cutter={nm:'CORSAIR CUTTER',hp:5,dmg:5,rate:1.5,spd:230,rng:150,r:15,cr:45,beh:'orbit',draw:'jackal',col:'#e0864a',fac9:'Jackal Cartel'};
 ET.pir_reaver={nm:'REAVER',hp:15,dmg:9,rate:2.1,spd:175,rng:195,r:22,cr:100,beh:'heavy',draw:'hauler',col:'#d9a24a',twin:true,fac9:'Jackal Cartel'};
-ET.pir_matron={nm:'CARRION ROOST',hp:48,dmg:12,rate:3,spd:60,rng:265,r:36,cr:430,beh:'boss',draw:'hauler',col:'#e0924a',twin:true,torp:true,deploys:true,wingCap:6,depRate:5,fac9:'Jackal Cartel'};
+ET.pir_matron={nm:'CARRION ROOST',hp:48,dmg:12,rate:3,spd:60,rng:265,r:36,cr:430,beh:'boss',draw:'hauler',col:'#e0924a',twin:true,torp:true,deploys:true,wingCap:10,flight9:8,depRate:5,fac9:'Jackal Cartel'};
 // REBELS — the Free Companies: balanced militia
 ET.reb_skiff={nm:'FREEHOLD SKIFF',hp:7,dmg:6,rate:1.9,spd:200,rng:185,r:16,cr:55,beh:'orbit',draw:'wedge',col:'#7fae8f',fac9:'Free Companies'};
 ET.reb_lancer={nm:'FREEHOLD LANCER',hp:20,dmg:12,rate:2.5,spd:120,rng:250,r:24,cr:125,beh:'heavy',draw:'wedge',col:'#8fc09a',twin:true,torp:true,fac9:'Free Companies'};
-ET.reb_bastion={nm:'FREEHOLD BASTION',hp:52,dmg:15,rate:3,spd:70,rng:290,r:36,cr:470,beh:'boss',draw:'wedge',col:'#9fd0aa',twin:true,torp:true,deploys:true,wingCap:6,depRate:5,fac9:'Free Companies'};
+ET.reb_bastion={nm:'FREEHOLD BASTION',hp:52,dmg:15,rate:3,spd:70,rng:290,r:36,cr:470,beh:'boss',draw:'wedge',col:'#9fd0aa',twin:true,torp:true,deploys:true,wingCap:10,flight9:8,depRate:5,fac9:'Free Companies'};
 // RENEGADE AI — the Nullborn: geometric, adaptive, MINE-LAYERS
 ET.ai_drone={nm:'NULLBORN DRONE',hp:9,dmg:7,rate:2,spd:150,rng:210,r:16,cr:85,beh:'orbit',draw:'diamond',col:'#46d6c0',adapt:true,fac9:'Nullborn'};
 ET.ai_seeder={nm:'NULLBORN SEEDER',hp:16,dmg:8,rate:3,spd:125,rng:120,r:22,cr:135,beh:'orbit',draw:'diamond',col:'#5ce0b0',layMines:true,fac9:'Nullborn'};
-ET.ai_core={nm:'NULLBORN CORE',hp:50,dmg:14,rate:3,spd:60,rng:300,r:34,cr:490,beh:'boss',draw:'diamond',col:'#6cf0c0',adapt:true,regen:.5,deploys:true,wingCap:6,depRate:4.5,beam:true,fac9:'Nullborn'};
+ET.ai_core={nm:'NULLBORN CORE',hp:50,dmg:14,rate:3,spd:60,rng:300,r:34,cr:490,beh:'boss',draw:'diamond',col:'#6cf0c0',adapt:true,regen:.5,deploys:true,wingCap:10,flight9:8,depRate:4.5,beam:true,fac9:'Nullborn'};
 // CULTISTS — the Shroud: cloaking, eerie, ranged
 ET.cult_veil={nm:'SHROUD ACOLYTE',hp:9,dmg:9,rate:2.6,spd:150,rng:220,r:19,cr:95,beh:'orbit',draw:'shroud',col:'#b07ae8',cloak:true,fac9:'The Shroud'};
 ET.cult_oracle={nm:'SHROUD ORACLE',hp:18,dmg:6,rate:1,spd:150,rng:245,r:20,cr:145,beh:'sniper',draw:'shroud',col:'#c08af8',beam:true,fac9:'The Shroud'};
-ET.cult_matriarch={nm:'SHROUD MATRIARCH',hp:46,dmg:13,rate:3,spd:70,rng:285,r:34,cr:480,beh:'boss',draw:'shroud',col:'#c89aff',cloak:true,deploys:true,wingCap:6,depRate:4.5,fac9:'The Shroud'};
+ET.cult_matriarch={nm:'SHROUD MATRIARCH',hp:46,dmg:13,rate:3,spd:70,rng:285,r:34,cr:480,beh:'boss',draw:'shroud',col:'#c89aff',cloak:true,deploys:true,wingCap:10,flight9:8,depRate:4.5,fac9:'The Shroud'};
 // VORLAN'S MINIONS — the Unmade: corrupted, self-healing
 ET.unm_husk={nm:'UNMADE HUSK',hp:20,dmg:10,rate:2.2,spd:130,rng:180,r:20,cr:110,beh:'orbit',draw:'vorlan',col:'#6a4a8a',regen:.6,fac9:'The Unmade'};
 ET.unm_wraith={nm:'UNMADE WRAITH',hp:42,dmg:15,rate:2.6,spd:110,rng:245,r:25,cr:190,beh:'heavy',draw:'vorlan',col:'#7a5a9a',twin:true,regen:.8,fac9:'The Unmade'};
-ET.unm_herald={nm:'THE UNMADE THRONE',hp:150,dmg:22,rate:2.8,spd:56,rng:300,r:42,cr:820,beh:'boss',draw:'vorlan',col:'#8a6aaa',twin:true,torp:true,beam:true,regen:1.4,deploys:true,wingCap:7,depRate:4,fac9:'The Unmade'};
-ET.lightbringer9={nm:'THE LIGHTBRINGER',hp:200,dmg:38,rate:1.9,spd:112,rng:340,r:38,cr:0,beh:'boss',draw:'fed',col:'#fff2a0',twin:true,torp:true,beam:true,regen:2.1,deploys:true,wingCap:8,depRate:2.6,unique9:true};
+ET.unm_herald={nm:'THE UNMADE THRONE',hp:150,dmg:22,rate:2.8,spd:56,rng:300,r:42,cr:820,beh:'boss',draw:'vorlan',col:'#8a6aaa',twin:true,torp:true,beam:true,regen:1.4,deploys:true,wingCap:14,flight9:10,depRate:4,fac9:'The Unmade'};
+ET.lightbringer9={nm:'THE LIGHTBRINGER',hp:200,dmg:38,rate:1.9,spd:112,rng:340,r:38,cr:0,beh:'boss',draw:'fed',col:'#fff2a0',twin:true,torp:true,beam:true,regen:2.1,deploys:true,wingCap:14,flight9:10,depRate:2.6,unique9:true};
 CLS.lightbringer9='THE LIGHTBRINGER — too bright to look at';
 // a scattering of tougher mid-hull ships, so a sky is not all glass cannons — these take real work to bring down
 ET.pir_breaker={nm:'SLAG BREAKER',hp:42,dmg:15,rate:3.2,spd:56,rng:250,r:30,cr:290,beh:'heavy',draw:'hauler',col:'#c8703a',twin:true,fac9:'Jackal Cartel'};
@@ -4430,7 +4434,12 @@ const SGEN9=[
 ];
 function genVor9(){
   const tp=VGEN9[Math.floor(rnd(0,VGEN9.length))];const sys=genPlace9(true);const nm=SYSTEMS[sys].name;
-  const d={gen:true,vor9:true,id:'v'+(++VGENC9),ty:tp.ty,sys:sys,tier:3,reward:520+Math.floor(rnd(0,240)),
+  // THE STANDING ORDERS. Base scales with how much of the sky already kneels, plus a slow
+  // compounding on how long you have been at it, capped so it cannot run away.
+  const held0=(typeof heldCount9==='function')?heldCount9():0;
+  const reign0=Math.min(40,S.reignJobs9||0);
+  const pay0=Math.round((1800+rnd(0,1200))*(1+held0*0.02)*(1+reign0*0.012));
+  const d={gen:true,vor9:true,id:'v'+(++VGENC9),ty:tp.ty,sys:sys,tier:3,reward:pay0,
     t:tp.t+' #'+VGENC9,b:tp.b.split('{S}').join(nm)};
   if(tp.ens)d.en=tp.ens[Math.floor(rnd(0,tp.ens.length))];
   if(tp.n)d.n=tp.n[0]+Math.floor(rnd(0,tp.n[1]-tp.n[0]+1));
@@ -4444,7 +4453,12 @@ function genVor9(){
 }
 function genSaint9(){
   const tp=SGEN9[Math.floor(rnd(0,SGEN9.length))];const sys=genPlace9(false);const nm=SYSTEMS[sys].name;
-  const d={gen:true,saint9m:true,id:'s'+(++SGENC9),ty:tp.ty,sys:sys,tier:2,reward:360+Math.floor(rnd(0,200)),
+  // The same problem on her side, smaller: her economy runs on grace and a scaling tithe, but a
+  // work of mercy paying 360 while a single rescue pays thousands made the sanctuary board pointless.
+  const pac0=(typeof pacifiedCount9==='function')?pacifiedCount9():0;
+  const mercy0=Math.min(40,S.mercyJobs9||0);
+  const pay1=Math.round((1100+rnd(0,900))*(1+pac0*0.018)*(1+mercy0*0.010));
+  const d={gen:true,saint9m:true,id:'s'+(++SGENC9),ty:tp.ty,sys:sys,tier:2,reward:pay1,
     t:tp.t+' #'+SGENC9,b:tp.b.split('{S}').join(nm)};
   if(tp.ens)d.en=tp.ens[Math.floor(rnd(0,tp.ens.length))];
   if(tp.ty==='scan')d.time=22;
@@ -8812,7 +8826,7 @@ function newGamePlus(){
   S.ng=(S.ng||0)+1;buffClear9();
   // a fresh tour walks a fresh moral road: wipe BOTH story arcs and the mercy ledger so Saint AND Vorlan can be earned again (was: these persisted, so once you'd worn the stole or the crown the path stayed shut forever)
   S.saint9=null;S.saintWas9=false;S.saintAsked9=0;S.saintHint9=false;S.saintTier9=0;S.canonized9=false;S.chapel9=null;S.saintHullWas9=null;S.saintUpWas9=null;S.saintKillMark9=0;S.saintSentHere9=0;S.pacified9={};S.tao9=null;
-  S.ruledRift9=false;S.rule9=null;S.ruleConsolidated9=false;S.korvVassal9=false;S.korvAsked9=false;S.korvBetrayed9=false;S.korvOathT9=0;S.korvThrall9=false;S.korvThrallAsked9=false;S.knifeWarn9=false;S.vthrone9=false;S.vthroneSeen9=false;S.scomm9=false;S.scommSeen9=false;S.lanes9={};S.laneCd9=0;S.vorDom9=false;S.saintDom9=false;S.vorLaneSay9=false;S.arenaFame9=0;S.arenaChamps9=null;
+  S.ruledRift9=false;S.rule9=null;S.ruleConsolidated9=false;S.korvVassal9=false;S.korvAsked9=false;S.korvBetrayed9=false;S.korvOathT9=0;S.korvThrall9=false;S.korvThrallAsked9=false;S.knifeWarn9=false;S.vthrone9=false;S.vthroneSeen9=false;S.vseatSeen9=false;S.scomm9=false;S.scommSeen9=false;S.lanes9={};S.laneCd9=0;S.vorDom9=false;S.saintDom9=false;S.vorLaneSay9=false;S.arenaFame9=0;S.arenaChamps9=null;
   S.vorlan9=null;S.vorWas9=false;S.vorSucc9=false;S.vorDone9=false;S.vorSeeded9=false;S.vorRestart9=0;S.vorSeedGrace9=0;S.vorReforms9=0;S.vorTheft9=0;S.vorTitleWas9=false;S.vorHull9=0;S.vorHullBonus9=0;S.vorWingBonus9=0;S.vorCapTier9=0;S.vorChoked9=false;S.vorLeechSaid9=false;S.vorlanCold=false;S.vorlanDead=false;S.vorlanLeft=false;S.vorlanTalked=false;S.vorlanCaught9=0;S.vorlanship=null;S.empire9=null;S.tribute9=null;S.wrath9=null;S.qLock9=false;
   S.mercy9={spared:0,saved:0,given:0,killed:0};
   ship.hull=100;ship.shields=100;ship.energy=100;ship.rift=100;
@@ -9606,37 +9620,51 @@ const VPOWERS9=[
   }}
 ];
 function vSay9(t9){say('☠ '+t9,'#c07ae8');orsonO9&&orsonO9(0);}
-function vThroneOk9(){return !!(S.vorDom9&&typeof isVorlan9==='function'&&isVorlan9());}
+function vThroneOk9(){return !!((S.vorDom9||S.vorReignDone9)&&typeof isVorlan9==='function'&&isVorlan9());}
+// Finishing the conquests opens the SEAT. Holding DOM_SYSTEMS9 opens THE UNMAKING. The seat is what a man who
+// has won everything on the board can still do: pay himself, and put his own hull back together.
+// The four that reach out and take are the ones that wait.
+function vFullThrone9(){return !!(S.vorDom9&&typeof isVorlan9==='function'&&isVorlan9());}
+function vPowerList9(){return vFullThrone9()?VPOWERS9:VPOWERS9.filter(p9=>p9.k==='5'||p9.k==='6');}
 function toggleVThrone9(){
   if(!vThroneOk9())return false;
   S.vthrone9=!S.vthrone9;
   if(S.vthrone9){
     try{sfx.fanfare&&sfx.fanfare();}catch(e9){}
     QSTATE.flash=1.4;
-    if(!S.vthroneSeen9){
+    if(!vFullThrone9()){
+      if(!S.vseatSeen9){S.vseatSeen9=true;
+        say('☠ THE SEAT OPENS. Twenty-five campaigns finished, and what you get for it is not a weapon: it is the right to sit down. The reach comes later, and it comes at '+DOM_SYSTEMS9+' systems.','#c07ae8');}
+    } else if(!S.vthroneSeen9){
       S.vthroneSeen9=true;
       say('ORSON: (from a long way off, and not laughing) "I want it on the record that I did not GIVE you this. I would not have. You simply got large enough that the door stopped being a door." He does not appear. He has not appeared in a while.','#ff8ce8');
     }
-    say('☠ THE UNMAKING — you stop asking. Press a key.','#c07ae8');
+    say(vFullThrone9()?'☠ THE UNMAKING — you stop asking. Press a key.'
+                     :'☠ THE SEAT — what you already hold, in your hand. '+heldCount9()+' of '+DOM_SYSTEMS9+' kneel.','#c07ae8');
   } else say('You put the sky back roughly where it was.','#c9b7e8');
   return true;
 }
 function vPower9(k9){
   if(!S.vthrone9||!vThroneOk9())return;
   if(k9==='q'){S.vthrone9=false;return;}
-  const p9=VPOWERS9.find(x9=>x9.k===k9);
-  if(!p9)return;
-  // No cooldowns and no cost. That was the original request, and at 33 systems with every
+  const p9=vPowerList9().find(x9=>x9.k===k9);
+  if(!p9){
+    // A key that belongs to the full Unmaking, pressed from the seat: say why, do not just ignore it.
+    if(VPOWERS9.some(x9=>x9.k===k9))vSay9('Not from the seat. That one reaches out and TAKES, and the dark will not hand it over until '+DOM_SYSTEMS9+' systems kneel at once. You hold '+heldCount9()+'.');
+    return;
+  }
+  // No cooldowns and no cost. That was the original request, and at full dominion with every
   // conquest finished it is not a balance problem: there is nothing left to balance against.
   try{p9.fn();}catch(e9){}
 }
 function drawVThrone9(){
   ctx.fillStyle='rgba(10,2,6,.92)';ctx.fillRect(0,0,W,H);
   rr(W/2-230,10,460,44,14,'rgba(30,4,10,.94)');
-  txtFit('☠ THE UNMAKING  —  NOTHING REFUSES YOU',W/2,38,'#c07ae8',15,440,'center');
-  txt('THE THRONE’S OWN'+(IS_TOUCH?'  (tap one)':'  (press the key)'),24,80,'#c07ae8',13,'left');
+  const full9=vFullThrone9();
+  txtFit(full9?'☠ THE UNMAKING  —  NOTHING REFUSES YOU':'☠ THE SEAT  —  '+heldCount9()+' / '+DOM_SYSTEMS9+' KNEEL',W/2,38,'#c07ae8',15,440,'center');
+  txt((full9?'THE THRONE’S OWN':'WHAT THE SEAT CAN DO  ·  the rest waits on '+DOM_SYSTEMS9+' systems')+(IS_TOUCH?'  (tap one)':'  (press the key)'),24,80,'#c07ae8',13,'left');
   qRects9=[];
-  qCards9(VPOWERS9.map(p9=>Object.assign({},p9,{need:0})),100,92,H-56);
+  qCards9(vPowerList9().map(p9=>Object.assign({},p9,{need:0})),100,92,H-56);
   rr(W-176,10,152,44,10,'#3a1c1c');txt('✕ DESCEND',W-100,38,'#ffb0b0',13,'center');
   qRects9.push({x:W-176,y:10,w:152,h:44,k:'q'});
   txtFit(IS_TOUCH?'tap DESCEND to return':'[Q] descend',W/2,H-14,'#a08ab0',11,W-80,'center','normal');
@@ -9696,7 +9724,11 @@ const SPOWERS9=[
   }}
 ];
 function sSay9(t9){say('✦ '+t9,'#cfe8ff');}
-function sCommOk9(){return !!(S.saintDom9&&typeof isSaint9==='function'&&isSaint9());}
+function sCommOk9(){return !!((S.saintDom9||S.saintReignDone9)&&typeof isSaint9==='function'&&isSaint9());}
+function sFullComm9(){return !!(S.saintDom9&&typeof isSaint9==='function'&&isSaint9());}
+// Hers splits the same way: finishing the works lets her mend and be asked for. Reaching worlds she
+// has never been to waits on the same count his reach does.
+function sPowerList9(){return sFullComm9()?SPOWERS9:SPOWERS9.filter(p9=>p9.k==='3'||p9.k==='4');}
 function toggleSComm9(){
   if(!sCommOk9())return false;
   S.scomm9=!S.scomm9;
@@ -9704,25 +9736,29 @@ function toggleSComm9(){
     try{sfx.fanfare&&sfx.fanfare();}catch(e9){}
     if(!S.scommSeen9){S.scommSeen9=true;
       say('ORSON: "You went and became a PLACE. Do you know how boring that is to watch? Do you know how many people are going to be fine now?" He sounds furious. He sounds like he might cry. He does not appear.','#ff8ce8');}
-    say('✦ THE COMMUNION — you do not have to be there any more.','#cfe8ff');
+    say(sFullComm9()?'✦ THE COMMUNION — you do not have to be there any more.'
+                    :'✦ THE WORKS ARE DONE. What you can still do is here. '+pacifiedCount9()+' of '+DOM_SYSTEMS9+' at peace.','#cfe8ff');
   } else say('The light folds back down to the size of a ship.','#9fd8ff');
   return true;
 }
 function sPower9(k9){
   if(!S.scomm9||!sCommOk9())return;
   if(k9==='q'){S.scomm9=false;return;}
-  const p9=SPOWERS9.find(x9=>x9.k===k9);
-  if(!p9)return;
+  const p9=sPowerList9().find(x9=>x9.k===k9);
+  if(!p9){
+    if(SPOWERS9.some(x9=>x9.k===k9))sSay9('Not yet. That one reaches a world you have never stood on, and the light does not carry that far until '+DOM_SYSTEMS9+' are at peace at once. You hold '+pacifiedCount9()+'.');
+    return;
+  }
   try{p9.fn();}catch(e9){}
 }
 function drawSComm9(){
   ctx.fillStyle='rgba(240,246,252,.93)';ctx.fillRect(0,0,W,H);
   rr(W/2-230,10,460,44,14,'rgba(255,255,255,.85)');
-  txtFit('✦ THE COMMUNION  —  YOU NEED NOT BE THERE',W/2,38,'#3a5a7a',15,440,'center');
+  txtFit(sFullComm9()?'✦ THE COMMUNION  —  YOU NEED NOT BE THERE':'✦ THE WORKS ARE DONE  —  '+pacifiedCount9()+' / '+DOM_SYSTEMS9+' AT PEACE',W/2,38,'#3a5a7a',15,440,'center');
   txt('WHAT THE LIGHT REACHES'+(IS_TOUCH?'  (tap one)':'  (press the key)'),24,80,'#3a5a7a',13,'left');
   qRects9=[];
   const sv9=ctx.fillStyle;
-  qCards9(SPOWERS9.map(p9=>Object.assign({},p9,{need:0})),100,92,H-56);
+  qCards9(sPowerList9().map(p9=>Object.assign({},p9,{need:0})),100,92,H-56);
   ctx.fillStyle=sv9;
   rr(W-176,10,152,44,10,'#dfe8f2');txt('✕ DESCEND',W-100,38,'#3a5a7a',13,'center');
   qRects9.push({x:W-176,y:10,w:152,h:44,k:'q'});
@@ -10147,11 +10183,15 @@ function updateSpace(dt){
     if(e.charmed9||e.friendly9){
       // a charmed hull now flies FOR you: it hunts the NEAREST true hostile and never fires on the player
       e.detected=true;
+      capDeploy9(e,et,dt);   // a flagship on your side is still a flagship: this branch used to return before the bays ever opened
       let ct9=null,cbd9=1e9;
       for(const x9 of enemies){if(x9===e||!x9.alive||x9.cloaked||!x9.detected)continue;if(x9.charmed9||x9.friendly9||x9.neutral9)continue;const dd9=dist(e,x9);if(dd9<cbd9){cbd9=dd9;ct9=x9;}}
       if(ct9){
-        const aT9=angTo(e,ct9),want9=200;
-        const rad9=cbd9>want9+30?1:(cbd9<want9-30?-1:0),tan9=aT9+Math.PI/2;
+        // Every hull used to want the SAME standoff on the SAME side, so a wing of fourteen flew as
+        // one dot. Each airframe gets its own slot: a personal radius and a fixed side to circle on.
+        if(e.slotR9==null){e.slotR9=rnd(-70,70);e.slotS9=(Math.random()<.5?-1:1);}
+        const aT9=angTo(e,ct9),want9=200+e.slotR9;
+        const rad9=cbd9>want9+30?1:(cbd9<want9-30?-1:0),tan9=aT9+Math.PI/2*e.slotS9;
         e.vx+=(Math.cos(aT9)*rad9+Math.cos(tan9)*.8)*380*dt;
         e.vy+=(Math.sin(aT9)*rad9+Math.sin(tan9)*.8)*380*dt;
         const cs9=Math.hypot(e.vx,e.vy);if(cs9>190){e.vx*=190/cs9;e.vy*=190/cs9;}
@@ -10182,35 +10222,7 @@ function updateSpace(dt){
     }
     if(et.regen&&!(e.fleeing&&isCapital(e)))e.hp=Math.min(e.maxHp,e.hp+et.regen*dt); // a spooling capital cannot mend — every watt is in the drive
     // flagships launch fighter wings
-    const peaceful9=!!(e.holdFire||e.neutral9||(e.liner&&!e.linerHostile9));
-    if(et.deploys&&e.detected&&!peaceful9&&e.hp>e.maxHp*CAPITAL_BAYS){
-      e.depT=(e.depT===undefined?4:e.depT)-dt;
-      const kids=enemies.filter(x=>x.alive&&x.type==='fighter'&&x.parent===e).length;
-      const cap9=(et.wingCap||5);
-      if(e.depT<=0&&kids<cap9){
-        // A FLIGHT, not a fighter. The first launch of a fight is the full scramble; after that
-        // she tops the wing back up in smaller sorties, because a carrier that can re-scramble
-        // four every four seconds is not a fight, it is a wall.
-        const first9=!e.scrambled9;
-        e.scrambled9=true;
-        const want9=first9?CAP_FLIGHT9:Math.min(CAP_FLIGHT9,2+Math.floor(rnd(0,2)));
-        const num9=Math.max(1,Math.min(want9,cap9-kids));
-        e.depT=(et.depRate||7)*(first9?2.2:1.8);   // longer between launches, because more comes out of each
-        for(let q9=0;q9<num9;q9++){
-          const f2=spawnEnemy('fighter',{noTier:true});
-          if(!f2)break;
-          const ang9=rnd(0,6.283), rr9=rnd(18,46);
-          f2.x=e.x+Math.cos(ang9)*rr9;f2.y=e.y+Math.sin(ang9)*rr9;f2.parent=e;f2.detected=true;
-          if(e.liner)f2.linerKid9=true;
-          if(e.type==='lightbringer9'){f2.lbKid9=true;f2.hp=f2.maxHp=(f2.maxHp||2)*2.2;if(f2.et)f2.et=Object.assign({},f2.et,{dmg:(f2.et.dmg||3)*1.8,col:'#ff5a3a'});}
-        }
-        if(num9>0){
-          say((e.type==='carrier'?'THE CARRIER OPENS HER BAYS \u2014 ':(first9?'THE FLAGSHIP SCRAMBLES HER WING \u2014 ':'She puts up another sortie \u2014 '))+num9+(num9===1?' fighter':' fighters')+' away!','#ff8c8c');
-          sfx.pew();
-          if(first9&&num9>=3){try{alarm(((et.nm||'THE FLAGSHIP'))+' LAUNCHES '+num9+' FIGHTERS');}catch(e9){}}
-        }
-      }
-    }
+    capDeploy9(e,et,dt);
     // THE WORLD EATER hunts with a brood: an escort of MOON EATERS when it wakes, and it CALVES more as it feeds
     if(et.worldEater9&&e.detected&&e.hp>0){
       if(!e.moonInit9){e.moonInit9=1;
@@ -10249,7 +10261,7 @@ function updateSpace(dt){
         say(fac9>0?'\u2726 THE LEVIATHAN SINGS \u2014 a note of pure ruin rolls over you.':'\u2726 THE LEVIATHAN SINGS \u2014 the killing note rolls out, and you rode clear of it.','#c98aff');
       }
     }
-    if(et.deploys&&e.detected&&!peaceful9&&e.hp<=e.maxHp*CAPITAL_BAYS&&!e.baysDead){
+    if(et.deploys&&e.detected&&!(e.holdFire||e.neutral9||(e.liner&&!e.linerHostile9))&&e.hp<=e.maxHp*CAPITAL_BAYS&&!e.baysDead){
       e.baysDead=true;
       say('\u2605 HER FLIGHT DECKS ARE BURNING \u2014 no more fighters. Guns still live: cut her to 15% to open her for boarding.','#ffd86b');
       sfx.fanfare();alarm('FIGHTER BAYS DESTROYED');
@@ -18548,7 +18560,7 @@ function saveGame(){
       bl:S.boardLog9||{},blt:S.boardTotal9||0,wr:S.whaleRun9||null,wd:!!S.whaleDone9,wclk:S.whaleClock9||0,bq:S.borkQuest9||null,sgc:S.singerCurio9||null,
       vor:S.vorlan9||null,trb:S.tribute9||null,emp:S.empire9||null,vcau:S.vorlanCaught9||0,vwas:!!S.vorWas9,vsuc:!!S.vorSucc9,vdn:!!S.vorDone9,vrst:(S.vorRestart9==null?-1:S.vorRestart9),lh9:S.lostHold9||{},
       wra:S.wrath9||null,qlk:!!S.qLock9,bst:S.beastTip9||null,trt:S.treasureTip||null,itp:S.intelTip9||null,
-      rr9:!!S.ruledRift9,rul9:S.rule9||null,rcn9:!!S.ruleConsolidated9,kvs9:!!S.korvVassal9,kask9:!!S.korvAsked9,kbt9:!!S.korvBetrayed9,koat9:S.korvOathT9||0,kthr9:!!S.korvThrall9,kta9:!!S.korvThrallAsked9,vts9:!!S.vthroneSeen9,scs9:!!S.scommSeen9,lan9:S.lanes9||null,vdm9:!!S.vorDom9,sdm9:!!S.saintDom9,
+      rr9:!!S.ruledRift9,rul9:S.rule9||null,rcn9:!!S.ruleConsolidated9,kvs9:!!S.korvVassal9,kask9:!!S.korvAsked9,kbt9:!!S.korvBetrayed9,koat9:S.korvOathT9||0,kthr9:!!S.korvThrall9,kta9:!!S.korvThrallAsked9,vts9:!!S.vthroneSeen9,scs9:!!S.scommSeen9,vss9:!!S.vseatSeen9,lan9:S.lanes9||null,vdm9:!!S.vorDom9,sdm9:!!S.saintDom9,
       arf9:S.arenaFame9||0,arch9:S.arenaChamps9||null,
       qst:(S.missions||[]).map(m=>({id:(m.def&&m.def.id!=null)?m.def.id:null,gen:(m.def&&m.def.gen)?m.def:null,pr:m.prog||null})),
       crew:crew.map(c=>({lvl:c.lvl,hp:c.hp})),
@@ -18606,7 +18618,7 @@ function loadGame(n){
   S.ruledRift9=!!d.rr9;
   S.rule9=d.rul9||null;
   S.ruleConsolidated9=!!d.rcn9;
-  S.korvVassal9=!!d.kvs9;S.korvAsked9=!!d.kask9;S.korvBetrayed9=!!d.kbt9;S.korvOathT9=d.koat9||0;S.korvThrall9=!!d.kthr9;S.korvThrallAsked9=!!d.kta9;S.vthroneSeen9=!!d.vts9;S.scommSeen9=!!d.scs9;S.scomm9=false;S.lanes9=d.lan9||{};S.vorDom9=!!d.vdm9;S.saintDom9=!!d.sdm9;S.vthrone9=false;
+  S.korvVassal9=!!d.kvs9;S.korvAsked9=!!d.kask9;S.korvBetrayed9=!!d.kbt9;S.korvOathT9=d.koat9||0;S.korvThrall9=!!d.kthr9;S.korvThrallAsked9=!!d.kta9;S.vthroneSeen9=!!d.vts9;S.scommSeen9=!!d.scs9;S.vseatSeen9=!!d.vss9;S.scomm9=false;S.lanes9=d.lan9||{};S.vorDom9=!!d.vdm9;S.saintDom9=!!d.sdm9;S.vthrone9=false;
   S.arenaFame9=d.arf9||0;
   S.arenaChamps9=(d.arch9&&d.arch9.length)?d.arch9:null;
   S.beastTip9=d.bst||null;S.treasureTip=d.trt||null;S.intelTip9=d.itp||null; // rumors keep their word across a save now
@@ -18991,6 +19003,11 @@ function drawEnemyShip(e){
   if(!e.cloaked){
     const friend9=!!(e.friendly9||e.neutral9||e.bork9||(e.liner&&!e.linerHostile9));
     const nmcol9=e.prize9?'#8fd0ff':(e.bork9?'#ffd0c8':(friend9?'#7fd98a':(e.boss?'#ffd86b':(e.rank>=4?'#ff5ce8':'#ff9a9a'))));
+    // A carrier-launched fighter does not get a nameplate. Ten to fourteen of them come out of one
+    // hull now, they fly in a knot, and ten stacked labels reading the same two words is not
+    // information, it is a smear across the middle of the fight. The hull bar below still shows.
+    const swarm9=!!(e.parent&&e.type==='fighter');
+    if(!swarm9)
     txt(e.idKnown===false?((typeof isBeast9==='function'&&isBeast9(e))?'UNKNOWN LIFEFORM':'UNKNOWN VESSEL'):((e.prize9?'\u25c6 PRIZE \u2014 ':'')+((e.rank>=3&&!e.unique9&&!e.boss&&!friend9&&!isBeast9(e))?RANK_NAMES[e.rank]+' ':'')+e.nm),x,y-et.r-16,nmcol9,11,'center');
     if(e.prize9&&!e.cloaked)txt(e.disarmed?'DEAD IN THE WATER \u2014 [G] TRACTOR TO BOARD':'DISABLE HER \u2014 DO NOT DESTROY',x,y+et.r+((e.adapted)?26:14),'#8fd0ff',10,'center');
     if(e.bork9){txt('FRIENDLY \u2014 he only ferries and jokes. Hail [H].',x,y+et.r+14,'#7fd98a',9,'center','normal');}
@@ -19604,7 +19621,10 @@ function drawHud(){
     const zTxt9=heldV9<2?'[Z] locked (hold 2)':(cdV9>0?'[Z] CORRUPTION '+Math.ceil(cdV9)+'s':'[Z] CORRUPTION ● READY');
     // Enthronement is a ONE-TIME event (S.ruledRift9 latches forever). The label used to require six
     // held systems as well, so losing a world made you look un-crowned when you were not.
-    const rulV9=S.ruledRift9?'  ·  ENTHRONED':(throneReady9()?'  ·  ☠ THRONE AWAITS — clear a held system':'');
+    let rulV9=S.ruledRift9?'  ·  ENTHRONED':(throneReady9()?'  ·  ☠ THRONE AWAITS — clear a held system':'');
+    // Once the campaign is done, the only thing left is the count. Put it where he can see it.
+    if(S.vorDom9)rulV9='  ·  ☠ THE UNMAKING  [Q]';
+    else if(S.vorReignDone9)rulV9='  ·  UNMAKING '+heldV9+'/'+DOM_SYSTEMS9+' held';
     // Lay both lines out from the size they will ACTUALLY be painted at, and keep them inside a
     // band that clears the systems panel on the left and the minimap on the right.
     const hpx9=txtPx9(11), hgap9=Math.round(hpx9*1.35);
@@ -22755,7 +22775,19 @@ function cutAdvance9(){
     const k9=S.cut9.kind;
     S.cut9=null;S.screen=S.cutBack9||'space';
     try{setMusic(isSaint9()?'saint_space':(isVorlan9()?'vor_space':'space'));}catch(e){}
-    if(k9==='vor_reign'||k9==='saint_reign'){try{reignChoice9(k9);}catch(e){}}
+    if(k9==='vor_reign'||k9==='saint_reign'){
+      // Say plainly what is DONE and what is still open. An ending that is not the last ending has
+      // to admit it, or the player finishes the campaign and wonders why nothing was granted.
+      try{
+        if(k9==='vor_reign'){
+          const h9=heldCount9();
+          if(!S.vorDom9)say('\u2620 THE CONQUESTS ARE FINISHED \u2014 all '+VMS.length+' of them. THE UNMAKING is a separate thing and it is still ahead of you: hold '+DOM_SYSTEMS9+' systems at once and it is yours. You hold '+h9+'.','#c9b7e8');
+        } else {
+          const p9=pacifiedCount9();
+          if(!S.saintDom9)say('\u2726 THE WORKS ARE FINISHED \u2014 all '+SMS.length+' of them. THE COMMUNION is a separate thing and it is still ahead of you: keep '+DOM_SYSTEMS9+' worlds at peace at once and it is yours. You hold '+p9+'.','#cfe8ff');
+        }
+      }catch(e9){}
+      try{reignChoice9(k9);}catch(e){}}
     else if(k9==='saint_canon'){try{
       say('✦ You are canonized. Not finished — the Path had no sixth step because the Path was never the point.','#cfe8ff');
       say('✦ THE MIRACLE is yours now: in open space press [R] when your grace runs deep. The whole sky goes white, every gun is stilled unhurt, and you are made whole. Only the canonized can work it.','#eaf3ff');
@@ -24370,8 +24402,97 @@ const TRACTOR_HP=.25; // at a quarter hull her weapons die and the beam can grip
 const CAPITAL_BAYS=.30, CAPITAL_GUNS=.15; // capitals die harder: bays first, then guns
 // How many fighters come out of a single launch. v0.9.90: capitals used to dribble ONE fighter per
 // depRate, so a wingCap of 8 took over half a minute to fill and the wing was dead before it existed.
-const CAP_FLIGHT9=5;
+const CAP_FLIGHT9=8;
+// The board's total fighter budget. Capitals throw real flights now (10-15 off the big hulls), so
+// without a ceiling three carriers in one system would put forty-five airframes in the black and
+// turn a fight into a slideshow. Hostile and allied wings are counted separately: your own screen
+// should never be the reason the enemy cannot launch.
+const FIG_BOARD9=34;
 function isCapital(e){return !!(e&&e.et&&e.et.deploys);}
+// A capital that flies under YOUR colours: a corrupted hull, Korvaan whether he knelt or is held in
+// thrall, anything charmed, and the Lucky Lady once the casino is yours. These used to sit there
+// with their bays welded shut, because the charmed/friendly branch of the enemy update returns
+// before the deploy check ever runs. A flagship on your side should scramble like a flagship.
+function allyCap9(e){
+  if(!e)return false;
+  return !!(e.friendly9||e.charmed9||e.corruptAlly9||e.korvVassal9||e.korvThrall9||(e.liner&&e.owned9));
+}
+function figCount9(ally9){
+  let n9=0;
+  for(let i9=0;i9<enemies.length;i9++){
+    const x9=enemies[i9];
+    if(!x9||!x9.alive||x9.type!=='fighter')continue;
+    if(!!x9.allyFig9===!!ally9)n9++;
+  }
+  return n9;
+}
+function capDeploy9(e,et,dt){
+  if(!et||!et.deploys||!e||!e.detected)return;
+  if(e.hp<=e.maxHp*CAPITAL_BAYS)return;                       // bays are gone: nothing left to launch from
+  const mine9=allyCap9(e);
+  if(!mine9){
+    const peaceful9=!!(e.holdFire||e.neutral9||(e.liner&&!e.linerHostile9));
+    if(peaceful9)return;
+  } else {
+    // Your flagship does not scramble to impress you. She launches when there is something to
+    // launch AT, and she stops bothering once the sky is clear — and when it IS clear, the wing she
+    // put up comes home rather than loitering forever as fourteen permanent dots on your board.
+    if(typeof hostiles9==='function'&&!hostiles9()){
+      let home9=0;
+      for(let i9=enemies.length-1;i9>=0;i9--){
+        const x9=enemies[i9];
+        if(x9&&x9.alive&&x9.allyFig9&&x9.parent===e){x9.alive=false;x9.detected=false;home9++;}
+      }
+      if(home9){e.scrambled9=false;e.depT=2;
+        say((e.nm||et.nm||'Your flagship')+' recovers her wing \u2014 '+home9+' back in the bays.','#9fc5ff');}
+      return;
+    }
+  }
+  e.depT=(e.depT===undefined?4:e.depT)-dt;
+  let kids=0;
+  for(let i9=0;i9<enemies.length;i9++){const x9=enemies[i9];if(x9&&x9.alive&&x9.type==='fighter'&&x9.parent===e)kids++;}
+  const cap9=(et.wingCap||5);
+  if(e.depT>0||kids>=cap9)return;
+  // A FLIGHT, not a fighter. The first launch of a fight is the full scramble; after that she tops
+  // the wing back up in smaller sorties, because a carrier that can re-scramble the whole deck
+  // every four seconds is not a fight, it is a wall.
+  const flight9=(et.flight9||CAP_FLIGHT9);
+  const first9=!e.scrambled9;
+  const want9=first9?flight9:Math.max(2,Math.round(flight9*0.45)+Math.floor(rnd(0,2)));
+  const room9=Math.max(0,FIG_BOARD9-figCount9(mine9));
+  const num9=Math.min(want9,cap9-kids,room9);
+  if(num9<=0){e.depT=1.5;return;}                             // budget is full: try again shortly
+  e.scrambled9=true;
+  e.depT=(et.depRate||7)*(first9?2.2:1.8);
+  let out9=0;
+  for(let q9=0;q9<num9;q9++){
+    const f2=spawnEnemy('fighter',{noTier:true});
+    if(!f2)break;
+    // Spread the flight around the hull instead of dropping fourteen airframes on one point: an
+    // even arc, staggered radius, so what leaves the bays reads as a formation from the first frame.
+    const ang9=(q9/Math.max(1,num9))*6.283+rnd(0,.5), rr9=(et.r||30)+22+(q9%3)*26+rnd(0,14);
+    f2.x=e.x+Math.cos(ang9)*rr9;f2.y=e.y+Math.sin(ang9)*rr9;f2.parent=e;f2.detected=true;
+    if(e.liner&&!mine9)f2.linerKid9=true;
+    if(e.type==='lightbringer9'){f2.lbKid9=true;f2.hp=f2.maxHp=(f2.maxHp||2)*2.2;if(f2.et)f2.et=Object.assign({},f2.et,{dmg:(f2.et.dmg||3)*1.8,col:'#ff5a3a'});}
+    if(mine9){
+      // Launched under your flag. friendly9 + charmed9 puts them through the same branch that flies
+      // a turned hull for you, and through the same guard that stops your own gunners hitting them.
+      f2.allyFig9=true;f2.friendly9=true;f2.charmed9=true;f2.idKnown=true;f2.fire=rnd(.2,1);
+      f2.nm=(e.korvThrall9||e.korvVassal9)?'KORVAAN TALON':(e.liner?'LADY ESCORT':'HOUSE TALON');
+    }
+    out9++;
+  }
+  if(out9<=0)return;
+  if(mine9){
+    say((e.nm||et.nm||'Your flagship')+' opens her bays for you \u2014 '+out9+(out9===1?' fighter':' fighters')+' out, flying your colours.','#c9b7e8');
+    sfx.pew();
+    if(first9&&out9>=5){try{alarm((e.nm||et.nm||'YOUR FLAGSHIP')+' LAUNCHES '+out9+' FIGHTERS');}catch(e9){}}
+  } else {
+    say((e.type==='carrier'?'THE CARRIER OPENS HER BAYS \u2014 ':(first9?'THE FLAGSHIP SCRAMBLES HER WING \u2014 ':'She puts up another sortie \u2014 '))+out9+(out9===1?' fighter':' fighters')+' away!','#ff8c8c');
+    sfx.pew();
+    if(first9&&out9>=3){try{alarm(((et.nm||'THE FLAGSHIP'))+' LAUNCHES '+out9+' FIGHTERS');}catch(e9){}}
+  }
+}
 // Ships that cannot be talked off the board, and the same ships that never flee. Words do not delete
 // these; you fight them, board them, or leave. Same class the Purge Wave treats specially: as of
 // v0.9.67 it DOES damage them (PURGE_HEAVY9 of max hull) but can never land the kill on one.
