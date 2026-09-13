@@ -106,6 +106,11 @@ function touchHailNear9(){ // is ANYTHING hailable close? (companions, allies, B
     if(enemies&&enemies.some(e=>e&&e.alive&&(e.bork9||e.liner)&&Math.hypot(e.x-ship.x,e.y-ship.y)<560))return true;
     if(PLANETS&&PLANETS.length&&!(typeof realHostiles9==='function'&&realHostiles9())){const b=PLANETS[0],sx=b.x+(b.pr||90)+70,sy=b.y-10;if(Math.hypot(ship.x-sx,ship.y-sy)<340)return true;}
     if(enemies&&enemies.some(e=>e&&e.alive&&e.detected&&!e.cloaked&&Math.hypot(e.x-ship.x,e.y-ship.y)<360))return true;
+    // COURIER TRAFFIC WAS MISSING. hailNearest() reaches the little hulls at 340, but this test never
+    // looked at the traffic array, so flying beside a courier with nothing else around showed SCAN and
+    // no HAIL, even though hailing would have worked. Wolf: "I'm not sure they're always available."
+    // It matters most for the Saint, where HAIL is now one of her two ways of meeting a ship.
+    if(typeof traffic!=='undefined'&&traffic&&traffic.some(t=>t&&!t.leaving&&Math.hypot(t.x-ship.x,t.y-ship.y)<340))return true;
   }catch(e){}
   return false;
 }
@@ -160,7 +165,8 @@ function touchAbilities9(){
       if(ship.hasCloak)out.push({k:'c',l:ship.cloaked?'UNCLOAK':'CLOAK'});
       if(S.miniRift)out.push({k:'w',l:'BLINK'});
       if(S.fireBreath9)out.push({k:'v',l:'DRAGON'});
-      if(S.qUnlocked)out.push({k:'q',l:'BE ORSON'});
+      // BE ORSON moved OUT of this panel and onto the right rail, so the Saint gets it too. The
+      // ability panel is already eight buttons deep for her and a ninth would run off the bottom.
     }
     // Actions every captain has that previously existed ONLY as keyboard keys, so they were
     // invisible on a phone: the fighter wing [F], the mission journal [J], and the shield
@@ -188,8 +194,14 @@ function touchCtx(){
     return out9;                                      // both, matching what the keyboard can do
   }
   if(S.orbitReady||touchOrbitNear9())return[['ORBIT','o']];
-  if(touchHailNear9())return[['HAIL','h']];
-  return[['SCAN','s']];
+  // SCAN and HAIL are two different things and used to be mutually exclusive: if anything hailable
+  // was in range you got HAIL and no SCAN, otherwise SCAN and no HAIL. Same bug as LAND/TRADE above.
+  // It matters most as the Saint, where they are now her two ways of meeting a ship and they give
+  // different answers: SCAN gets you the person, HAIL gets you the exchange.
+  const out9=[];
+  if(touchHailNear9())out9.push(['HAIL','h']);
+  out9.push(['SCAN','s']);
+  return out9;
 }
 function clearStickKeys(){keys['arrowleft']=keys['arrowright']=keys['arrowup']=keys['arrowdown']=false;}
 // ==== GLYPH CAST: on touch, trace an ability's letter to fire it ($1 unistroke recognizer) ====
@@ -316,11 +328,18 @@ function drawTouch(){
   let B9;
   if(S.screen==='space'){
     B9=[{k:'fire',l:'FIRE',x:W-74,y:H-84,r:46,hold:true},
-        {k:'x',l:'TORP',x:W-172,y:H-56,r:32},
+        ...(noTorp9()?[]:[{k:'x',l:'TORP',x:W-172,y:H-56,r:32}]),
         {k:'g',l:'GRAB',x:W-190,y:H-146,r:28},
         {k:'m',l:'MAP',x:W-40,y:H-300,r:26},
         {k:'i',l:'SHIP',x:W-40,y:H-364,r:26},
         {k:'escape',l:'MENU',x:W-40,y:H-428,r:26},
+        // BE ORSON. Wolf, playing a Saint: "I'm orsoned with no button." It lived in the MORTAL
+        // branch of the ability panel only, so the Saint and anyone else who had earned it in space
+        // had the [Q] key and nothing else. It belongs on the rail rather than in the ability panel:
+        // it is a mode you enter, not a gun you fire, her panel is already eight deep, and a ninth
+        // entry would have run off the bottom of the screen. Vorlan is qLock9'd and gets nothing.
+        ...((S.qUnlocked&&!S.qLock9&&!(typeof isVorlan9==='function'&&isVorlan9()))
+            ?[{k:'q',l:'ORSON',x:W-40,y:H-556,r:26}]:[]),
         // MISSION JOURNAL was [J] only: on a phone there was NO way to see active missions,
         // their progress, the trade whisper or Orson's errand. 'JOBS' matches the status line.
         {k:'j',l:'JOBS',x:W-40,y:H-492,r:26}];
@@ -556,7 +575,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc9';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc10';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -2561,7 +2580,7 @@ function relicOk9(){
 function relicMake9(){
   const bad9=relicOk9();
   if(bad9){say('\u2726 '+bad9,'#ff8c8c');return;}
-  if(!graceCost9(RELIC_GRACE9))return;
+  if(!lightCost9(RELIC_GRACE9))return;
   const t9=S.pacified9[ship.sys];
   t9.relic9=true;
   try{(S.teleNodes9=S.teleNodes9||{})[ship.sys]='relic';}catch(e9){}
@@ -2694,7 +2713,34 @@ function graceSpend9(cost,refuse){
   if(g9.grace<cost){if(refuse)say(refuse,'#8899bb');return false;}
   g9.grace-=cost;return true;
 }
-function graceGain9(n){const g9=grace9();g9.grace=Math.min(g9.graceMax,g9.grace+n);}
+function graceGain9(n){const g9=grace9();g9.grace=Math.min(g9.graceMax,g9.grace+n);lightGain9(n);}
+/* ---- THE LIGHT ---------------------------------------------------------------------
+   Wolf: "Grace is accumulated very fast to spend on upgrades." Measured: grace regenerates
+   at 5 a second forever, and EVERY grace purchase in the game together comes to 6,525,
+   which is twenty-two minutes of parking the ship. The four upgrade tracks cost 212
+   seconds. Three and a half minutes of idling buys her whole progression.
+
+   The number could not be tuned because grace was doing two jobs that want opposite
+   things. It is the pacifier's ammunition, which has to refill fast or she cannot fight,
+   and it was also the upgrade currency, which has to be scarce or nothing costs anything.
+
+   So they are two things now. GRACE is the live pool and is untouched: 5 a second, spent
+   by the pacifier and the veil, gone when you stop firing. THE LIGHT is what the work
+   leaves behind. It never regenerates. It is earned only by doing something, and it is
+   what the Chapter House, the shrines, the almshouses and the reliquary are priced in.
+   Every existing site that awarded grace now feeds both, so all twenty-eight of them
+   became income the moment this function changed, with no other edit.
+   ------------------------------------------------------------------------------------ */
+function light9(){saintInit9();if(S.saint9.light==null)S.saint9.light=0;return S.saint9.light;}
+function lightGain9(n){saintInit9();S.saint9.light=(S.saint9.light||0)+Math.max(0,Math.round(n||0));}
+function lightCost9(n9){
+  saintInit9();
+  if((S.saint9.light||0)<n9){
+    say('✦ That asks '+n9+' of the LIGHT and you have gathered '+Math.round(S.saint9.light||0)+'. The light is not the grace in you, it is what the work has left behind. Go and do some. Still a gun, mend a ward, sit with somebody who is losing an argument.','#ff8c8c');
+    return false;
+  }
+  S.saint9.light-=n9;return true;
+}
 function graceTick9(dt){
   if(!isSaint9())return;
   const g9=grace9();
@@ -3359,6 +3405,11 @@ function saintStrip9(){
   const was9=Object.assign({},ship.up||{});
   S.saintUpWas9=was9;                       // recorded for the ledger, NOT handed back on renouncing
   ship.up={lance:1,torp:1,shield:1,engine:1,armor:0};
+  // The warheads go too, and they go first. maxTorps() is already 0 for her, but the rounds she was
+  // carrying when she took the stole would have sat in the hold forever with no way to spend them.
+  const tw9=ship.torps||0;
+  ship.torps=0;ship.torpProg=0;
+  if(tw9>0)say('The racks come out on the dock, still loaded. Nobody argues with you about it. A yard hand asks what you want done with '+tw9+' live round'+(tw9===1?'':'s')+' and you say you do not know, and that this is not your problem any more, and you find that you mean it.','#cfe8ff');
   S.saint9.gave9=had9;
   say('You sign the whole account over before you touch the stole. '+had9+' cr, gone, to people whose names you will never learn.','#ffe9b0');
   say('The yard strips your refits back to standard while you watch. Mk-1 lances, Mk-1 deflectors, a hull with nothing extra on it. You will earn it back or you will not.','#9fd8ff');
@@ -4455,9 +4506,12 @@ function genSaint9(){
   const tp=SGEN9[Math.floor(rnd(0,SGEN9.length))];const sys=genPlace9(false);const nm=SYSTEMS[sys].name;
   // The same problem on her side, smaller: her economy runs on grace and a scaling tithe, but a
   // work of mercy paying 360 while a single rescue pays thousands made the sanctuary board pointless.
+  // Wolf: "Payouts for saint missions should probably be in thousands." They now have somewhere to
+  // go (THE FOUNDATIONS, 22,000 up to 250,000), so the board has to be able to fund them. Scales
+  // with worlds brought to peace and with works already done, capped so it cannot run away.
   const pac0=(typeof pacifiedCount9==='function')?pacifiedCount9():0;
   const mercy0=Math.min(40,S.mercyJobs9||0);
-  const pay1=Math.round((1100+rnd(0,900))*(1+pac0*0.018)*(1+mercy0*0.010));
+  const pay1=Math.round((2600+rnd(0,2200))*(1+pac0*0.030)*(1+mercy0*0.018));
   const d={gen:true,saint9m:true,id:'s'+(++SGENC9),ty:tp.ty,sys:sys,tier:2,reward:pay1,
     t:tp.t+' #'+SGENC9,b:tp.b.split('{S}').join(nm)};
   if(tp.ens)d.en=tp.ens[Math.floor(rnd(0,tp.ens.length))];
@@ -4589,7 +4643,12 @@ const ship={
  up:{lance:1,torp:1,shield:1,engine:1,armor:0},hasCloak:false,cloaked:false,cloakCd:0,hangar:false,fighters:0
 };
 const maxShields=()=>Math.round((90+ship.up.shield*30)*(1+((typeof hullPerk9==='function'?hullPerk9().shd:0)||0)));
-const maxTorps=()=>3+ship.up.torp*2;
+// THE WHITE CARRIES NO WARHEADS. Wolf, on the Saint: she does not need a torpedo button. Everything
+// downstream reads this one function, so zero here empties the racks, stops the assembly line, makes
+// every 'rearm' a no-op and disables every buy gated on ship.torps<maxTorps(). The UI and the shop
+// entries are hidden separately, because a row reading 0/0 is worse than no row.
+function noTorp9(){return (typeof isSaint9==='function'&&isSaint9());}
+const maxTorps=()=>noTorp9()?0:3+ship.up.torp*2;
 const torpBuildTime=()=>Math.max(7,18-ship.up.torp*2.5);
 const figMillTime=()=>Math.max(14,26-((ship.up.engine||0)*2)); // hangar-as-factory: seconds per milled fighter
 const HULL_PER_DUR9=14; // hull points knitted back per duranium in field fabrication
@@ -4833,7 +4892,7 @@ function hailTrader(){
   if(!civ||civ.kind!=='trader'||civ.hailed)return;
   civ.hailed=true;
   const deals=[
-    {label:'Buy 3 torpedoes — 70 cr',cost:70,fn:()=>{ship.torps=Math.min(maxTorps(),ship.torps+3);}},
+    ...(noTorp9()?[]:[{label:'Buy 3 torpedoes — 70 cr',cost:70,fn:()=>{ship.torps=Math.min(maxTorps(),ship.torps+3);}}]),
     {label:'Buy 2 riftium — 70 cr',cost:70,fn:()=>{ship.dil+=2;}},
     {label:'Buy 2 duranium — 80 cr',cost:80,fn:()=>{ship.mats.dur+=2;}},
     {label:'Buy 2 plasma coils — 80 cr',cost:80,fn:()=>{ship.mats.plasma+=2;}},
@@ -5860,7 +5919,9 @@ function laneBless9(t9){
   t9.shook9=true;
   const nm9=laneCourierNm9(t9);
   const roll9=Math.random();
-  if(roll9<0.18){
+  // Wolf: keep it, but make it rare. At 18 in 100 you met somebody dying every third or fourth
+  // courier and the weight of it stopped landing. Five in 100, and it lands every time.
+  if(roll9<0.05){
     showEnc('THEY ARE ASKING FOR SOMETHING',
       nm9+' comes alongside at a distance that is almost formal and asks for nothing you can put in a hold.\n\n'+
       '"There is somebody aboard who is not going to make the next port. We are not asking you to fix it. We are asking whether you would say something to her. That is all. We know what you are."',
@@ -5901,19 +5962,23 @@ function laneBless9(t9){
 }
 /* ---- and the trigger: close enough is close enough -------------------------------- */
 function laneContact9(){
+  // VORLAN ONLY. Wolf: as the Saint this fired on PROXIMITY, so simply flying past a courier threw a
+  // dialog across the screen and stopped the ship. That is the predator's mechanic, and she is not
+  // one: nothing should come at her uninvited. Her side of this now lives behind two deliberate
+  // buttons, and they do different things.
+  //   SCAN  -> saintCourierBless9: a person, a memory of Earth, a blessing.
+  //   HAIL  -> laneBless9:         they come across, and something changes hands.
+  // The begging stays here, because being unable to get away from Vorlan IS the point of Vorlan.
   if(S.screen!=='space'||ENC)return;
   const vor9=(typeof isVorlan9==='function'&&isVorlan9());
-  const sai9=(typeof isSaint9==='function'&&isSaint9());
-  if(!vor9&&!sai9)return;
+  if(!vor9)return;
   if(S.t<(S.laneCd9||0))return;
   if(typeof hostiles9==='function'&&hostiles9())return;   // not in the middle of a fight
   for(const t9 of traffic){
     if(!t9||t9.shook9||t9.tractored||t9.leaving)continue;
-    const d9=Math.hypot(t9.x-ship.x,t9.y-ship.y);
-    if(sai9&&!t9.curious9)continue;                 // she blesses the ones who came to her, not the ones she cornered
-    if(d9>(vor9?110:LANE_REACT9+40))continue;
+    if(Math.hypot(t9.x-ship.x,t9.y-ship.y)>110)continue;
     S.laneCd9=S.t+14;   // one conversation at a time
-    try{ if(vor9)laneBeg9(t9); else laneBless9(t9); }catch(e9){}
+    try{ laneBeg9(t9); }catch(e9){}
     return;
   }
 }
@@ -6238,7 +6303,7 @@ function spawnEnemy(type,opts){
 MODE.give0=1; // patched below when mode chosen
 
 const TREK50=[];const ECHOES={};const SAGA_HOOKS={};
-const O9=(label,fn,col,tcol)=>({label,col,tcol,fn:()=>{closeEnc();fn&&fn();}});
+const O9=(label,fn,col,tcol,fl9)=>Object.assign({label,col,tcol,fn:()=>{closeEnc();fn&&fn();}},fl9||{});
 // ============ THE FIFTY — regional story encounters ============
 // ---- ACCORD CORE (10) ----
 TREK50.push(
@@ -6414,7 +6479,7 @@ TREK50.push(
 TREK50.push(
 {rg:'deeps',f:()=>showEnc('THE HALF-AWAKE WRECK','A Null wreck hangs in the dark, nine-tenths dead. The living tenth dreams in green light, repairing itself one atom at a time. It has been at this for decades. It is not in a hurry.',[
  O9('Salvage the DEAD sections only',()=>{if(Math.random()<.65){gainMat('plasma',3);ship.curios.push({name:'Inert Regeneration Node',value:520});say('You carve treasure from the corpse-side, engines hot the whole time. The green light never flickers. You do not test it. (+3 plasma)','#7fd98a');}else{const e9=spawnEnemy('null_seeker',{noTier:true});e9.detected=true;alarm('THE GREEN LIGHT NOTICED.');}}),
- O9('Torpedo the living tenth NOW',()=>{if(ship.torps>0){ship.torps--;award(300);gainStanding(3);say('The dream ends in fire. Somewhere, a collective mourns nothing, because it has never learned how. (+300 cr bounty, +standing)','#ff8c8c');}else{say('No torpedoes. You are NOT doing this with lances. You leave, quickly and humbly.','#8899bb');}}),
+ O9('Torpedo the living tenth NOW',()=>{if(ship.torps>0){ship.torps--;award(300);gainStanding(3);say('The dream ends in fire. Somewhere, a collective mourns nothing, because it has never learned how. (+300 cr bounty, +standing)','#ff8c8c');}else{say('No torpedoes. You are NOT doing this with lances. You leave, quickly and humbly.','#8899bb');}},null,null,{noSaint9:true}),
  O9('Mark it and withdraw',()=>{queueEcho('nullWakes',6,{});award(80);say('Hazard beacon deployed. The wreck repairs on, patient as geology. (+80 cr survey)','#c98a8a');})])},
 {rg:'deeps',f:()=>{S.saga={id:'lattice',st:0,d:{t:75}};showEnc('THE LATTICE','Threads of crystalline light stitch themselves across the system behind you — a Shardwing weave, closing like a slow fist. The exits are dimming one by one. You have perhaps a minute.',[
  O9('BURN for the last gap (go NOW)',()=>{S.saga=null;if(Math.random()<.7){ship.energy=Math.max(0,ship.energy-30);say('You thread the closing gap with meters to spare. Behind you the lattice seals, beautiful and final.','#7fd98a');}else{damageShip(15,'LATTICE EDGE');S.saga=null;say('The edge clips your nacelle on the way through — crystal shearing off in singing shards.','#ff8c8c');}}),
@@ -6520,7 +6585,7 @@ Object.assign(SAGA_HOOKS,{
           S.miniRift=true;
           say('You rig every torpedo to a salvage hull and fly it in by remote. The detonation lights the deeps like a second dawn. The horn goes DARK. (+900 cr, +standing, LEGEND STATUS)','#ffd86b');
           say('\u2605 In the wreckage: an intact MINI-RIFT COIL, still humming. Your engineers bolt it in reverently. Press [W] to blink across space \u2014 anywhere, 5s recharge. \u2605','#c98aff');}
-        else{damageShip(25,'THE MAW TURNS');say('Not enough torpedoes to rig the decoy. It notices your fumbling. RUN.','#ff8c8c');const e9=spawnEnemy('leviathan',{noTier:true});e9.detected=true;}}),
+        else{damageShip(25,'THE MAW TURNS');say('Not enough torpedoes to rig the decoy. It notices your fumbling. RUN.','#ff8c8c');const e9=spawnEnemy('leviathan',{noTier:true});e9.detected=true;}},null,null,{noSaint9:true}),
      O9('Lure it toward the Shardwing lattice fields (let monsters meet)',()=>{
         if(Math.random()<.55){award(500);say('You play matador for three sweating hours. The world-eater blunders into the crystal weave — and the weavers OBJECT. You do not stay for the ending. (+500 cr, and the deeps owe you a story)','#c98aff');}
         else{damageShip(22,'GRAZED BY THE MAW');say('The lure works too well — on you. You escape by the width of a prayer.','#ff8c8c');}}),
@@ -6608,9 +6673,243 @@ function sagaTick(){
   if(h)return !!h();
   return false;
 }
+
+/* ===================== THE WHITE'S OWN SKY ==========================================
+   Wolf: "Add other random events coming into systems that are acts of grace and peace
+   education." Until now spaceEvent() returned early for her, so the Saint flew through a
+   galaxy where nothing ever happened. The mortal deck is promotions, tribunals and gala
+   dinners and none of it is addressed to her, but the answer was a stream of her own, not
+   silence.
+
+   Three strands run through this deck:
+     THE BREATH        pranayama: the long exhale, the slower out than in.
+     THE WELCOME       attunement at the ventral vagus: a face and a voice that tell another
+                       nervous system it is not in danger, so that it can come back online and
+                       be met. One settled body settles the next one. She teaches this as a
+                       transmissible skill, not a gift.
+     THE TURN          how two people who have written each other off get curious again. The
+                       ideas here are the standard depolarization toolkit rendered in the
+                       game's own language: lead with what MATTERS to someone before what is
+                       TRUE; ask for a story rather than a position; notice that each side
+                       believes it is hated roughly twice as much as it is; treat a person as
+                       a mystery rather than a puzzle you already solved.
+   And underneath all three, the thing she actually teaches: how to emanate goodness and
+   presence, and how to embody kind attention. Everything in this deck is a version of that.
+
+   Payouts are in the thousands, because these ARE her work and her work now funds THE WORKS.
+   ==================================================================================== */
+function sGrace9(n){try{graceGain9(n);}catch(e){}}
+function sPay9(c){try{award(Math.round(c));}catch(e){}}
+function sWin9(g,c,st){sGrace9(g);if(c)sPay9(c);if(st)try{gainStanding(st);}catch(e){}}
+function sEnl9(n){S.enlightened9=(S.enlightened9||0)+(n||1);}
+
+const SAINT_EVENTS9=[
+// ---------- THE TURN: two sides who have stopped being curious ----------
+()=>showEnc('THE TWO DELEGATIONS',
+  'Two mining charters have been arguing across this system for eleven years, and both of them have asked you to arbitrate, separately, on the same afternoon, each certain you will see it their way.\n\nThey have never been in a room together. Every position either one holds was learned from what the other side is reported to have said.',
+  [O9('Put them in one room and ask each what they are AFRAID of',()=>{
+      sWin9(24,4200,4);
+      say('✦ You never get to whether the survey line is legal. You do not need to. One says he is afraid of a winter with no work in it, the other says the same sentence with different nouns, and the room changes temperature. They settle it themselves in forty minutes, badly, and it holds. (+4,200 cr)','#cfe8ff');}),
+   O9('Ask each of them to tell you about a time it happened, not what they think',()=>{
+      sWin9(28,3800,3);
+      say('✦ A position is armour and a story is not. You ask for the day, the hour, the weather. Halfway through the second telling the other delegation stops preparing its rebuttal and starts listening, which is the whole trick and takes ten years to learn. (+3,800 cr)','#eaf3ff');}),
+   O9('Rule for whoever is right and be done with it',()=>{
+      sPay9(1600);
+      say('You read the surveys, find the answer, and hand it down. It is correct. They will be back. Being right is not the same job as making peace, and you knew that when you chose it. (+1,600 cr)','#8899bb');})]),
+
+()=>showEnc('THEY THINK YOU HATE THEM',
+  'A border settlement will not open its gates to the relief column because it has been told, for two years, exactly how much the people in that column despise them.\n\nYou have spent the morning with the column. They do not. They are tired and they want to go home and about a third of them could not name the grievance if you asked.',
+  [O9('Ask each side to guess how much the other side loathes them, then show them',()=>{
+      sWin9(30,5200,5);
+      say('✦ Both sides guess about double. You read their answers out to each other, and the gap between what they feared and what is true sits in the middle of the road where everyone can see it. The gates come open around dusk. Nobody apologises. Nobody needs to. (+5,200 cr)','#cfe8ff');}),
+   O9('Walk in alone and unarmed and wait to be spoken to',()=>{
+      sWin9(22,2800,3);
+      say('✦ You sit down inside the gate with your hands where they can be seen and you do not say anything for a long time. Somebody brings you water, which is the hardest thing that happens all day, because once they have brought you water they cannot go back to what you were. (+2,800 cr)','#eaf3ff');}),
+   O9('Leave the supplies outside the gate and go',()=>{
+      sGrace9(10);sPay9(1200);
+      say('The crates are gone by morning and nobody will say who took them. Fed is better than not fed. It is not the same as met. (+1,200 cr)','#8899bb');})]),
+
+()=>showEnc('THE SHORT BRIDGE',
+  'A station has split itself into two halves that no longer eat in the same room. The split is real but it is not deep: they agree about nearly everything and have organised their whole lives around the one place they do not.\n\nA young docking officer asks you, quietly, whether it is possible to come back from this.',
+  [O9('Start with the two who agree on everything except one thing',()=>{
+      sWin9(26,4400,4);
+      say('✦ You do not start with the worst pair in the station. You start with the easiest, in public, where it can be watched. It goes well, which is the point. By the third pair there is a queue, because what people needed was not an argument, it was a demonstration that the thing is survivable. (+4,400 cr)','#cfe8ff');}),
+   O9('Teach the docking officer to run it herself, and leave',()=>{
+      sEnl9(1);sWin9(34,3200,4);
+      say('✦ You give her four questions and one rule about not winning, and you make her practise on you until she stops flinching. Then you go. The station will do this a hundred more times and your name will not be attached to any of them. ✦ ONE MORE WALKS THE WORK. (+3,200 cr)','#eaf3ff');}),
+   O9('Address the whole station at once',()=>{
+      sGrace9(12);sPay9(1800);
+      say('Six hundred people hear a good speech and go back to their own side of the station to discuss how right it was about the other lot. A room that size cannot hear anything. (+1,800 cr)','#8899bb');})]),
+
+// ---------- THE BREATH ----------
+()=>showEnc('THE SHIFT THAT WILL NOT STAND DOWN',
+  'A refinery crew has worked ninety-one days without a full stop. Two of them have started fights this week. The foreman does not want a doctor, he wants somebody to tell his people to pull themselves together, and he has decided that you are who he wants to hear it from.',
+  [O9('Teach the whole shift the long breath: out slower than in, and count it',()=>{
+      sWin9(26,4800,3);
+      say('✦ You stand ninety people in a loading bay and make them breathe out longer than they breathe in, for four minutes, counting, which they find humiliating for about ninety seconds. Then the bay goes quiet in a way it has not been in three months. The foreman does not thank you. He asks, carefully, whether there is more of it. (+4,800 cr)','#cfe8ff');}),
+   O9('Teach the two who have been fighting, and nobody else',()=>{
+      sEnl9(1);sWin9(30,3600,2);
+      say('✦ You take the two worst men in the crew and you spend a day with them, and you send them back able to do a thing nobody else on the shift can do. Within a month they are teaching it, badly, with enormous authority, and it spreads the way things spread when the wrong people carry them. ✦ ONE MORE WALKS THE WORK. (+3,600 cr)','#eaf3ff');}),
+   O9('Tell the foreman to stop the line for a day',()=>{
+      sGrace9(14);sPay9(2200);
+      say('He says he cannot. You say he can, and that the difference between cannot and will not is the thing his crew are already fighting about. The line stops. He does not forgive you for a while. (+2,200 cr)','#eaf3ff');})]),
+
+()=>showEnc('THE EVACUATION DECK',
+  'Four hundred people are on a transfer deck waiting for lifters that are eleven hours late, and the deck is beginning to turn. Not into violence yet. Into the thing that comes before it, where everyone has decided that whoever moves first will be the one who gets out.',
+  [O9('Get them breathing together before you tell them anything',()=>{
+      sWin9(28,5600,4);
+      say('✦ You do not announce the delay first. You get four hundred people breathing on the same count for two minutes, which is the only crowd control you have ever trusted, and THEN you tell them eleven hours. There is a groan. There is not a surge. Those are very different days. (+5,600 cr)','#cfe8ff');}),
+   O9('Find the six most frightened people and sit with them',()=>{
+      sWin9(24,3400,3);
+      say('✦ Panic has sources. You find the ones radiating it, not the ones absorbing it, and you sit at their level and let them be seen. The deck settles from six points outward. Nobody on it will ever know that is what happened. (+3,400 cr)','#eaf3ff');}),
+   O9('Announce the truth plainly and let them have it',()=>{
+      sGrace9(8);sPay9(1400);
+      say('You tell them exactly how long and exactly why. Honesty is owed and it is not a sedative. The deck takes it badly and stays taken badly, and you spend the eleven hours walking it. (+1,400 cr)','#8899bb');})]),
+
+// ---------- THE WELCOME ----------
+()=>showEnc('THE WARD THAT WILL NOT SETTLE',
+  'A relief hospital is doing everything correctly and losing anyway. The patients are not healing at the rate the charts say they should, and the staff have started speaking to them in the voice people use for equipment.\n\nThe head physician is not defensive about this. She is exhausted and she has noticed it herself and she does not know what to call it.',
+  [O9('Teach the staff the welcome: face, voice, and the pause before speaking',()=>{
+      sEnl9(2);sWin9(32,6400,5);
+      say('✦ You teach them that a body will not begin mending while it is still deciding whether it is safe, and that the thing deciding is not the mind, it is something older and it reads faces and voices and nothing else. You make them slow down by one second before speaking. One second. The ward turns inside a week and the charts catch up inside a month. ✦ TWO MORE WALK THE WORK. (+6,400 cr)','#cfe8ff');}),
+   O9('Take the six worst cases yourself',()=>{
+      sWin9(30,3800,3);
+      say('✦ You sit with six people, one at a time, for as long as each of them needs, and every one of them turns. Six is a real number of lives. There are two hundred in the ward. (+3,800 cr)','#eaf3ff');}),
+   O9('Send the physician to sleep and take her shift',()=>{
+      sWin9(20,2600,4);
+      say('✦ You put a woman to bed who has not properly slept since the second wave and you work her rounds. She wakes up different. The ward notices before she does. (+2,600 cr)','#eaf3ff');})]),
+
+()=>showEnc('THE ONES WHO CAME BACK WRONG',
+  'A militia has been stood down and sent home and the home has no idea what to do with them. They flinch at doors. They cannot sit with their backs to a room. Their families have started using the word RUINED where they can hear it.',
+  [O9('Teach the families the welcome before you teach the soldiers anything',()=>{
+      sEnl9(2);sWin9(34,7200,5);
+      say('✦ You work on the wrong people on purpose. You teach the mothers and the husbands and the children how to be in a room in a way that does not read as a threat to something that has stopped being able to tell. Then you do nothing else. The soldiers come back on their own, over months, because the thing they needed was not treatment, it was somewhere safe enough to land. ✦ TWO MORE WALK THE WORK. (+7,200 cr)','#cfe8ff');}),
+   O9('Sit with them where they can see the door',()=>{
+      sWin9(26,4000,3);
+      say('✦ You never once ask them to sit with their backs to the room. You arrange every chair so that nobody has to be brave to have a conversation, and it turns out that a great deal of what looked like damage was just a reasonable body in an unreasonable chair. (+4,000 cr)','#eaf3ff');}),
+   O9('Tell the town plainly what it is looking at',()=>{
+      sGrace9(16);sPay9(2400);
+      say('You use the real words, in the hall, with everyone there. Some of it lands. A man at the back stops saying RUINED, which is one man. (+2,400 cr)','#eaf3ff');})]),
+
+// ---------- SWORDS INTO PLOUGHSHARES ----------
+()=>showEnc('THE ORDNANCE YARD',
+  'A yard here holds nine thousand tonnes of munitions belonging to a war that ended four years ago, and a workforce whose whole skill is making them. Both sides of that sentence are the problem. Nobody wants the shells. Everybody wants the wages.',
+  [O9('Convert the line: the same hands, a different output',()=>{
+      sWin9(30,8800,6);
+      try{taoHook9&&taoHook9('freed');}catch(e){}
+      say('✦ The casings become irrigation pipe and the propellant plant becomes a fertiliser works and not one person is put out of a job, which is the only version of this that has ever held anywhere. A shop steward who came to the meeting to fight you shakes your hand at the end of it and looks annoyed about doing so. (+8,800 cr)','#cfe8ff');}),
+   O9('Buy the stockpile outright and sink it in a sun',()=>{
+      sWin9(22,0,4);
+      say('✦ You spend what you have on nine thousand tonnes of things designed to end people, and you fly them into a star, and the yard is empty and the wages are gone with it. Half a solution, honestly bought. The town will remember both halves.','#eaf3ff');}),
+   O9('Leave it. It is only dangerous if someone comes for it',()=>{
+      sGrace9(4);
+      say('Somebody will come for it. You both know this. You have simply decided it is not today and not you.','#8899bb');})]),
+
+()=>showEnc('THE LAST GUN ON THE RIDGE',
+  'The ceasefire has held for six weeks and there is one emplacement that has not been told, or has been told and does not believe it. Two crews, one gun, a valley of people underneath who cannot plant anything while it is up there.',
+  [O9('Walk up the ridge alone and stay until they come out',()=>{
+      sWin9(30,5400,5);
+      say('✦ It takes most of a day. You do not shout anything up at them. You sit on the road inside their arc where they can watch you through the sight, and eventually the thing that makes a person come out of a hole is not an argument, it is somebody visibly refusing to leave. (+5,400 cr)','#cfe8ff');}),
+   O9('Bring the valley up the ridge with you',()=>{
+      sWin9(26,6200,4);
+      say('✦ Four hundred farmers walk up a hill behind you carrying nothing. The crews have trained for eleven years against every approach but that one. The gun comes down that evening and by the following spring the pit is a cistern. (+6,200 cr)','#eaf3ff');}),
+   O9('Still it with the pacifier and be gone before dark',()=>{
+      sGrace9(10);sPay9(2000);
+      say('The gun goes cold and stays cold and the valley plants. Two crews come down off the ridge having learned nothing, which is a bill that will be presented somewhere else. (+2,000 cr)','#8899bb');})]),
+
+// ---------- THE CONFERENCE ----------
+()=>showEnc('THE CONFERENCE THAT WILL NOT START',
+  'Nine delegations, one table, and four days lost to the shape of the room and the order of speaking. Everybody here would rather lose the war than sit lower than someone they outrank.\n\nThe secretariat asks you, without much hope, whether you have ever seen this go differently.',
+  [O9('Kill the table. Same chairs, same height, no head of the room',()=>{
+      sWin9(28,7600,6);
+      say('✦ You have the table taken out. Nine identical chairs in a circle and nowhere to sit that means anything. Two delegations threaten to leave and do not. The substance takes eleven hours and it was never the obstacle. What people fight about at the start is almost never what they are fighting about. (+7,600 cr)','#cfe8ff');}),
+   O9('Take the loudest three aside and let them be heard in private first',()=>{
+      sWin9(26,5800,4);
+      say('✦ Some of what looks like obstruction is somebody who has not yet been listened to and is escalating until they are. You give three of them an hour each, alone, unrecorded, with nobody to perform for. They come back into the room able to sit down. (+5,800 cr)','#eaf3ff');}),
+   O9('Threaten to leave and take the relief convoys with you',()=>{
+      sPay9(3000);
+      try{S.standing=Math.max(0,(S.standing||50)-3);}catch(e){}
+      say('It works. Within the hour. You got a signature by holding food over a table, and you will think about that at odd moments for years. (+3,000 cr, and something you would rather not have learned about yourself)','#c98a8a');})]),
+
+()=>showEnc('THE TREATY NOBODY WILL SIGN FIRST',
+  'The text is agreed. Every clause is agreed. Neither side will put a name on it first because whoever signs first is the one who wanted it, and wanting it is the same as having lost.',
+  [O9('Have them sign at the same instant, in the same hand',()=>{
+      sWin9(24,6800,6);
+      say('✦ Two pens, one count, and a witness on each side to swear the timing. It is theatre and everybody in the room knows it is theatre and it works completely, because the thing in the way was never the document. (+6,800 cr)','#cfe8ff');}),
+   O9('Sign it yourself, first, as a guarantor of nothing',()=>{
+      sWin9(30,5000,5);
+      say('✦ You put your name at the top of a treaty you are not party to and have no power to enforce. It gives both of them something to be second to that is not each other. Nobody ever refers to your signature again, which is how you know it did its job. (+5,000 cr)','#eaf3ff');}),
+   O9('Read the clause about the dead aloud and then wait',()=>{
+      sWin9(26,4600,4);
+      say('✦ You read the casualty schedule. All of it. It takes nineteen minutes and nobody interrupts you and at the end of it the argument about who wanted peace more has gone out of the room like heat out of a hull. (+4,600 cr)','#eaf3ff');})]),
+
+// ---------- THE SCHOOLS AND WHAT COMES OUT OF THEM ----------
+()=>showEnc('THEY WANT TO BE TAUGHT',
+  'Eleven people are waiting at the dock when you come off the ramp. Not patients. Not petitioners. They have come from four systems and they have worked out, between them, that what you do is a set of skills and not a miracle, and they would like to be taught it.\n\nThe oldest is sixty. The youngest should be in a classroom. They have brought their own food.',
+  [O9('Teach all eleven, properly, for as long as it takes',()=>{
+      sEnl9(3);sWin9(40,9200,6);
+      say('✦ Six weeks. The breath, the welcome, the turn, and the two things underneath them that are harder to name and take the longest: how to emanate goodness so that a room changes before you have said anything, and how to hold kind attention on one person long enough that they can feel it. Eleven go out. ✦ THREE MORE WALK THE WORK. (+9,200 cr)','#cfe8ff');}),
+   O9('Teach the two who are ready and send the rest home to wait',()=>{
+      sEnl9(1);sWin9(24,4000,3);
+      say('✦ Nine of them are not ready and you tell them so kindly and exactly, which is its own lesson and the one most of them needed. Two stay. ✦ ONE MORE WALKS THE WORK. (+4,000 cr)','#eaf3ff');}),
+   O9('Tell them the truth: you do not know how to teach it yet',()=>{
+      sGrace9(18);sPay9(2200);
+      say('✦ You can do the thing. You cannot yet say how. They take this better than you expected, and one of them writes down everything you did for a week and hands you the notes on the last day, and those notes will eventually become a curriculum. (+2,200 cr)','#eaf3ff');})]),
+
+()=>showEnc('ONE OF YOURS IS ALREADY HERE',
+  'The system is calmer than its file says it should be. When you ask why, a harbour clerk tells you about a woman who came through a year ago and taught half the port how to breathe and how to sit with somebody who is losing an argument.\n\nShe left. The port kept doing it. Nobody here can remember her name and everybody can do the thing.',
+  [O9('Ask them to show you, and correct nothing',()=>{
+      sEnl9(1);sWin9(30,6000,4);
+      say('✦ It has drifted. Some of it has drifted into something better than you taught. You watch a dockhand run the welcome on a furious shipmaster with a fluency you do not have, and you keep your corrections entirely to yourself. ✦ ONE MORE WALKS THE WORK. (+6,000 cr)','#cfe8ff');}),
+   O9('Find out who she was',()=>{
+      sWin9(22,3400,2);
+      say('✦ Nobody knows. Three people describe three different women. The work outlived the name inside twelve months, which is either the best or the worst thing you have heard this year, and you decide, on the walk back to the ship, that it is the best. (+3,400 cr)','#eaf3ff');}),
+   O9('Leave without saying who you are',()=>{
+      sGrace9(20);
+      say('✦ You buy fuel, you nod at the clerk, and you go. The port never knows the white was in it. Some of this work only counts if nobody arrives to be thanked.','#eaf3ff');})]),
+
+()=>showEnc('THE ONE WHO IS DOING IT WRONG',
+  'Somebody is teaching your work three systems over and charging for it, and has added things: a hierarchy, a set of robes, a fee schedule, and a claim that you personally certified them.\n\nThe people coming out are not worse off. They are just being asked to pay for something you gave away.',
+  [O9('Go and teach beside them, free, in the same square',()=>{
+      sEnl9(2);sWin9(34,5400,4);
+      say('✦ You do not denounce anybody. You set up forty metres away and teach the same material to anyone who sits down and you do not mention the fee schedule once. The robes are gone within a month and the man himself sits in on the third week, at the back. ✦ TWO MORE WALK THE WORK. (+5,400 cr)','#cfe8ff');}),
+   O9('Certify him, publicly, and hold him to it',()=>{
+      sEnl9(1);sWin9(26,4800,5);
+      say('✦ You give him the thing he was forging, in front of everyone, with conditions attached that he now cannot refuse in front of the same crowd. He is furious and bound and, within a year, good. Some people only become real once somebody makes the lie true. ✦ ONE MORE WALKS THE WORK. (+4,800 cr)','#eaf3ff');}),
+   O9('Correct the record and move on',()=>{
+      sGrace9(10);sPay9(1800);
+      say('You state plainly that you certified nobody. It is true, it is necessary, and it costs a dozen people a teacher they were happy with. (+1,800 cr)','#8899bb');})]),
+
+// ---------- THE PROMISES ----------
+()=>showEnc('THEY THINK YOU CAN PROMISE THEM SOMETHING',
+  'A crowd has formed under the ramp and it is not asking for food. Word has run ahead of you and got bigger on the way, and what these people have come to hear is that there is a plan, that it is all for something, and that the ones they buried are somewhere.\n\nThey are entirely serious and they have waited since before dawn.',
+  [O9('Tell them what you actually know, which is less than they want',()=>{
+      sWin9(34,5000,4);
+      say('✦ You will not sell them a map of the afterlife to make an afternoon easier. You tell them what you have seen and where it stops, and then you stay for six hours answering the questions that come after, which is the part nobody counts as ministry and is most of it. (+5,000 cr)','#cfe8ff');}),
+   O9('Say the old words, because they came for the old words',()=>{
+      sGrace9(24);sPay9(3800);
+      say('✦ You give them the liturgy. It is not a lie so much as a shape, worn smooth by everyone who has needed it before them, and it holds four hundred people up until they can stand on their own. You will argue with yourself about this. (+3,800 cr)','#eaf3ff');}),
+   O9('Teach them the breath instead, and let them keep it',()=>{
+      sEnl9(1);sWin9(30,4400,3);
+      say('✦ You do not answer the question. You hand them something they can do on the bad nights without you, which is the only kind of comfort that survives your leaving. ✦ ONE MORE WALKS THE WORK. (+4,400 cr)','#eaf3ff');})]),
+
+()=>showEnc('THE ONE WHO WANTS TO ARGUE',
+  'A man has been waiting at the sanctuary door for two days to tell you exactly why what you do is a fraud. He has notes. He has been rehearsing. Three people have already tried to move him on.',
+  [O9('Let him finish. All of it. Then ask what happened to him',()=>{
+      sWin9(32,4600,4);
+      say('✦ It takes fifty minutes and you do not interrupt once, which he has clearly not planned for. When he runs out you ask the only question that was ever going to matter and he tells you about his sister, and the argument he came to have turns out to have been about her the entire time. (+4,600 cr)','#cfe8ff');}),
+   O9('Agree with the half of it that is right',()=>{
+      sWin9(28,3600,3);
+      say('✦ About a third of what he says is correct and you say so, out loud, in front of the people who tried to move him on. He does not know what to do with that. Almost nobody does. It is the fastest way out of a fight that has ever been found and hardly anyone will use it. (+3,600 cr)','#eaf3ff');}),
+   O9('Have him moved on',()=>{
+      try{S.standing=Math.max(0,(S.standing||50)-1);}catch(e){}
+      say('He goes. He tells it for years, and in his telling he is entirely right about you, and the worst part is that in that one particular he is.','#c98a8a');})])
+];
+
 function spaceEvent(){
   if(S.whaleRun9)return; // the whales keep the sky quiet
-  if((typeof isVorlan9==='function'&&isVorlan9())||(typeof isSaint9==='function'&&isSaint9()))return; // the crown and the white do not get frontier-captain fate events (promotions, tribunals, amnesty) — they have their own streams
+  if(typeof isVorlan9==='function'&&isVorlan9())return; // the crown does not get frontier-captain fate events (promotions, tribunals, amnesty)
+  const sai9e=(typeof isSaint9==='function'&&isSaint9());   // the white gets her OWN deck, not silence
   if(typeof unmakerHere9==='function'&&unmakerHere9())return; // the Unmaker keeps the sky empty
   if(typeof ENC!=='undefined'&&ENC)return; // never stack an event on an open encounter
   S.dir=S.dir||{noev:0,streak:0};
@@ -6626,6 +6925,13 @@ function spaceEvent(){
   }
   S.dir.noev=0;S.dir.streak++;
   S.evCool=2;
+  if(sai9e){
+    // Her deck only. The mortal deck is promotions, tribunals and gala dinners and none of it is
+    // addressed to a woman in a white stole who gave her whole account away at the first port.
+    const SE9=SAINT_EVENTS9[Math.floor(Math.random()*SAINT_EVENTS9.length)];
+    try{SE9();}catch(e9){}
+    return;
+  }
   const reg=regionOf(ship.sys);
   const pool=SPACE_EVENTS.map(f=>({rg:'any',f}))
     .concat(TREK50.filter(ev=>ev.rg==='any'||ev.rg===reg||(Array.isArray(ev.rg)&&ev.rg.includes(reg))));
@@ -6655,7 +6961,7 @@ const SPACE_EVENTS=[
  ()=>showEnc('SPACE LEVIATHAN — A HUNGERING SHADOW',
    'Something the size of a starbase uncoils from a gas cloud, all baleen and hunger, feeding on your ship\'s energy from a hundred kilometers out. Your lights dim. It has noticed you.',
    [{label:'Cut power and drift (hope it passes)',fn:()=>{if(Math.random()<.6){say('You play dead in the void. The great shape drifts on, indifferent. You exhale.','#7fd98a');}else{ship.energy=Math.max(0,ship.energy-40);damageShip(12,'LEVIATHAN GRAZE');const lv7=spawnEnemy('leviathan',{noTier:true});lv7.detected=true;say('It brushes your hull — and TURNS. The leviathan is hunting you now. RUN or FIGHT.','#ff8c8c');alarm('LEVIATHAN IN PURSUIT');}closeEnc();}},
-    {label:'Feed it a torpedo to drive it off',fn:()=>{if(ship.torps>0){ship.torps--;say('The blast stings it. It recoils, wails a subsonic note that rattles your fillings, and dives away.','#7fd98a');}else{const lv7=spawnEnemy('leviathan',{noTier:true});lv7.detected=true;say('No torpedoes. Nothing to throw but prayers — and it is not listening. It comes about, jaws wide.','#ff8c8c');alarm('LEVIATHAN IN PURSUIT');}closeEnc();}},
+    {label:'Feed it a torpedo to drive it off',noSaint9:true,fn:()=>{if(ship.torps>0){ship.torps--;say('The blast stings it. It recoils, wails a subsonic note that rattles your fillings, and dives away.','#7fd98a');}else{const lv7=spawnEnemy('leviathan',{noTier:true});lv7.detected=true;say('No torpedoes. Nothing to throw but prayers — and it is not listening. It comes about, jaws wide.','#ff8c8c');alarm('LEVIATHAN IN PURSUIT');}closeEnc();}},
     {label:'Tag it for xeno-science (risky scan)',fn:()=>{if(Math.random()<.5){ship.curios.push({name:'Leviathan Song Recording',value:700});say('You capture its song (+700 cr curio). Analysis: hide is lance-resistant and self-healing — only TORPEDOES or distance will save you.','#7fd98a');}else{damageShip(20,'IT TURNED ON YOU');const lv7=spawnEnemy('leviathan',{noTier:true});lv7.detected=true;say('It did not consent to being studied. It is COMING. Run!','#ff8c8c');alarm('LEVIATHAN IN PURSUIT');}closeEnc();}}]),
  ()=>showEnc('THE TIME ARCH',
    'A ring of weathered stone floats impossibly in open space, and it SPEAKS: "I AM THE DOORWAY. THROUGH ME LIES EVERY WHEN THAT WAS." Images of your own past flicker in its aperture.',
@@ -6671,7 +6977,7 @@ const SPACE_EVENTS=[
    'A cloud of iridescent gas wraps your ship and begins, very gently, to lie to your sensors. Readouts show a planet where there is none, a friend where there is a foe, your hull at 200%.',
    [{label:'Trust your crew over your instruments',fn:()=>{gainStanding(2);ship.energy=100;say(crew[0].name+' flies by feel and old stars. You slip free clear-headed, systems charged. STANDING +2.','#7fd98a');closeEnc();}},
     {label:'Trust the instruments',fn:()=>{damageShip(16,'FLEW INTO A ROCK THE SENSORS HID');say('The nebula was lying about the asteroid, too. Crunch.','#ff8c8c');closeEnc();}},
-    {label:'Fire blind to punch through',fn:()=>{ship.torps=Math.max(0,ship.torps-1);say('You blast a hole in the lie and burn through it. Torpedo well spent.','#8899bb');closeEnc();}}]),
+    {label:'Fire blind to punch through',noSaint9:true,fn:()=>{ship.torps=Math.max(0,ship.torps-1);say('You blast a hole in the lie and burn through it. Torpedo well spent.','#8899bb');closeEnc();}}]),
  ()=>showEnc('A CRYSTALLINE PREDATOR',
    'A vast crystalline lattice, geometric and beautiful and utterly hostile, sweeps toward you, stripping smaller ships to atoms for the energy. It is already accelerating.',
    [{label:'Broadcast a shattering resonance (Science)',fn:()=>{if(Math.random()<.4+crew[2].lvl*.1){ship.curios.push({name:'Crystalline Shard',value:850});say(crew[2].name+' finds its resonant frequency. It cracks and scatters. You collect a shard. +850 cr.','#7fd98a');}else{damageShip(22,'CRYSTAL SWEEP');say('Wrong frequency. It sweeps your hull. GO.','#ff8c8c');}closeEnc();}},
@@ -6914,6 +7220,7 @@ function arriveSystem(){
     say('ACCORD PURSUIT WING \u2014 they know what you are becoming.','#9fd8ff');
   }
   try{laneRecover9();}catch(e9){}   // the lanes heal while you are somewhere else
+  try{enlTithe9();}catch(e9){}      // and the Enlightened send word wherever she goes
   S.noLand=null;S.secCalled=false;
   if(S.ambCaptive){
     S.ambCaptive=false;
@@ -7869,6 +8176,13 @@ function hailNearest(){
   let tg2=null,td2=340;
   for(const t of traffic){const dd=Math.hypot(t.x-ship.x,t.y-ship.y);if(dd<td2){td2=dd;tg2=t;}}
   if(tg2){
+    // THE WHITE HAILS A COURIER. She opened the channel, so they are allowed to come across. This
+    // used to happen to her unasked, just for flying near. Now it is a thing she chose to do.
+    if(typeof isSaint9==='function'&&isSaint9()){
+      if(S.veil9){say('You open the channel and nothing opens back. Under the veil there is no white to see and no saint to come across to. They fly on with no idea they were hailed.','#8899bb');return;}
+      if(tg2.shook9){say('You have already spoken. They hold their heading, and somebody aboard is still telling it wrong to somebody who was there.','#9fd8ff');return;}
+      try{ if(laneBless9(tg2))return; }catch(e9){}
+    }
     showEnc('CHANNEL OPEN — COURIER',
       'A young pilot\'s voice, carefully casual: "Courier run, Captain. Mail and sundries. You, uh... you have a nice ship."',
       [{label:'"Fly safe." (wave them through)',fn:()=>{say('The relief in the channel is its own reward.','#7fd98a');closeEnc();}},
@@ -8346,7 +8660,7 @@ function fireLance(){
           if(sr.tax){S.fcred=Math.min(100,fcv()+4);say('Every freeport in the sector raises a glass tonight.','#e86ad9');}
           if(sr.bounty){ship.credits+=150;gainStanding(8);say('Smuggler bounty paid: +150 cr. Lawful. Mostly.','#7fd98a');}
           if(sr.dil){gainMat('dil',sr.dil);say('+'+sr.dil+' riftium pulled from the wreck.','#c98aff');}
-          if(sr.torp){ship.torps=Math.min(maxTorps(),ship.torps+2);say('Two live torpedoes salvaged into your racks.','#ffd86b');}
+          if(sr.torp){if(noTorp9()){gainMat('bio',2);say('Their medical locker is intact and better stocked than yours. +2 bio-gel.','#cfe8ff');}else{ship.torps=Math.min(maxTorps(),ship.torps+2);say('Two live torpedoes salvaged into your racks.','#ffd86b');}}
           if(sr.gem){ship.curios.push({name:'The Hope Diamond (of Old Earth)',value:100000});say('\u2605 THE HOPE DIAMOND, plucked from the debris. One hundred thousand credits of history. \u2605','#9fd8ff');}}
       }
     }
@@ -8527,6 +8841,7 @@ function purgeWave9(){
   say('\u2605\u2605 PURGE WAVE: '+parts9.join(', and ')+'. \u2605\u2605','#8fe8ff');
 }
 function fireTorpedo(){
+  if(noTorp9()){say('There is nothing in the tubes and there is not going to be. You gave the racks away at the first port and you have not missed them once.','#cfe8ff');return;}
   if(ship.cloaked){ship.cloaked=false;ship.cloakCd=30;say('Decloaking — weapons hot!','#8fd0ff');}
   if(ship.torps<=0&&!((S.citTier9||0)>=2)){say('No torpedoes ready — they build over time.','#ff8c8c');return;}
   // torpedoes lock only what sits in the FORWARD ARC off the bow — like the lance, except the warhead flies there through space
@@ -8835,7 +9150,7 @@ function newGamePlus(){
   ship.credits=300;ship.up={lance:1,torp:1,shield:1,engine:1,armor:0};
   ship.outlawT=0;
   crew.forEach(c=>{c.hp=crewMaxHp(c);}); // the crew keeps every level they earned
-  S.completed=new Set();S.genCount=0;S.missions=[];S.victoryShown=false;S.completedR=new Set();S.completedV9=new Set();S.completedS9=new Set();S.reignJobs9=0;S.mercyJobs9=0;S.vorReignDone9=false;S.saintReignDone9=false;S.pendingReignFin9=null;S.monuments9=0;S.alms9=0;S.teleNodes9={};S.freeJump9=false;S.lbBoard9=false;S.fireworks9=[];S.renWon=false;S.fcred=40;S.flips=0;S.infamy=0;S.chars={drake:0,adm:0,fen:0};S.disease=null;S.qmode=false;S.amuse=20;/* qUnlocked persists across NG+ */S.duty=null;S.reapp=null;S.orsonR=false;S.orsonP=false;S.orsonFavor=false;
+  S.completed=new Set();S.genCount=0;S.missions=[];S.victoryShown=false;S.completedR=new Set();S.completedV9=new Set();S.completedS9=new Set();S.reignJobs9=0;S.mercyJobs9=0;S.vorReignDone9=false;S.saintReignDone9=false;S.pendingReignFin9=null;S.monuments9=0;S.alms9=0;S.works9={};S.enlightened9=0;S.warsEnded9=0;S.teleNodes9={};S.freeJump9=false;S.lbBoard9=false;S.fireworks9=[];S.renWon=false;S.fcred=40;S.flips=0;S.infamy=0;S.chars={drake:0,adm:0,fen:0};S.disease=null;S.qmode=false;S.amuse=20;/* qUnlocked persists across NG+ */S.duty=null;S.reapp=null;S.orsonR=false;S.orsonP=false;S.orsonFavor=false;
   ship.hasCloak=false;ship.cloaked=false;ship.cloakCd=0;S.cloakSchematic=false;levi=null;
   ship.hangar=false;ship.fighters=0;pFighters=[];
   QSTATE.count=Math.min(QSTATE.count,5);
@@ -8855,7 +9170,7 @@ function insuranceCopay(){
 }
 function reviveCore(full){
   ship.sys=0;ship.hull=100;ship.shields=maxShields();ship.energy=100;ship.rift=100;
-  ship.torps=Math.max(2,ship.torps);
+  if(!noTorp9())ship.torps=Math.max(2,ship.torps);
   ship.dil=Math.max(3,ship.dil);
   ship.credits=Math.max(0,ship.credits-250);
   if(!full){
@@ -8873,7 +9188,8 @@ function reviveCore(full){
 }
 function reviveCapital9(keepW){
   ship.sys=0;ship.hull=100;ship.shields=maxShields();ship.energy=100;ship.rift=100;
-  ship.torps=Math.max(2,ship.torps);ship.dil=Math.max(3,ship.dil);
+  if(!noTorp9())ship.torps=Math.max(2,ship.torps);
+  ship.dil=Math.max(3,ship.dil);
   ship.credits=Math.max(0,ship.credits-250);
   S.citadel=true;ship.hangar=true;S.hullSkin=citadelSkin9();S.citadelSkin9=citadelSkin9();S.wingWounds=0;ship.fighters=wingSize();
   if(!keepW)S.citTier9=0;   // the hull, wing and system marks stay; only the war-citadel weapon tiers lapse
@@ -10544,7 +10860,7 @@ function updateSpace(dt){
                 say('Your crew is very quiet as the weapons charge. (-standing)','#ff8c8c');closeEnc();}},
              ...((typeof isSaint9==='function'&&isSaint9())?[{label:'Take them aboard. All of them.',col:'#1c2a3a',tcol:'#eaf3ff',fn:()=>{
                 he.alive=false;he.detected=false;
-                try{const g9=grace9();g9.grace=Math.min(g9.graceMax,g9.grace+22);}catch(e9){}
+                try{graceGain9(22);}catch(e9){}   // through graceGain9 so it feeds the LIGHT too: this is an act, not a tick
                 try{gainStanding(4);mercySpare9();}catch(e9){}
                 say('\u2726 You open the bay and they come across with nothing, which is how everyone has ever come to you. The patrol behind them finds an empty lane. (+grace, +standing)','#eaf3ff');
                 closeEnc();}}]:[])]);
@@ -11594,7 +11910,7 @@ function beginAway(d,mRef,compIdx){
     AW.msg='THREE RIDERS ON THE FIELD. They are faster than you and the cold travels with them. Put them down.';
   }
   if(AW.bazaar){
-    const stalls9=[[0,'SALVAGE BROKER'],[1,'RELIC DEALER'],[2,'TORPEDO WRIGHT'],[3,'CRYSTAL MONGER'],[4,'ODDITIES STALL']];
+    const stalls9=[[0,'SALVAGE BROKER'],[1,'RELIC DEALER'],[2,(typeof isSaint9==='function'&&isSaint9())?'RELIEF QUARTERMASTER':'TORPEDO WRIGHT'],[3,'CRYSTAL MONGER'],[4,'ODDITIES STALL']];
     for(let s9b=stalls9.length-1;s9b>0;s9b--){const j9b=Math.floor(rnd(0,s9b+1));const t9b=stalls9[s9b];stalls9[s9b]=stalls9[j9b];stalls9[j9b]=t9b;}
     for(let m9=0;m9<4;m9++)AW.props.push({x:0,y:0,kind:'merchant',deal:stalls9[m9][0],mname:stalls9[m9][1],used:false,awn9:m9%3});
     for(let d9=0;d9<7;d9++)AW.props.push({x:0,y:0,kind:'bzdecor',v9:d9%4});
@@ -12032,7 +12348,7 @@ function endAwayNow(success){
         if(Math.random()<.5){ship.curios.push({name:'ORSON\'s Ship-Warming Present',value:400});say('ORSON was ABOARD, somehow: "Small galaxy! Here, a present."','#ff8ce8');}
         else{const ri=Math.floor(rnd(1,SYSTEMS.length));SYSTEMS[ri].known=true;S.qRiftSys=ri;say('ORSON: "You know what this boarding needs? GEOGRAPHY." *snap*','#ff8ce8');}}
       else if(r6<.35){const pay=Math.round((400+Math.floor(rnd(0,600)))*tm);ship.credits+=vorTake9(pay);say('Her strongroom yields '+pay+' cr'+(tm>1?' \u2014 a hull this size pays like it fights.':'.'),'#7fd98a');}
-      else if(r6<.6){ship.torps=maxTorps();gainMat('dil',1+(bc.tier||2));say('Armory stripped: torpedoes topped, +'+(1+(bc.tier||2))+' riftium.','#ffd86b');}
+      else if(r6<.6){ship.torps=maxTorps();gainMat('dil',1+(bc.tier||2));if(noTorp9())gainMat('bio',2);say(noTorp9()?('Armory stripped. You leave the warheads where they lie and take the crystals and the medical stock: +'+(1+(bc.tier||2))+' riftium, +2 bio-gel.'):('Armory stripped: torpedoes topped, +'+(1+(bc.tier||2))+' riftium.'),'#ffd86b');}
       else if(r6<.8){ship.curios.push({name:'Captured Ship\'s Bell',value:Math.round(380*tm)});say('You take her bell \u2014 the bigger the ship, the better the story.','#ffd86b');}
       else if(typeof isVorlan9==='function'&&isVorlan9()){const pay=Math.round((500+Math.floor(rnd(0,700)))*tm);ship.credits+=vorTake9(pay);try{gainMat&&gainMat('plasma',2);}catch(e){}say('Her captain offers to fly under your flag. The throne does not borrow hulls \u2014 you strip her for '+pay+' cr and let the wreck drift.','#c9b7e8');}
       else{S.allyJumps=(bc.tier||2)>=4?4:3;spawnAlly({escort:true});say('Her captain yields \u2014 and pledges her hull to your flag for '+S.allyJumps+' jumps.','#7fd98a');}
@@ -12177,7 +12493,7 @@ function qPlanetOffer(){
     say('ORSON: "Earth! Quaint. Say hi to the beige planet for me." (Effective on beam-up.)','#ff8ce8');closeEnc();}});
   opts.push({label:'"A gift, Orson. Call it an advance on the trouble you\'re about to cause."',fn:()=>{
     const r4=Math.random();
-    if(r4<.3){ship.torps=maxTorps();say('ORSON: "Torpedoes! For the subtle diplomat you are."','#ff8ce8');awToast('TORPEDO RACKS FULL','#ffd86b');}
+    if(r4<.3){if(noTorp9()){gainMat('bio',4);say('ORSON: "Bandages. BANDAGES. You are the least fun apocalypse I have ever sponsored."','#ff8ce8');awToast('+4 BIO-GEL','#cfe8ff');}else{ship.torps=maxTorps();say('ORSON: "Torpedoes! For the subtle diplomat you are."','#ff8ce8');awToast('TORPEDO RACKS FULL','#ffd86b');}}
     else if(r4<.6){gainMat('dil',3);say('ORSON: "Three riftium. Do NOT eat them."','#ff8ce8');awToast('+3 RIFTIUM','#c98aff');}
     else if(r4<.85){ship.curios.push({name:'ORSON\'s Autographed Portrait (unsolicited)',value:333});say('ORSON: "My portrait! It appreciates. Unlike you."','#ff8ce8');awToast('★ A RIDICULOUS GIFT ★','#ff8ce8');}
     else{ship.curios.push({name:'A Single, Perfect Banana',value:1});say('ORSON: "One banana. Flawless. You are WELCOME."','#ff8ce8');awToast('★ ONE PERFECT BANANA ★','#ffe9a0');}
@@ -12263,7 +12579,7 @@ const AWAY_EVENTS=[
   o:[['Ride it (move fast while it lasts)',()=>{AW.jumpT=12;say('You are practically flying \u2014 the field should hold for a dozen seconds. Use them.','#8fd0ff');}],
      ['Hold still until it passes',()=>{say('Dignity preserved. Opportunity missed.','#8899bb');}]]},
  {env:'ship',ti:'THE ARMORY LOCKER HANGS OPEN',bo:'Two torpedo initiators in packing grease, unclaimed in the confusion.',
-  o:[['Take them',()=>{ship.torps=Math.min(maxTorps(),ship.torps+2);awToast('+2 TORPEDOES','#ffd86b');}],
+  o:[['Take them',()=>{if(noTorp9()){gainMat('bio',2);awToast('+2 BIO-GEL','#cfe8ff');}else{ship.torps=Math.min(maxTorps(),ship.torps+2);awToast('+2 TORPEDOES','#ffd86b');}}],
      ['Leave the war where it lies',()=>{gainStanding(1);say('Restraint. Noted somewhere. STANDING +1.','#7fd98a');}]]},
  {env:'ground',ti:'A SPORE BLOOM OPENS',bo:'Petals the size of shuttle doors, breathing sweet fog. Your medic would have opinions.',
   o:[['Breathe deep',()=>{if(Math.random()<.55){AW.cap.hp=Math.min(crewMaxHp(crew[0]),AW.cap.hp+25);awToast('+25 HP','#7fd98a');}
@@ -13865,7 +14181,7 @@ function updateAway(dt){
         ['SALVAGE BROKER','"Hull plates, conduit, honest scrap. Feels heavier than the price."','Scrap bundle — +2 duranium, +1 plating (160 cr)',160,()=>{gainMat('dur',2);gainMat('pla',1);}],
         ['RELIC DEALER','"Provenance? Friend, provenance is a STORY. This is an OBJECT."','A sealed relic — resale far above asking (240 cr)',240,()=>{const cu=CURIOS[Math.floor(rnd(0,CURIOS.length))];ship.curios.push({name:cu[0],value:Math.floor(rnd(380,520))});}],
         ((typeof isSaint9==='function'&&isSaint9())
-          ?['RELIEF QUARTERMASTER','"Food, water, burn kits, and the little cards urging a breath of kindness. I pack them tight. Fly them where they hurt."','Relief bay restocked to FULL (120 cr)',120,()=>{ship.torps=maxTorps();}]
+          ?['RELIEF QUARTERMASTER','"Food, water, burn kits, and the little cards urging a breath of kindness. I pack them tight. Fly them where they hurt."','A pallet of aid stock — +3 bio-gel (120 cr)',120,()=>{gainMat('bio',3);}]
           :['TORPEDO WRIGHT','"Hand-balanced. They fly truer than fleet issue, and I don\'t ask questions."','Torpedo racks refilled to FULL (120 cr)',120,()=>{ship.torps=maxTorps();}]),
         ['CRYSTAL MONGER','"Mined by moonlight, priced by daylight."','+4 crystals (320 cr)',320,()=>{gainMat('dil',4);}],
         ['ODDITIES STALL','"No refunds, no explanations, no idea what it is."','THE MYSTERY CRATE (300 cr)',300,()=>{const r9=Math.random();
@@ -14622,7 +14938,7 @@ function landExpedition(){
             say('Your answer: shields to full.','#ff9a9a');closeEnc();}},
          ...((typeof isSaint9==='function'&&isSaint9())?[{label:'Refuse. Let them look at the white.',col:'#1c2a3a',tcol:'#eaf3ff',fn:()=>{
             if(Math.random()<0.62){enemies.forEach(e2=>{e2.alive=false;});gainStanding(3);
-              try{const g9=grace9();g9.grace=Math.min(g9.graceMax,g9.grace+14);}catch(e9){}
+              try{graceGain9(14);}catch(e9){}   // through graceGain9 so it feeds the LIGHT too: this is an act, not a tick
               say('\u2726 The commander looks at the hull, and the markings, and the fact that you have not armed anything. The channel closes. They are gone. (+grace)','#eaf3ff');}
             else{say('\u2726 "A ship that will not shoot is a ship that is already ours." They come anyway. Stay gentle and stay alive.','#ffb56b');}
             closeEnc();}}]:[])]);
@@ -14640,7 +14956,7 @@ function baseItems(){
   if(S.freeMode){
     const lawTax=(S.standing||50)>=70?1.25:1;
     const fitems=[
-     {key:'1',name:(isSaint9()?'PATCH & RESUPPLY (freeport rates)':'PATCH & REARM (freeport rates)'),cost:Math.round((renCtx()?460:300)*lawTax),info:(isSaint9()?'Hull, shields, relief kits, and wounded Angel Drones mended — nothing here is free':'Hull, shields, torpedoes, and wounded fighters mended — nothing here is free'),can:()=>ship.hull<99.5||ship.shields<maxShields()-.5||ship.energy<99.5||ship.torps<maxTorps()||(ship.hangar&&(S.wingWounds||0)>0),
+     {key:'1',name:(isSaint9()?'PATCH & TEND (freeport rates)':'PATCH & REARM (freeport rates)'),cost:Math.round((renCtx()?460:300)*lawTax),info:(isSaint9()?'Hull, shields, relief kits, and wounded Angel Drones mended — nothing here is free':'Hull, shields, torpedoes, and wounded fighters mended — nothing here is free'),can:()=>ship.hull<99.5||ship.shields<maxShields()-.5||ship.energy<99.5||ship.torps<maxTorps()||(ship.hangar&&(S.wingWounds||0)>0),
       buy:()=>{ship.hull=100;ship.shields=maxShields();ship.energy=100;ship.torps=maxTorps();if(S.wingWounds){S.wingWounds=0;say(isSaint9()?'Deck gang coaxes your wounded Angel Drones back into the light. No receipt, friend.':'Deck gang bangs the dents out of your wounded fighters. No receipt, friend.','#c98aff');}}},
      {key:'2',name:'RIFT CORE CHARGE (freeport rates)',cost:Math.round((renCtx()?420:340)*lawTax),info:'Bootleg reactor top-off — even out here, the core drinks',can:()=>ship.rift<99.5,
       buy:()=>{ship.rift=100;say('Core topped off. No meter, no receipt, friend.','#c98aff');}},
@@ -14648,9 +14964,9 @@ function baseItems(){
      {key:'5',name:'FENCE ALL CURIOS (+15%)',cost:0,info:ship.curios.length?('Pays ~'+Math.round(ship.curios.reduce((a,c)=>a+c.value,0)*1.15)+' cr'):'Nothing to fence',
       can:()=>ship.curios.length>0,
       buy:()=>{const v=Math.round(ship.curios.reduce((a,c)=>a+c.value,0)*1.15);ship.credits+=v;ship.curios=[];say('No questions asked, friend. +'+v+' cr.','#c98aff');}},
-     {key:'4',name:(isSaint9()?'BLACK-MARKET RELIEF KITS':'BLACK-MARKET TORPEDOES'),cost:80,info:'Half price, zero paperwork',can:()=>ship.torps<maxTorps(),buy:()=>{ship.torps=maxTorps();}},
+     ...(noTorp9()?[]:[{key:'4',name:'BLACK-MARKET TORPEDOES',cost:80,info:'Half price, zero paperwork',can:()=>ship.torps<maxTorps(),buy:()=>{ship.torps=maxTorps();}}]),
      {key:'6',name:(isSaint9()?'BOOTLEG PACIFIER COILS Mk-':'BOOTLEG LANCE COILS Mk-')+(ship.up.lance+1),cost:Math.round((ship.up.lance===1?780:ship.up.lance*900)*1.35),info:(isSaint9()?'+reach & stopping speed for the pacifier. No warranty, no questions.':'+damage & range. No warranty, no questions.'),can:()=>ship.up.lance<5,buy:()=>{ship.up.lance++;say(isSaint9()?'Coils bolted on cold. The pacifier reaches farther now.':'Coils bolted on hot. She kicks harder now.','#c98aff');}},
-     {key:'7',name:(isSaint9()?'SALVAGED RELIEF BAY Mk-':'SALVAGED TORPEDO BAY Mk-')+(ship.up.torp+1),cost:Math.round((ship.up.torp===1?780:ship.up.torp*900)*1.35),info:(isSaint9()?'+relief capacity — even a freeport can pack aid kits':'+capacity, volleys at higher marks. Fell off a warship.'),can:()=>ship.up.torp<5,buy:()=>{ship.up.torp++;say(isSaint9()?'Relief bay widened. More hands reached.':'Racks widened with pirate ingenuity.','#c98aff');}},
+     ...(noTorp9()?[]:[{key:'7',name:'SALVAGED TORPEDO BAY Mk-'+(ship.up.torp+1),cost:Math.round((ship.up.torp===1?780:ship.up.torp*900)*1.35),info:(isSaint9()?'+relief capacity — even a freeport can pack aid kits':'+capacity, volleys at higher marks. Fell off a warship.'),can:()=>ship.up.torp<5,buy:()=>{ship.up.torp++;say('Racks widened with pirate ingenuity.','#c98aff');}}]),
      {key:'8',name:'GREY-MARKET DEFLECTORS Mk-'+(ship.up.shield+1),cost:Math.round((ship.up.shield===1?860:ship.up.shield*980)*1.35),info:'+shield capacity. Previous owner unavailable for comment.',can:()=>ship.up.shield<5,buy:()=>{ship.up.shield++;say('Deflector grid reinforced. Somebody misses these.','#c98aff');}},
      {key:'9',name:'HOT-ROD ENGINES Mk-'+(ship.up.engine+1),cost:Math.round((ship.up.engine===1?860:ship.up.engine*980)*1.35),info:'+speed & rift economy. Tuned past spec, past legal.',can:()=>ship.up.engine<5,buy:()=>{ship.up.engine++;say('She runs hotter and meaner now.','#c98aff');}},
      {key:'0',name:'SCRAP ABLATIVE PLATING +'+(ship.up.armor+1),cost:Math.round((ship.up.armor+1)*1050*1.35),info:'-12% damage taken per layer. Welded from wrecks.',can:()=>ship.up.armor<3,buy:()=>{ship.up.armor++;say('Scavenged plating welded over the hull. Ugly. Effective.','#c98aff');}},
@@ -14731,14 +15047,15 @@ function baseItems(){
    {key:'r',name:'FIELD REFIT PACKAGE (one-time)',cost:900,info:S.refit1?'Already refitted':(isSaint9()?'Mk-2 pacifier + Mk-2 deflectors in one bundle — a young mender\'s leg up':'Mk-2 lances + Mk-2 deflectors in one bundle — a young captain\'s leg up'),
     can:()=>!S.refit1&&(ship.up.lance<2||ship.up.shield<2),
     buy:()=>{S.refit1=true;ship.up.lance=Math.max(ship.up.lance,2);ship.up.shield=Math.max(ship.up.shield,2);say(isSaint9()?'\u2726 FIELD REFIT COMPLETE \u2014 pacifier and deflectors at Mk-2. Go earn the rest. \u2726':'\u2605 FIELD REFIT COMPLETE \u2014 lances and deflectors at Mk-2. Go earn the rest, Captain. \u2605',isSaint9()?'#cfe8ff':'#ffd86b');sfx.fanfare();}},
-   {key:'1',name:(isSaint9()?'REPAIR & RESUPPLY':'REPAIR & REARM'),cost:0,info:(isSaint9()?'Hull, shields, energy, crew healed, relief kits topped up':'Hull, shields, energy, crew healed, torpedoes topped up'),can:()=>ship.hull<99.5||ship.shields<maxShields()-.5||ship.energy<99.5||ship.torps<maxTorps()||crew.some(c=>c.hp<crewMaxHp(c)-.5),
-    buy:()=>{ship.hull=100;ship.shields=maxShields();ship.energy=100;ship.torps=maxTorps();crew.forEach(c=>c.hp=crewMaxHp(c));if(S.wingWounds){S.wingWounds=0;say(isSaint9()?'Yard crews mend your wounded Angel Drones, on the house.':'Yard crews mend the wounded fighters, on the house.','#7fd98a');}}},
+   {key:'1',name:(hospHere9()?'\u2726 THE ENDOWED HOSPITAL \u2014 REPAIR & TEND':(isSaint9()?'REPAIR & TEND':'REPAIR & REARM')),cost:0,info:(isSaint9()?'Hull, shields, energy, and every hand aboard mended':'Hull, shields, energy, crew healed, torpedoes topped up'),can:()=>ship.hull<99.5||ship.shields<maxShields()-.5||ship.energy<99.5||ship.torps<maxTorps()||crew.some(c=>c.hp<crewMaxHp(c)-.5),
+    buy:()=>{ship.hull=100;ship.shields=maxShields();ship.energy=100;ship.torps=maxTorps();ship.rift=Math.max(ship.rift,hospHere9()?100:ship.rift);crew.forEach(c=>c.hp=crewMaxHp(c));if(S.wingWounds){S.wingWounds=0;say(isSaint9()?'Yard crews mend your wounded Angel Drones, on the house.':'Yard crews mend the wounded fighters, on the house.','#7fd98a');}
+      if(hospHere9()){try{graceGain9(6);}catch(e9){}say('\u2726 The ward you endowed takes you in like anyone else who walked through the door, which is the entire point of having built it. Hull, shields, core and every hand aboard. Nobody asks who is paying.','#cfe8ff');}}},
    {key:'4',name:(isSaint9()?'PACIFIER ARRAY Mk-':'LANCE ARRAY Mk-')+(ship.up.lance+1),cost:ship.up.lance===1?780:ship.up.lance*900,
     mats:ship.up.lance>=4?{plasma:3,nul:1}:ship.up.lance>=3?{plasma:2}:ship.up.lance>=2?{plasma:1}:null,
     info:(isSaint9()?('+reach and +stopping speed — the pacifier still cannot kill, it just stills them sooner and farther'+(ship.up.lance>=2?' (plasma coils: Veil/Jackal wrecks, volcanic worlds)':'')):('+damage and +range per beam'+(ship.up.lance>=2?' (plasma coils: Veil/Jackal wrecks, volcanic worlds)':''))),can:()=>ship.up.lance<5,buy:()=>ship.up.lance++},
-   {key:'5',name:(isSaint9()?'RELIEF BAY Mk-':'TORPEDO BAY Mk-')+(ship.up.torp+1),cost:ship.up.torp===1?780:ship.up.torp*900,
+   ...(noTorp9()?[]:[{key:'5',name:'TORPEDO BAY Mk-'+(ship.up.torp+1),cost:ship.up.torp===1?780:ship.up.torp*900,
     mats:ship.up.torp>=4?{dur:2,nul:1}:ship.up.torp>=3?{dur:2}:ship.up.torp>=2?{dur:1}:null,
-    info:(isSaint9()?'+2 relief capacity, faster packing — more food and aid to carry to those who need it':('+2 capacity, faster build'+(ship.up.torp===2?', Mk-3 fires 2-torpedo VOLLEYS':(ship.up.torp===4?', Mk-5 fires 3-torpedo VOLLEYS':''))+(ship.up.torp>=3?' (duranium: War-Clan/Sarrqan wrecks, rocky worlds)':''))),can:()=>ship.up.torp<5,buy:()=>{ship.up.torp++;}},
+    info:('+2 capacity, faster build'+(ship.up.torp===2?', Mk-3 fires 2-torpedo VOLLEYS':(ship.up.torp===4?', Mk-5 fires 3-torpedo VOLLEYS':''))+(ship.up.torp>=3?' (duranium: War-Clan/Sarrqan wrecks, rocky worlds)':'')),can:()=>ship.up.torp<5,buy:()=>{ship.up.torp++;}}]),
    {key:'6',name:'DEFLECTORS Mk-'+(ship.up.shield+1),cost:ship.up.shield===1?860:ship.up.shield*980,
     mats:ship.up.shield>=4?{plasma:3,nul:1}:ship.up.shield>=3?{plasma:2}:ship.up.shield>=2?{plasma:1}:null,
     info:'+30 max shields, faster regen',can:()=>ship.up.shield<5,buy:()=>{ship.up.shield++;ship.shields=maxShields();}},
@@ -16155,8 +16472,8 @@ addEventListener('keydown',e=>{
     return;
   }
   if(S.screen==='chapel'){
-    if(k==='h'){S.chapPage9=S.chapPage9?0:1;S.chapSel9=0;return;}
-    const list9=S.chapPage9?chapHullList9():CHAPTRACK9;
+    if(k==='h'){S.chapPage9=((S.chapPage9||0)+1)%3;S.chapSel9=0;return;}
+    const list9=(S.chapPage9===2)?SWORKS9:(S.chapPage9===1?chapHullList9():CHAPTRACK9);
     if(k==='arrowup'){S.chapSel9=(S.chapSel9+list9.length-1)%list9.length;return;}
     if(k==='arrowdown'){S.chapSel9=(S.chapSel9+1)%list9.length;return;}
     if(k==='e'||k==='enter'){chapBuy9();return;}
@@ -16610,7 +16927,7 @@ addEventListener('keydown',e=>{
         sfx.scanb();
         // THE WHITE SCANS A COURIER. She does not get a cargo manifest; she gets a person.
         // Only these little hulls: the bigger transports and anything with a gun are not this.
-        if(typeof isSaint9==='function'&&isSaint9()){
+        if(typeof isSaint9==='function'&&isSaint9()&&!S.veil9){
           if(tg2.blessed9){say('You have already been across to her. She keeps her heading and her crew keep waving.','#9fd8ff');return;}
           try{ if(saintCourierBless9(tg2))return; }catch(e9){}
         }
@@ -17689,7 +18006,7 @@ function drawShipStatus(){
   const R1Y=64,R1H=252;
   rr(40,R1Y,330,R1H,10,'#0d1420');hdr(40,R1Y,330,'SYSTEMS');
   const stSaint9=(typeof isSaint9==='function'&&isSaint9());
-  const SYS=[[stSaint9?'PACIFIER ARRAY':'LANCE ARRAY','lance'],[stSaint9?'RELIEF BAY':'TORPEDO BAY','torp'],['DEFLECTORS','shield'],['ENGINES','engine'],['ABLATIVE ARMOR','armor']];
+  const SYS=[[stSaint9?'PACIFIER ARRAY':'LANCE ARRAY','lance']].concat(stSaint9?[]:[['TORPEDO BAY','torp']]).concat([['DEFLECTORS','shield'],['ENGINES','engine'],['ABLATIVE ARMOR','armor']]);
   let y=R1Y+52;
   for(const[nm,k9]of SYS){
     txt(nm,56,y,'#dfe8f2',11);
@@ -17712,10 +18029,11 @@ function drawShipStatus(){
     by+=30;
   }
   rr(426,by-14,298,2,1,'rgba(255,255,255,.08)');by+=6;
+  if(!noTorp9()){
   txt('TORPEDOES',426,by,'#dfe8f2',10);   // fits; what collided was the 'building' tag, moved into the bar below
   rr(656,by-13,70,17,5,'#0a111c');txt(ship.torps+' / '+maxTorps(),691,by,'#ffd86b',10,'center');
   if(ship.torps<maxTorps()&&ship.dil>0){rr(508,by-11,140,12,5,'rgba(255,255,255,.08)');rr(508,by-11,140*clamp(ship.torpProg/torpBuildTime(),0,1),12,5,'#8a6a2a');txt('building',578,by-1,'#c8a86a',8,'center','normal');}
-  by+=30;
+  by+=30;}
   txt('RIFTIUM',426,by,'#dfe8f2',10);
   rr(656,by-13,70,17,5,'#0a111c');txt('\u29eb '+ship.dil,691,by,'#d580ff',10,'center');
   // 'CREDITS' was drawn at 508 and the value hard-coded at 578. At the floored touch size the label
@@ -17775,7 +18093,7 @@ function drawShipStatus(){
     [(S.cargoUp||0)>0,'HOLD '+['STANDARD','TIER I (16)','TIER II (22)','TIER III (30)'][S.cargoUp||0]],
     [cit9>0,(cit9>0?['','AEGIS','LEVIATHAN','ANNIHILATOR'][cit9]+' CITADEL':'WAR-CITADEL: none')],
     [cit9>=1,'UNLIMITED LANCES'],
-    [cit9>=2,'UNLIMITED TORPS'],          // 'TORPEDOES' overflows the 163px column clamp; TORP is the game's own HUD abbreviation
+    [cit9>=2&&!noTorp9(),'UNLIMITED TORPS'],  // 'TORPEDOES' overflows the 163px column clamp; TORP is the game's own HUD abbreviation
     [cit9>=3,'PURGE WAVE  [Z]'],
   ];
   fit.forEach((f9,i9)=>{
@@ -18564,7 +18882,7 @@ function saveGame(){
       arf9:S.arenaFame9||0,arch9:S.arenaChamps9||null,
       qst:(S.missions||[]).map(m=>({id:(m.def&&m.def.id!=null)?m.def.id:null,gen:(m.def&&m.def.gen)?m.def:null,pr:m.prog||null})),
       crew:crew.map(c=>({lvl:c.lvl,hp:c.hp})),
-      done:[...S.completed],gen:S.genCount,cv9:[...(S.completedV9||[])],cs9:[...(S.completedS9||[])],rj9:S.reignJobs9||0,mj9:S.mercyJobs9||0,vrd9:!!S.vorReignDone9,srd9:!!S.saintReignDone9,mon9:S.monuments9||0,alm9:S.alms9||0,tnd9:S.teleNodes9||{},fw9:!!S.freeJump9,lbb9:!!S.lbBoard9,lbc9:(S.lb9&&S.lb9.caught)||0,svd9:(S.sv9&&S.sv9.done)||0,hd9:S.haulerDebt9||0,hn9:[...(S.haulerNames9||[])],hrj9:S.haulerReturnJumps9||0,hcs9:(S.haulerCurioSys9==null?-1:S.haulerCurioSys9),hcv9:S.haulerCurioVal9||0,
+      done:[...S.completed],gen:S.genCount,cv9:[...(S.completedV9||[])],cs9:[...(S.completedS9||[])],rj9:S.reignJobs9||0,mj9:S.mercyJobs9||0,vrd9:!!S.vorReignDone9,srd9:!!S.saintReignDone9,mon9:S.monuments9||0,alm9:S.alms9||0,wrk9:S.works9||{},enl9:S.enlightened9||0,lit9:(S.saint9&&S.saint9.light)||0,wend9:S.warsEnded9||0,tnd9:S.teleNodes9||{},fw9:!!S.freeJump9,lbb9:!!S.lbBoard9,lbc9:(S.lb9&&S.lb9.caught)||0,svd9:(S.sv9&&S.sv9.done)||0,hd9:S.haulerDebt9||0,hn9:[...(S.haulerNames9||[])],hrj9:S.haulerReturnJumps9||0,hcs9:(S.haulerCurioSys9==null?-1:S.haulerCurioSys9),hcv9:S.haulerCurioVal9||0,
       q:{count:QSTATE.count,blessed:QSTATE.blessed},
       sysF:SYSTEMS.map(sy=>((sy.known?1:0)|(sy.ancientDone?4:0))),
       land:SYSTEMS.map(sy=>sy.landed||0)};
@@ -18583,6 +18901,9 @@ function loadGame(n){
   MODE=d.mode;curSeed=d.seed;initGalaxy(curSeed);
   SYSTEMS.forEach((sy,i)=>{const f=(d.sysF&&d.sysF[i])||0;sy.known=!!(f&1);sy.ancientDone=!!(f&4);sy.landed=(d.land&&d.land[i])||0;});
   Object.assign(ship,d.ship);
+  // A save written before the racks were taken off her can still carry live rounds. maxTorps() is 0
+  // for the white, so those rounds are unspendable, unsellable and invisible: clear them on load.
+  try{ if(typeof noTorp9==='function'&&noTorp9()){ship.torps=0;ship.torpProg=0;} }catch(e9){}
   ship.mats=d.ship.mats||{dur:0,plasma:0,bio:0,nul:0};
   // v0.9.93 renamed the Null material key off a trademarked word. Old saves carry the old key;
   // carry the count across rather than silently zeroing somebody's 4000-credit material.
@@ -18590,7 +18911,7 @@ function loadGame(n){
   if(ship.mats&&ship.mats.nul==null)ship.mats.nul=0;
   ship.cargo=d.ship.cargo||{};ship.curios=d.ship.curios||[];
   d.crew.forEach((c,i)=>{crew[i].lvl=c.lvl;crew[i].hp=c.hp;});
-  S.completed=new Set(d.done);S.genCount=d.gen||0;S.completedV9=new Set(d.cv9||[]);S.completedS9=new Set(d.cs9||[]);S.reignJobs9=d.rj9||0;S.mercyJobs9=d.mj9||0;S.vorReignDone9=!!d.vrd9;S.saintReignDone9=!!d.srd9;S.monuments9=d.mon9||0;S.alms9=d.alm9||0;S.teleNodes9=d.tnd9||{};S.freeJump9=!!d.fw9;S.lbBoard9=!!d.lbb9;S.lb9={caught:d.lbc9||0,cd:0};S.sv9={done:d.svd9||0,cd:0};S.haulerDebt9=d.hd9||0;S.haulerNames9=d.hn9||[];S.haulerReturnJumps9=d.hrj9||0;S.haulerCurioSys9=(d.hcs9==null||d.hcs9<0)?null:d.hcs9;S.haulerCurioVal9=d.hcv9||0;
+  S.completed=new Set(d.done);S.genCount=d.gen||0;S.completedV9=new Set(d.cv9||[]);S.completedS9=new Set(d.cs9||[]);S.reignJobs9=d.rj9||0;S.mercyJobs9=d.mj9||0;S.vorReignDone9=!!d.vrd9;S.saintReignDone9=!!d.srd9;S.monuments9=d.mon9||0;S.alms9=d.alm9||0;S.works9=d.wrk9||{};S.enlightened9=d.enl9||0;try{saintInit9();S.saint9.light=d.lit9||0;}catch(e9){}S.warsEnded9=d.wend9||0;S.teleNodes9=d.tnd9||{};S.freeJump9=!!d.fw9;S.lbBoard9=!!d.lbb9;S.lb9={caught:d.lbc9||0,cd:0};S.sv9={done:d.svd9||0,cd:0};S.haulerDebt9=d.hd9||0;S.haulerNames9=d.hn9||[];S.haulerReturnJumps9=d.hrj9||0;S.haulerCurioSys9=(d.hcs9==null||d.hcs9<0)?null:d.hcs9;S.haulerCurioVal9=d.hcv9||0;
   QSTATE.count=d.q.count;QSTATE.blessed=d.q.blessed;S.qBless=d.q.blessed;
   // The schematic is a permanent unlock but it only ever lived in the save as 'cs'. Any save written
   // without that field loaded as FALSE, so a captain who lost his ship could never reinstall the cloak:
@@ -19649,19 +19970,24 @@ function drawHud(){
     const hullfab9=(!hangar9&&ship.hull<99.5&&(ship.mats.dur||0)>0);
     const extra9=(cit9?1:0)+((hangar9||hullfab9)?1:0);
     const SW9=162, SR9=SUPY9+18;                 // panel width, first row baseline
-    rr(8,SUPY9,SW9,4*ROWP9+6+extra9*ROWP9,8,'rgba(6,10,20,.78)');
-    txt(relief9?'RELIEF':'TORP',15,SR9,'#8899bb',10);
-    rr(70,SR9-10,36,7,3,'rgba(255,255,255,.12)');
-    rr(70,SR9-10,36*clamp(ship.torps/tmax9,0,1),7,3,tcol9);
-    if(ship.torps<maxTorps()&&ship.dil>0)rr(70,SR9-2,36*(ship.torpProg/torpBuildTime()),2,1,tcol9);
-    txt(ship.torps+'/'+tmax9,SW9+8,SR9,tcol9,10,'right');
-    txt('⧫ '+ship.dil,15,SR9+ROWP9,'#d580ff',12);
-    if(ship.dil<=0&&ship.torps<maxTorps())txt('halted',70,SR9+ROWP9,'#ff8c8c',9,'left','normal');
-    txt('DUR '+ship.mats.dur,15,SR9+ROWP9*2,'#c8b088',11);
-    txt('PLA '+ship.mats.plasma+((ship.shields<maxShields()-.5&&(ship.mats.plasma||0)>0)?' ⚡':''),88,SR9+ROWP9*2,'#6fd8ff',11);
-    txt('BIO '+ship.mats.bio,15,SR9+ROWP9*3,'#8fe08a',11);
-    txt('NULL '+ship.mats.nul,88,SR9+ROWP9*3,'#5cd8ff',11);
-    let ey9=SR9+ROWP9*4;
+    // The Saint has no racks, so the whole TORP row goes and everything below it climbs one row.
+    // Drawing 0/0 with a dead gauge was the alternative and it looks like a bug, not a choice.
+    const nt9=noTorp9(), tr9=nt9?0:1;
+    rr(8,SUPY9,SW9,(3+tr9)*ROWP9+6+extra9*ROWP9,8,'rgba(6,10,20,.78)');
+    if(!nt9){
+      txt('TORP',15,SR9,'#8899bb',10);
+      rr(70,SR9-10,36,7,3,'rgba(255,255,255,.12)');
+      rr(70,SR9-10,36*clamp(ship.torps/tmax9,0,1),7,3,tcol9);
+      if(ship.torps<maxTorps()&&ship.dil>0)rr(70,SR9-2,36*(ship.torpProg/torpBuildTime()),2,1,tcol9);
+      txt(ship.torps+'/'+tmax9,SW9+8,SR9,tcol9,10,'right');
+    }
+    txt('⧫ '+ship.dil,15,SR9+ROWP9*tr9,'#d580ff',12);
+    if(!nt9&&ship.dil<=0&&ship.torps<maxTorps())txt('halted',70,SR9+ROWP9,'#ff8c8c',9,'left','normal');
+    txt('DUR '+ship.mats.dur,15,SR9+ROWP9*(1+tr9),'#c8b088',11);
+    txt('PLA '+ship.mats.plasma+((ship.shields<maxShields()-.5&&(ship.mats.plasma||0)>0)?' ⚡':''),88,SR9+ROWP9*(1+tr9),'#6fd8ff',11);
+    txt('BIO '+ship.mats.bio,15,SR9+ROWP9*(2+tr9),'#8fe08a',11);
+    txt('NULL '+ship.mats.nul,88,SR9+ROWP9*(2+tr9),'#5cd8ff',11);
+    let ey9=SR9+ROWP9*(3+tr9);
     if(cit9){const rdy9=(S.citTier9>=3)&&((S.purgeCd9||0)<=S.t);
       txtFit('✦ '+['','AEGIS','LEVIATHAN','ANNIHILATOR'][S.citTier9]+(S.citTier9>=3?(rdy9?' • PURGE':' • '+Math.ceil((S.purgeCd9||0)-S.t)+'s'):''),15,ey9,rdy9?'#8fe8ff':'#c9b7e8',9,SW9-14,'left','normal');ey9+=ROWP9;}
     if(hangar9){const canMill9=(ship.mats.plasma||0)>0&&(ship.mats.dur||0)>0;
@@ -19669,34 +19995,37 @@ function drawHud(){
     else if(hullfab9){txtFit('⚙ hull fab — duranium',15,ey9,'#c8b088',9,SW9-14,'left','normal');}
     HUDRAW9=false;
   } else hudCluster9(0,0,HS9,()=>{
-  rr(10,112,250,74,10,'rgba(6,10,20,.75)');
+  const nt9=noTorp9(), dy9=nt9?-24:0;   // no racks for the white: the panel loses a row and closes up
+  rr(10,112,250,74+dy9,10,'rgba(6,10,20,.75)');
   const relief9=(typeof isSaint9==='function'&&isSaint9());
-  txt(relief9?'RELIEF':'TORP',20,131,'#8899bb',10);
+  if(!nt9){
+  txt('TORP',20,131,'#8899bb',10);
   {const tmax9=maxTorps();
    if(tmax9<=13){ // pips fit inside the panel
-     for(let i=0;i<tmax9;i++){ctx.fillStyle=i<ship.torps?(relief9?'#cfe8ff':'#ffd86b'):'rgba(255,255,255,.12)';ctx.beginPath();ctx.arc(76+i*14,127,5,0,TAU);ctx.fill();}
+     for(let i=0;i<tmax9;i++){ctx.fillStyle=i<ship.torps?'#ffd86b':'rgba(255,255,255,.12)';ctx.beginPath();ctx.arc(76+i*14,127,5,0,TAU);ctx.fill();}
    } else { // too many to pip without spilling off the HUD — show a compact gauge + count
      const bx9=70,bw9=132;
      rr(bx9,122,bw9,9,4,'rgba(255,255,255,.12)');
-     rr(bx9,122,bw9*clamp(ship.torps/tmax9,0,1),9,4,relief9?'#cfe8ff':'#ffd86b');
-     txt(ship.torps+'/'+tmax9,bx9+bw9+8,131,relief9?'#cfe8ff':'#ffd86b',11,'left');
+     rr(bx9,122,bw9*clamp(ship.torps/tmax9,0,1),9,4,'#ffd86b');
+     txt(ship.torps+'/'+tmax9,bx9+bw9+8,131,'#ffd86b',11,'left');
    }}
-  if(ship.torps<maxTorps()&&ship.dil>0)rr(70,136,170*(ship.torpProg/torpBuildTime()),3,1,relief9?'#cfe8ff':'#ffd86b');
-  txt('RIFTIUM',20,155,'#8899bb',10);
-  txt('⧫ '+ship.dil,95,156,'#d580ff',13);
-  if(ship.dil<=0&&ship.torps<maxTorps())txt('assembly halted!',135,156,'#ff8c8c',10,'left','normal');
+  if(ship.torps<maxTorps()&&ship.dil>0)rr(70,136,170*(ship.torpProg/torpBuildTime()),3,1,'#ffd86b');
+  }
+  txt('RIFTIUM',20,155+dy9,'#8899bb',10);
+  txt('⧫ '+ship.dil,95,156+dy9,'#d580ff',13);
+  if(!nt9&&ship.dil<=0&&ship.torps<maxTorps())txt('assembly halted!',135,156,'#ff8c8c',10,'left','normal');
   if((S.citTier9||0)>=1){const rdy9=(S.citTier9>=3)&&((S.purgeCd9||0)<=S.t);
-    txt('\u2726 '+['','AEGIS','LEVIATHAN','ANNIHILATOR'][S.citTier9]+(S.citTier9>=3?(rdy9?'  \u2022  [Z] PURGE READY':'  \u2022  PURGE '+Math.ceil((S.purgeCd9||0)-S.t)+'s'):''),20,201,rdy9?'#8fe8ff':'#c9b7e8',10,'left','normal');}
-  txt('DUR '+ship.mats.dur,20,177,'#c8b088',11);
-  txt('PLA '+ship.mats.plasma+((ship.shields<maxShields()-.5&&(ship.mats.plasma||0)>0)?' ⚡':''),82,177,'#6fd8ff',11);
-  txt('BIO '+ship.mats.bio,148,177,'#8fe08a',11);
-  txt('NULL '+ship.mats.nul,204,177,'#5cd8ff',11);
+    txt('\u2726 '+['','AEGIS','LEVIATHAN','ANNIHILATOR'][S.citTier9]+(S.citTier9>=3?(rdy9?'  \u2022  [Z] PURGE READY':'  \u2022  PURGE '+Math.ceil((S.purgeCd9||0)-S.t)+'s'):''),20,201+dy9,rdy9?'#8fe8ff':'#c9b7e8',10,'left','normal');}
+  txt('DUR '+ship.mats.dur,20,177+dy9,'#c8b088',11);
+  txt('PLA '+ship.mats.plasma+((ship.shields<maxShields()-.5&&(ship.mats.plasma||0)>0)?' ⚡':''),82,177+dy9,'#6fd8ff',11);
+  txt('BIO '+ship.mats.bio,148,177+dy9,'#8fe08a',11);
+  txt('NULL '+ship.mats.nul,204,177+dy9,'#5cd8ff',11);
   if(ship.hangar&&!flyingCitadel9()&&(ship.fighters+pFighters.length)<wingSize()){
     const canMill9=(ship.mats.plasma||0)>0&&(ship.mats.dur||0)>0;
-    rr(20,182,232,3,1,'rgba(255,255,255,.10)');
-    if(canMill9)rr(20,182,232*clamp((S.figProg9||0)/figMillTime(),0,1),3,1,'#c9a2ff');
-    txt(canMill9?'⚙ hangar milling a fighter':'⚙ hangar idle (needs coils + duranium)',20,197,canMill9?'#c9a2ff':'#66607a',9,'left','normal');
-  } else if(ship.hull<99.5&&(ship.mats.dur||0)>0){txt('⚙ hull fabrication — duranium',20,197,'#c8b088',9,'left','normal');}
+    rr(20,182+dy9,232,3,1,'rgba(255,255,255,.10)');
+    if(canMill9)rr(20,182+dy9,232*clamp((S.figProg9||0)/figMillTime(),0,1),3,1,'#c9a2ff');
+    txt(canMill9?'⚙ hangar milling a fighter':'⚙ hangar idle (needs coils + duranium)',20,197+dy9,canMill9?'#c9a2ff':'#66607a',9,'left','normal');
+  } else if(ship.hull<99.5&&(ship.mats.dur||0)>0){txt('⚙ hull fabrication — duranium',20,197+dy9,'#c8b088',9,'left','normal');}
   });
   if(BUFF9&&BUFF9.jumps>0)txt('\u2662 '+BUFF9.buff+' ('+BUFF9.jumps+')',W-16,170,'#ffd08a',11,'right','normal');
   // radar
@@ -24277,7 +24606,8 @@ function moralDilemma(){
   if(roll===0){
     if(typeof isSaint9==='function'&&isSaint9())showEnc('REFUGEE CONVOY',
       'A battered refugee convoy hails: children aboard, food gone, three systems of hard vacuum still to cross. They saw the white on your hull and dared to ask. They need relief, not guns.',
-      [{label:'Give 2 relief kits (+grace, +mercy, +standing)',fn:()=>{if(ship.torps<2){say('You have not enough packed to spare two. You promise to return, and you mean it.','#8899bb');closeEnc();return;}ship.torps=Math.max(0,ship.torps-2);gainStanding(4);try{graceGain9(15);}catch(e){}try{mercySave9(2);}catch(e){}say('✦ Food, water, and medicine cross the gap. A child waves from a viewport until the convoy is out of sight.','#cfe8ff');closeEnc();}},
+      [{label:'Open your own stores to them (2 bio-gel, +grace, +mercy, +standing)',fn:()=>{if((ship.mats.bio||0)<2){say('You have not enough aboard to spare two. You promise to return, and you mean it.','#8899bb');closeEnc();return;}ship.mats.bio-=2;gainStanding(4);try{graceGain9(15);}catch(e){}try{mercySave9(2);}catch(e){}say('✦ Food, water, and medicine cross the gap. A child waves from a viewport until the convoy is out of sight.','#cfe8ff');closeEnc();}},
+       {label:'Go across and teach them the breath, so the crossing is bearable',fn:()=>{gainStanding(2);try{graceGain9(20);}catch(e){}say('✦ You cannot shorten three systems of hard vacuum. You can change what happens inside the people crossing it. You sit on their deck and teach the long breath until the youngest stops shaking, and then you teach the youngest to teach it.','#eaf3ff');closeEnc();}},
        {label:'Bless their passage and keep your stores',col:'#2a281a',tcol:'#e8dfa0',fn:()=>{say('You send what words you have. It is not nothing. It is also not bread.','#8899bb');closeEnc();}}]);
     else showEnc('REFUGEE CONVOY',
       'A battered refugee convoy hails: their escort burned, their torpedo racks empty, and Jackal space ahead. They are asking for two of yours.',
@@ -26716,13 +27046,120 @@ function chapHullList9(){
   }
   return list9;
 }
+
+/* ===================== THE FOUNDATIONS ===============================================
+   Wolf: "Payouts for saint missions should probably be in thousands. How much do monuments
+   and statues or whatever cost? Settling peace conferences, ending wars, converting weapons
+   into agriculture items, all the promises of salvation."
+
+   The answer to the question underneath that: until now, nothing. Her whole Chapter House
+   ran on GRACE, so credits had nowhere to go but six hulls, and raising her mission pay
+   into the thousands would have produced a rich saint with nothing to buy.
+
+   THE FOUNDATIONS are her monuments: credit-priced, built on a world she has already brought to
+   peace, one of each per system, 22,000 up to a hard 250,000 (the same ceiling as the
+   crown's monuments, because the two of them should be able to spend on the same scale).
+
+   The difference is what they do afterwards. A monument holds a world down. A SCHOOL sends
+   people out. Every school puts ENLIGHTENED into the galaxy, and the Enlightened are the
+   renewable half of her economy: they send back a tithe wherever she goes, and they deepen
+   the well, and they do it whether or not she ever returns. That is the whole argument of
+   her arc expressed as a number.
+   ==================================================================================== */
+const SWORK_CAP9=250000;   // hard ceiling, matching the crown's monuments
+const ENL_CAP9=60;         // how many the tithe will ever count, whatever the schools produce
+const SWORKS9=[
+ {k:'conf', nm:'THE PEACE CONFERENCE', cost:22000,
+  d:'Nine delegations, identical chairs, and no head of the room.',
+  eff:'This world’s peace can never be argued away. +standing, +grace, and the sanctuaries hear of it.'},
+ {k:'plough', nm:'THE BEATING OF SWORDS', cost:48000,
+  d:'The ordnance yard keeps every hand on the payroll and changes what leaves the gate.',
+  eff:'Casings to irrigation pipe, propellant to fertiliser. The world feeds itself and stops arming.'},
+ {k:'hosp', nm:'THE ENDOWED HOSPITAL', cost:80000,
+  d:'A ward that does not close and does not ask who is paying.',
+  eff:'Full repair and every hand aboard mended, free, in this system, for good.'},
+ {k:'school', nm:'THE SCHOOL FOR THE ENLIGHTENED', cost:140000,
+  d:'The breath, the welcome, the turn. How to emanate goodness and presence. How to embody kind attention.',
+  eff:'Sends THE ENLIGHTENED out as ambassadors of peace and healing. They tithe back to you wherever you are.'},
+ {k:'war', nm:'THE ENDING OF A WAR', cost:SWORK_CAP9,
+  d:'Not a ceasefire. The thing itself, signed by both hands at the same instant.',
+  eff:'A war ends. It does not restart. The ceiling of what money can be asked to do.'}
+];
+function works9(){S.works9=S.works9||{};return S.works9;}
+function worksAt9(sys){const w9=works9();return (w9[sys]=w9[sys]||[]);}
+function hasWork9(sys,k){return worksAt9(sys).indexOf(k)>=0;}
+function workCount9(){const w9=works9();let n9=0;for(const k9 in w9)n9+=(w9[k9]||[]).length;return n9;}
+function schoolCount9(){const w9=works9();let n9=0;for(const k9 in w9)if((w9[k9]||[]).indexOf('school')>=0)n9++;return n9;}
+function enl9(){return S.enlightened9||0;}
+function workCost9(w9){
+  // A gentle slope so the tenth work is not the same price as the first, and a HARD cap, because
+  // Wolf's ruling on the crown's monuments applies here too: late-game money is not real money,
+  // but a number that runs away is not a price, it is a wall.
+  const built9=workCount9();
+  return Math.min(SWORK_CAP9, Math.round(w9.cost*(1+built9*0.06)));
+}
+function workBuild9(w9){
+  if(!isSaint9()){say('These are not raised by captains.','#ff8c8c');return;}
+  if(!pacified9(ship.sys)){say('THE FOUNDATIONS are raised on a world you have brought to peace. Still every gun here without killing, and then come back.','#ff8c8c');return;}
+  if(hasWork9(ship.sys,w9.k)){say(SYSTEMS[ship.sys].name+' already has one. Raise it somewhere that does not.','#8899bb');return;}
+  const c9=workCost9(w9);
+  if(ship.credits<c9){say(w9.nm+' costs '+c9.toLocaleString()+' cr and you are carrying '+Math.round(ship.credits).toLocaleString()+'. The work waits. It has waited longer than this.','#ff8c8c');return;}
+  ship.credits-=c9;
+  worksAt9(ship.sys).push(w9.k);
+  try{sfx.fanfare();}catch(e){}
+  const nm9=SYSTEMS[ship.sys].name;
+  if(w9.k==='conf'){
+    const t9=S.pacified9&&S.pacified9[ship.sys];
+    if(t9){t9.shrine9=true;t9.loyal=100;}       // an argued peace becomes a settled one
+    sGrace9(30);try{gainStanding(8);}catch(e){}
+    say('✦ THE PEACE CONFERENCE AT '+nm9+'. You take the table out of the room and put nine identical chairs in a circle, and what they had been fighting about for eleven years takes an afternoon once nobody is sitting higher than anyone. This peace cannot be argued away now. ✦','#cfe8ff');
+  } else if(w9.k==='plough'){
+    sGrace9(36);try{gainStanding(6);}catch(e){}
+    try{if(SYSTEMS[ship.sys])SYSTEMS[ship.sys].danger=false;}catch(e){}
+    say('✦ THE BEATING OF SWORDS AT '+nm9+'. Nine thousand tonnes of ordnance become irrigation pipe, and the propellant works becomes a fertiliser plant, and not one person loses a wage, which is the only version of this that has ever held anywhere. ✦','#cfe8ff');
+  } else if(w9.k==='hosp'){
+    sGrace9(40);try{gainStanding(6);}catch(e){}
+    say('✦ THE ENDOWED HOSPITAL AT '+nm9+'. Long lit windows and the old sign that still means what it always meant. It does not close and it does not ask who is paying. Dock here and you and every hand aboard will be mended, always, for nothing. ✦','#cfe8ff');
+  } else if(w9.k==='school'){
+    sEnl9(4);sGrace9(50);try{gainStanding(8);}catch(e){}
+    say('✦✦ THE SCHOOL FOR THE ENLIGHTENED AT '+nm9+'. The breath. The welcome. The turn. How to emanate goodness and presence so that a room changes before anyone has spoken, and how to hold kind attention on one person long enough that they can feel it. Four walk out in the first season and they do not come back, because that was never the plan. ✦✦','#eaf3ff');
+    say('✦ THE ENLIGHTENED: '+enl9()+' now carry the work across the galaxy. They tithe to you wherever you are, and they do it whether you ever return here or not.','#ffe9b0');
+  } else if(w9.k==='war'){
+    S.warsEnded9=(S.warsEnded9||0)+1;
+    sGrace9(80);try{gainStanding(14);}catch(e){}
+    try{for(const k9 in (S.pacified9||{})){const t9=S.pacified9[k9];if(t9)t9.loyal=100;}}catch(e){}
+    say('✦✦✦ A WAR ENDS AT '+nm9+'. Two pens, one count, and a witness on each side to swear the timing. It is theatre, and everyone in the room knows it is theatre, and it works completely, because the thing in the way was never the document. ✦✦✦','#ffe9b0');
+  }
+}
+function enlTithe9(){
+  // THE RENEWABLE HALF. The Enlightened are out there teaching whether or not you are, and what
+  // comes back is not tribute: nobody is compelled, and it arrives because the work is working.
+  if(!isSaint9())return;
+  // The count is capped and so is the multiplier. First pass had no ceiling and the Enlightened
+  // taught each other faster than they could be spent: eight schools compounded to 330,000 a jump,
+  // which is not an economy, it is a printer. Target is parity with the crown's tribute, which pays
+  // roughly 24,000 a jump at full dominion. Ten schools and forty-odd Enlightened land there.
+  const eRaw9=enl9();
+  if(eRaw9<=0)return;
+  const e9=Math.min(ENL_CAP9,eRaw9);
+  const pay9=Math.round(e9*(180+rnd(0,200))*(1+Math.min(15,schoolCount9())*0.08));
+  ship.credits+=pay9;
+  sGrace9(Math.min(20,2+Math.floor(e9*0.35)));
+  if(Math.random()<0.12&&eRaw9<ENL_CAP9)sEnl9(1);   // the work teaches itself onward, slowly
+  if(!S.enlSay9||S.t>S.enlSay9){
+    S.enlSay9=S.t+40;
+    say('✦ THE ENLIGHTENED send word from '+e9+' place'+(e9===1?'':'s')+' at once: a ward that turned, a ridge that came down, a room that sat in a circle. The tithe follows the news. +'+pay9.toLocaleString()+' cr.','#eaf3ff');
+  }
+}
+function hospHere9(){return isSaint9()&&hasWork9(ship.sys,'hosp');}
+
 const CHAPTRACK9=[
  {k:'hull', nm:'THE WARD',      d:'Reinforced white plating, and beds where the magazine used to be.', eff:'+8% hull integrity per tier'},
  {k:'ray',  nm:'THE PACIFIER',  d:'A wider, gentler beam. It subdues faster, which means fewer shots and fewer chances for someone else to fire.', eff:'+25% pacifier effect per tier'},
  {k:'choir',nm:'THE CHOIR',     d:'More voices. You can hold more of them at once, and they listen longer.', eff:'+1 charmed at a time per tier'},
  {k:'grace',nm:'THE WELL',      d:'A deeper well, and it fills faster when you are doing what you were called to do.', eff:'+30 max grace per tier'}
 ];
-const CHAPPRICE9=[55,85,125];   // GRACE, not credits. Her path does not run on money.
+const CHAPPRICE9=[55,85,125];   // THE LIGHT, not credits and not the live pool. Her path does not run on money.
 function openChapel9(){
   saintInit9();
   if(!pacified9(ship.sys)){say('\u2726 There is no chapter house here. Bring this system to peace first.','#8899bb');return;}
@@ -26730,6 +27167,9 @@ function openChapel9(){
   say('\u2726 THE CHAPTER HOUSE \u2014 they build what you need and they will not take payment for the work, only for the materials.','#cfe8ff');
 }
 function chapBuy9(){
+  // THE WORKS page has its own builder and its own currency (credits, not grace), so the shared
+  // [E] handler has to fork here rather than fall through into the grace tracks.
+  if(S.chapPage9===2){workBuild9(SWORKS9[S.chapSel9]||SWORKS9[0]);return;}
   saintInit9();
   if(S.chapPage9){
     const h9=chapHullList9()[S.chapSel9];if(!h9)return;
@@ -26737,7 +27177,7 @@ function chapBuy9(){
     if(h9.trophy9){S.hullSkin=h9.sk;try{sfx.fanfare&&sfx.fanfare();}catch(e9){}say('\u2726 '+h9.nm+' comes back to the berth in white and gold. She was always yours, and she always will be.','#ffe9b0');return;}
     if(S.chapel9.skins9.indexOf(h9.sk)>=0){S.hullSkin=h9.sk;say('\u2726 You take '+h9.nm+' back out. She was always yours.','#cfe8ff');return;}
     const hg9=hullGrace9(h9);
-    if(!graceCost9(hg9))return;
+    if(!lightCost9(hg9))return;
     S.chapel9.skins9.push(h9.sk);S.hullSkin=h9.sk;taoHook9('mend');
     try{mercyGive9(Math.round((h9.p||0)*.5));}catch(e9){}
     say('\u2726\u2726 '+h9.nm+' comes out of the shed in white. They will not take payment for the labour, only the materials. \u2726\u2726','#cfe8ff');
@@ -26747,7 +27187,7 @@ function chapBuy9(){
   const cur9=S.chapel9[tr9.k]||0;
   if(cur9>=3){say('That is as far as they will take it.','#8899bb');return;}
   const price9=CHAPPRICE9[cur9];
-  if(!graceCost9(price9))return;
+  if(!lightCost9(price9))return;
   S.chapel9[tr9.k]=cur9+1;
   if(tr9.k==='grace'){const g9=grace9();g9.graceMax=100+((S.chapel9.grace||0)*30);g9.grace=g9.graceMax;}
   try{sfx.buy&&sfx.buy();}catch(e){}
@@ -26759,23 +27199,60 @@ function drawChapel9(){
   txt('\u2726 THE CHAPTER HOUSE \u2726',W/2,64,'#cfe8ff',24,'center');
   txt(SYSTEMS[ship.sys].name+' builds what you need, and charges only for materials.',W/2,90,'#7a8aa0',12,'center','normal');
   {const g9h=grace9();
-   txt('\u2726 '+Math.round(g9h.grace||0)+' / '+Math.round(g9h.graceMax||100)+' GRACE',W-60,64,'#ffe9b0',16,'right');
-   txt(Math.round(ship.credits)+' cr',W-60,84,'#6a7a8a',11,'right','normal');}
+   txt('\u2726 '+Math.round(light9()).toLocaleString()+' LIGHT',W-60,64,'#ffe9b0',18,'right');
+   txt(Math.round(ship.credits).toLocaleString()+' cr',W-60,84,'#9fd8ff',12,'right');
+   txt('grace '+Math.round(g9h.grace||0)+'/'+Math.round(g9h.graceMax||100)+' \u2014 that is the pacifier, not this',W-60,103,'#6a7a8a',10,'right','normal');}
   const held9=Object.keys(S.pacified9||{}).filter(k=>pacified9(+k)).length;
   txt(held9+' world'+(held9===1?'':'s')+' at peace \u2022 '+(S.saint9.healed||0)+' healed \u2022 '+(S.saint9.sent||0)+' sent home \u2022 '+(S.saint9.stilled||0)+' stilled',
       W/2,108,'#8899bb',12,'center','normal');
   // the house has two faces \u2014 show them as tabs so the hulls are never hidden
-  {const tabs9=[['UPKEEP & WORKS',0],['\u2726 THE WHITE LIBRARY \u2014 SHIPS',1]];
-   const tw9=250;let tx9=W/2-tw9-8;
+  {const tabs9=[['THE TRACKS',0],['\u2726 THE WHITE LIBRARY',1],['\u2726 THE FOUNDATIONS',2]];
+   const tw9=210;let tx9=W/2-tw9*1.5-16;
    for(const t9 of tabs9){
-     const on9=((S.chapPage9?1:0)===t9[1]);
+     const on9=((S.chapPage9||0)===t9[1]);
      rr(tx9,122,tw9,28,9,on9?'#1b3350':'#0d1520');
      if(on9){ctx.strokeStyle='#8fd0ff';ctx.lineWidth=1.5;ctx.strokeRect(tx9+.5,122.5,tw9-1,27);}
      txt(t9[0],tx9+tw9/2,140,on9?'#cfe8ff':'#6a7a8a',12,'center',on9?'bold':'normal');
+     // Wolf: these LOOKED like tabs and were not. They were drawn and never pushed into the rect
+     // pool, so the only way between the two pages was a button at the bottom of the screen or the
+     // [H] key. A thing shaped like a tab has to work like one. Hit box runs a little proud of the
+     // paint so a thumb does not have to be precise.
+     uiRects9.push({x:tx9-4,y:118,w:tw9+8,h:36,fn:(function(pg){return function(){
+       if((S.chapPage9||0)===pg)return;
+       S.chapPage9=pg;S.chapSel9=0;try{sfx.ding();}catch(e9){}
+     };})(t9[1])});
      tx9+=tw9+16;
    }
-   txt('[H] switch page',W/2,158,'#8899bb',11,'center','normal');}
-  if(S.chapPage9){
+   txt('[H] next page',W/2,158,'#8899bb',11,'center','normal');}
+  // ---- THE WORKS: the credit-priced half of her house ----
+  if(S.chapPage9===2){
+    const built9=workCount9(), e9w=enl9();
+    txtFit('Raised on a world you have brought to peace, one of each per world. '+
+           (e9w?('\u2726 '+e9w+' ENLIGHTENED carry the work \u2022 '+schoolCount9()+' school'+(schoolCount9()===1?'':'s')+' \u2022 '+built9+' foundation'+(built9===1?'':'s')+' raised')
+               :(built9+' foundation'+(built9===1?'':'s')+' raised')),
+           W/2,178,'#8899bb',12,W-120,'center','normal');
+    if(!pacified9(ship.sys))txt('\u26a0 '+SYSTEMS[ship.sys].name+' is not at peace yet. Still every gun here without killing first.',W/2,196,'#ffb56b',11,'center','normal');
+    for(let i=0;i<SWORKS9.length;i++){
+      const w9=SWORKS9[i], y=232+i*78, sel=(i===S.chapSel9);
+      const own9=hasWork9(ship.sys,w9.k), c9=workCost9(w9), can9=ship.credits>=c9&&!own9&&pacified9(ship.sys);
+      rr(70,y-26,W-140,70,10,sel?'#16202e':'#101620');
+      txt(w9.nm,92,y,sel?'#cfe8ff':'#c9d4e2',16,'left',sel?'bold':'normal');
+      txt(own9?'\u2726 RAISED HERE':(c9.toLocaleString()+' cr'),W-100,y,own9?'#8fd0ff':(can9?'#ffe9b0':'#8a6a6a'),14,'right');
+      txtFit(w9.d,92,y+20,'#8899bb',12,W-330,'left','normal');
+      txtFit(w9.eff,92,y+38,'#6a8098',11,W-330,'left','normal');
+      uiRects9.push({x:70,y:y-26,w:W-140,h:70,fn:(function(ix,was,ww){return function(){
+        if(was)workBuild9(ww); else S.chapSel9=ix;
+      };})(i,sel,w9)});
+    }
+    if(IS_TOUCH){
+      const by7=H-62;
+      uiBtn9(40,by7,150,44,'RAISE IT','#ffd86b','#2a2418',()=>workBuild9(SWORKS9[S.chapSel9]||SWORKS9[0]));
+      uiClose9(()=>{S.screen=S.chapBack9||'space';},'\u2715 LEAVE',W-172,by7);
+    } else
+    txt('[\u2191\u2193] choose \u2022 [E] raise it \u2022 [H] next page \u2022 [Esc] leave',W/2,H-24,'#8899bb',12,'center','normal');
+    return;
+  }
+  if(S.chapPage9===1){
     S.chapel9.skins9=S.chapel9.skins9||[];
     const hulls9=chapHullList9();
     const rowH9=Math.min(80,(612-200)/Math.max(1,hulls9.length-1));   // tighten spacing when earned trophies push the list past six
@@ -26786,7 +27263,7 @@ function drawChapel9(){
       rr(70,y-ch9*0.42,W-140,ch9,10,sel?'#16202e':'#101620');
       txt(h.nm,92,y-2,sel?(h.trophy9?'#ffe9b0':'#cfe8ff'):(h.trophy9?'#ffe1a0':'#c9d4e2'),Math.min(17,ch9*0.28),'left',sel?'bold':'normal');
       txt(worn?'FLYING HER':(h.trophy9?'\u2726 TROPHY \u2014 [E] fly her':(own?'OWNED \u2014 [E] fly her':(hullGrace9(h)+' \u2726'))),W-100,y-2,
-          worn?'#8fd0ff':(h.trophy9?'#ffe9b0':(own?'#7fd98a':(ship.credits>=h.p?'#ffe9b0':'#8a6a6a'))),14,'right');
+          worn?'#8fd0ff':(h.trophy9?'#ffe9b0':(own?'#7fd98a':(light9()>=hullGrace9(h)?'#ffe9b0':'#8a6a6a'))),14,'right');
       txtFit(h.d,92,y+ch9*0.30,'#8899bb',12,W-370,'left','normal');
       // show the actual hull she builds, right in the row
       ctx.save();ctx.translate(W-232,y);ctx.rotate(-0.18);ctx.scale(Math.min(1.05,ch9/64),Math.min(1.05,ch9/64));try{drawHullVariant(h.sk);}catch(e9){}ctx.restore();
@@ -26802,7 +27279,7 @@ function drawChapel9(){
     if(IS_TOUCH){
       const by8=H-62;
       uiBtn9(40,by8,150,44,'BUILD / FLY','#ffd86b','#2a2418',()=>chapBuy9());
-      uiBtn9(200,by8,170,44,'\u2039 THE TRACKS','#9fd8ff','#16283e',()=>{S.chapPage9=0;S.chapSel9=0;});
+      uiBtn9(200,by8,170,44,'NEXT PAGE \u203a','#9fd8ff','#16283e',()=>{S.chapPage9=((S.chapPage9||0)+1)%3;S.chapSel9=0;});
       uiClose9(()=>{S.screen=S.chapBack9||'space';},'\u2715 LEAVE',W-172,by8);
     } else
     txt('[\u2191\u2193] choose \u2022 [E] build or fly \u2022 [H] back to the tracks \u2022 [Esc] leave',W/2,H-24,'#8899bb',12,'center','normal');
@@ -26813,7 +27290,7 @@ function drawChapel9(){
     rr(70,y-26,W-140,74,10,sel?'#16202e':'#101620');
     txt(tr.nm,92,y,sel?'#cfe8ff':'#c9d4e2',17,'left',sel?'bold':'normal');
     for(let t=0;t<3;t++){ctx.fillStyle=t<lv?'#8fd0ff':'#243040';ctx.fillRect(W-260+t*26,y-14,20,14);}
-    txt(lv>=3?'MAX':(CHAPPRICE9[lv]+' \u2726'),W-100,y,lv>=3?'#6a7a8a':((grace9().grace||0)>=CHAPPRICE9[lv]?'#ffe9b0':'#8a6a6a'),14,'right');
+    txt(lv>=3?'MAX':(CHAPPRICE9[lv]+' \u2726'),W-100,y,lv>=3?'#6a7a8a':(light9()>=CHAPPRICE9[lv]?'#ffe9b0':'#8a6a6a'),14,'right');
     txt(tr.d,92,y+22,'#8899bb',12,'left','normal');
     txt(tr.eff,92,y+40,'#6a8098',11,'left','normal');
     if(IS_TOUCH)uiRects9.push({x:70,y:y-26,w:W-140,h:74,fn:(function(ix,was){return function(){
@@ -26821,18 +27298,18 @@ function drawChapel9(){
     };})(i,sel)});
   }
   {const t9s=S.pacified9&&S.pacified9[ship.sys];
-   if(pacified9(ship.sys))txt((t9s&&t9s.shrine9)?'\u2726 A SHRINE STANDS HERE \u2014 this peace is permanent, it can never be lost':('[S] CONSECRATE A SHRINE ('+shrineCost9()+' \u2726 grace) \u2014 this world\u2019s peace becomes PERMANENT, never lost to war again'),W/2,H-76,(t9s&&t9s.shrine9)?'#eaf3ff':'#cfe8ff',12,'center','normal');}
+   if(pacified9(ship.sys))txt((t9s&&t9s.shrine9)?'\u2726 A SHRINE STANDS HERE \u2014 this peace is permanent, it can never be lost':('[S] CONSECRATE A SHRINE ('+shrineCost9()+' \u2726 light) \u2014 this world\u2019s peace becomes PERMANENT, never lost to war again'),W/2,H-76,(t9s&&t9s.shrine9)?'#eaf3ff':'#cfe8ff',12,'center','normal');}
   {const nd9=(typeof teleNodes9==='function')?teleNodes9():{};const almsHere9=(nd9[ship.sys]==='alms'||nd9[ship.sys]==='hospital');
-   txt('[H] THE WHITE LIBRARY \u2014 six hulls built for mending'+(pacified9(ship.sys)?(almsHere9?'   \u2022   \u2726 AN ALMSHOUSE STANDS HERE \u2014 fold straight to it from the map':('   \u2022   [A] ENDOW AN ALMSHOUSE ('+almsCost9()+' \u2726 grace) \u2014 teleport here, no rift')):''),W/2,H-58,'#9fd8ff',12,'center','normal');}
+   txt('[H] THE WHITE LIBRARY \u2014 six hulls built for mending'+(pacified9(ship.sys)?(almsHere9?'   \u2022   \u2726 AN ALMSHOUSE STANDS HERE \u2014 fold straight to it from the map':('   \u2022   [A] ENDOW AN ALMSHOUSE ('+almsCost9()+' \u2726 light) \u2014 teleport here, no rift')):''),W/2,H-58,'#9fd8ff',12,'center','normal');}
   {const t9r=S.pacified9&&S.pacified9[ship.sys];
    const rl9=(t9r&&t9r.relic9);
    txtFit(rl9?('\u2726 A RELIQUARY STANDS HERE \u2014 ships mend in this sky, and every world you keep sends more'):
-          ((typeof relicOk9==='function'&&!relicOk9())?('[R] RAISE A RELIQUARY ('+RELIC_GRACE9+' \u2726 grace) \u2014 a fold-point, a mending sky, and a deeper well everywhere'):''),
+          ((typeof relicOk9==='function'&&!relicOk9())?('[R] RAISE A RELIQUARY ('+RELIC_GRACE9+' \u2726 light) \u2014 a fold-point, a mending sky, and a deeper well everywhere'):''),
           W/2,H-96,rl9?'#eaf3ff':'#ffe9b0',12,W-80,'center','normal');}
   if(IS_TOUCH){
     const by9=H-52, t9p=S.pacified9&&S.pacified9[ship.sys], canS9=pacified9(ship.sys)&&!(t9p&&t9p.shrine9);
     uiBtn9(40,by9,120,44,'BUILD','#ffd86b','#2a2418',()=>chapBuy9());
-    uiBtn9(168,by9,160,44,S.chapPage9?'\u2039 TRACKS':'WHITE LIBRARY','#9fd8ff','#16283e',()=>{S.chapPage9=S.chapPage9?0:1;S.chapSel9=0;});
+    uiBtn9(168,by9,160,44,'NEXT PAGE \u203a','#9fd8ff','#16283e',()=>{S.chapPage9=((S.chapPage9||0)+1)%3;S.chapSel9=0;});
     uiBtn9(336,by9,140,44,'SHRINE',canS9?'#cfe8ff':'#55606c',canS9?'#16283e':'#141a22',()=>saintShrine9());
     uiBtn9(484,by9,150,44,'ALMSHOUSE',pacified9(ship.sys)?'#cfe8ff':'#55606c',pacified9(ship.sys)?'#16283e':'#141a22',()=>almsEndow9());
     {const rOk9=(typeof relicOk9==='function')&&!relicOk9();
@@ -27092,7 +27569,7 @@ function drawTeleFx9(){
 function shrineCount9(){let n9=0;if(S.pacified9)for(const k9 in S.pacified9){if(S.pacified9[k9]&&S.pacified9[k9].shrine9)n9++;}return n9;}
 // GRACE, not credits, and it rises gently: 60, 68, 76 ... you cannot blanket the sector in one
 // pass, but the well refills through mercy, so the sector is reachable by anyone who keeps at it.
-function shrineCost9(){return Math.round(60+8*shrineCount9());}
+function shrineCost9(){return Math.round(40+3*shrineCount9());}   // light, and a gentler slope: at 60+8n a shrine on 25 worlds came to 3,900, which was most of a campaign's income for one repeated build
 function hullGrace9(h9){return Math.max(25,Math.round(((h9&&h9.p)||9000)/900)*5);}   // 50 to 280 grace across the white hulls
 function saintShrine9(){
   saintInit9();
@@ -27103,7 +27580,7 @@ function saintShrine9(){
   if(t9&&t9.waver9){say('Still the guns here first — a shrine is raised over a world at rest, not one still fraying.','#ff8c8c');return;}
   if(enemies.some(e9=>e9&&e9.alive&&e9.detected&&!e9.friendly9&&!e9.charmed9&&!e9.neutral9&&!e9.disabledBySaint9)){say('Not while there is still fighting in this sky.','#ff8c8c');return;}
   const cost9=shrineCost9();
-  if(!graceCost9(cost9))return;
+  if(!lightCost9(cost9))return;
   t9.shrine9=true;t9.waver9=false;t9.waverAge9=0;t9.loyal=100;
   if(S.lostPeace9)delete S.lostPeace9[ship.sys];
   try{const g9=grace9();g9.grace=g9.graceMax;}catch(e){}
@@ -27112,7 +27589,7 @@ function saintShrine9(){
   try{fireworks9();sfx.fanfare&&sfx.fanfare();}catch(e){}
   say('✦✦ A SHRINE RISES over '+SYSTEMS[ship.sys].name+' — white stone and a light that does not go out. This peace is PERMANENT now: it will never waver, and it can never be lost to war again. ('+shrineCount9()+' shrine'+(shrineCount9()===1?'':'s')+' standing.) ✦✦','#cfe8ff');
 }
-function almsCost9(){return Math.round(75+15*(S.alms9||0));}   // GRACE. Each one deepens the well by 20, so they pay themselves back.
+function almsCost9(){return Math.round(55+10*(S.alms9||0));}   // LIGHT. Each one deepens the well by 20, so they pay themselves back.
 function almsEndow9(){
   saintInit9();
   if(!isSaint9())return;
@@ -27120,7 +27597,7 @@ function almsEndow9(){
   const nd=teleNodes9();
   if(nd[ship.sys]==='alms'||nd[ship.sys]==='hospital'){say('This world already has its house. Its people are well.','#9fd8ff');return;}
   const cost9=almsCost9();
-  if(!graceCost9(cost9))return;
+  if(!lightCost9(cost9))return;
   S.alms9=(S.alms9||0)+1;nd[ship.sys]='alms';
   try{S.saint9.healed=(S.saint9.healed||0)+50;}catch(e){}
   try{mercyGive9&&mercyGive9(Math.round(cost9*.5));}catch(e){}
