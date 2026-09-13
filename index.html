@@ -575,7 +575,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc10';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc11';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -2085,11 +2085,26 @@ function unmakerHere9(){try{return enemies.some(e9=>e9&&e9.alive&&e9.type==='vor
 // Something big enough that the lanes empty out: the Unmaker, any boss or unique hull, a capital
 // that launches its own wings, or the Leviathan. Freighters and couriers do not work a sky like that.
 function bossHere9(){
+  // WHY VORLAN NEVER SAW COURIERS, THE THIRD TIME. I fixed the two spawner gates and the lanes
+  // were still empty, because the thing closing them was not a gate at all: this predicate counts
+  // any CAPITAL as a reason for the lanes to empty, and KORVAAN IS A CAPITAL. He re-forms at the
+  // Emperor's flank in every system with a fight in it, so from the moment he kneels there is
+  // permanently a capital hull in the sky and the couriers permanently stay home.
+  //
+  // A hull flying under your own colours is not a reason for traffic to flee. It is an escort.
+  // Measured before: 0 couriers with a capital present, 400 without. Same bug for anyone with a
+  // charmed capital, a thrall, or the Lucky Lady once the casino is theirs.
   try{
     if(typeof levi!=='undefined'&&levi&&(levi.hp==null||levi.hp>0))return true;
-    return enemies.some(e9=>e9&&e9.alive&&(e9.boss||e9.unique9||e9.type==='vorlanship'||
-      e9.type==='leviathan'||(e9.et&&e9.et.leviPulse9)||
-      (e9.et&&e9.et.beh==='boss')||(typeof isCapital==='function'&&isCapital(e9))));
+    return enemies.some(e9=>{
+      if(!e9||!e9.alive)return false;
+      if(e9.friendly9||e9.charmed9||e9.corruptAlly9||e9.korvVassal9||e9.korvThrall9)return false;
+      if(e9.liner&&e9.owned9)return false;
+      if(e9.neutral9||e9.disabledBySaint9||e9.bork9)return false;
+      return (e9.boss||e9.unique9||e9.type==='vorlanship'||
+        e9.type==='leviathan'||(e9.et&&e9.et.leviPulse9)||
+        (e9.et&&e9.et.beh==='boss')||(typeof isCapital==='function'&&isCapital(e9)));
+    });
   }catch(e){return false;}
 }
 // Civilians clear out under their own power, so the player sees them go rather than having them
@@ -2397,8 +2412,26 @@ function domCheck9(){
     if(!S.vorDom9&&vorDomOk9()){
       S.vorDom9=true;
       try{S.wrath9.cur=S.wrath9.max;}catch(e9){}
-      try{ship.fighters=wingSize();S.wingWounds=0;}catch(e9){}
       try{for(const k9 in S.tribute9){const t9=S.tribute9[k9];if(t9){t9.revolted=false;t9.loyal=100;}}}catch(e9){}
+      // Wolf: "I just went through all the vorlan conquering and guess what, the ship was the same."
+      // He was right and it was a hole: the Saint's canonization hands her THE DAWNMAKER, and
+      // dominion handed the Emperor a cutscene and an unchanged hull. THE DREAD CROWN already
+      // existed as skin 28, drawn, named, and reachable by nothing. He takes it here. The throne
+      // hull is banked so he can go back to it, the same way she can go back to her white ones.
+      try{
+        const vk9=(typeof FINALE_HULL9!=='undefined')?FINALE_HULL9.vor:28;
+        if(vk9!=null){
+          if(!S.earnedHulls9)S.earnedHulls9=[];
+          if(S.earnedHulls9.indexOf(vk9)<0)S.earnedHulls9.push(vk9);
+          const was9=S.hullSkin;
+          if(was9!=null&&S.earnedHulls9.indexOf(was9)<0)S.earnedHulls9.push(was9);
+          S.hullSkin=vk9;S.vorHull9=vk9;S.citadel=false;
+          ship.hangar=true;S.wingWounds=0;
+          say('\u2620\u2620 THE DREAD CROWN. The yards that used to build dreadnoughts against you built her without being asked, which is the most frightened thing anyone has ever done. Obsidian and blood, and every plate of her came off a hull that was sent to stop you. \u2620\u2620','#e86ad9');
+          say('The throne hull goes into your berth. She is still yours. Either of them, any yard, whenever you want.','#c07ae8');
+        }
+      }catch(e9){}
+      try{ship.fighters=wingSize();S.wingWounds=0;}catch(e9){}
       try{startCutscene9('vor_dom');}catch(e9){}
       return;
     }
@@ -7306,14 +7339,19 @@ function arriveSystem(){
     const bq9=S.borkQuest9;
     startAway({t:'BORK RUN: '+bq9.item,ty:'away',obj:'clear',th:bq9.th,tiny:true,tier:1,expedition:true,borkFetch9:true,borkGot9:bq9.got,borkItem9:bq9.item,b:bq9.brief+' (One of Bork\u2019s scavenger runs. Grab it, beam up, get paid.)'});
   }
-  if(!enemies.some(e=>e.alive)&&Math.random()<.08&&((S.mercy||0)>0||(S.standing||50)>=60||(S.kidFame||0)>0)){
+  // Wolf: "No one should ask vorlan to look for their bear as a pop up." Same class as the fleet
+  // dinner: an ungated mortal-captain thread reaching the lord of evil. Children do not wave at
+  // the Unmaker from portholes and they do not ask him to find a teddy bear. The white keeps both,
+  // because a child asking the Saint to look for a bear is exactly right for her.
+  const kidOk9=!(typeof isVorlan9==='function'&&isVorlan9());
+  if(kidOk9&&!enemies.some(e=>e.alive)&&Math.random()<.08&&((S.mercy||0)>0||(S.standing||50)>=60||(S.kidFame||0)>0)){
     const w9=['A small face at a courier porthole waves BOTH arms as you pass. The whole bridge pretends not to smile.','A child\'s voice cuts the open channel for two seconds \u2014 "IT\'S THEM! IT\'S THE SHIP!" \u2014 before an apologetic parent closes it.','Someone tiny flashes a signal lamp at you from a passing freighter: Y-O-U-R-E  C-O-O-L.'];
     if(S.childDone&&S.childDone.bear)w9.push('A hand-sewn bear in a tiny uniform is held up to a porthole as you pass, one arm waved for him.');
     if(S.childDone&&S.childDone.cat)w9.push('A grey cat is held up to a viewport, unimpressed, while a child points at your ship with enormous pride.');
     if(S.childDone&&S.childDone.set)w9.push('A porthole shows a chessboard mid-game and two small thumbs up. The knight is well-placed.');
     say(w9[Math.floor(rnd(0,w9.length))],'#9fb8d0');S.kidFame=(S.kidFame||0)+1;
   }
-  if(!S.childQ&&!enemies.some(e=>e.alive)&&Math.random()<.04){
+  if(kidOk9&&!S.childQ&&!enemies.some(e=>e.alive)&&Math.random()<.04){
     const und9=['bear','cat','set'].filter(k9=>!(S.childDone&&S.childDone[k9]));
     if(und9.length){
       const kind9=und9[0];
@@ -9041,6 +9079,16 @@ function onKill(e){
     S.standing=100;award(5000);
     ship.curios.push({name:'Fragment of the Broken Cube',value:2500});
     QSTATE.flash=2.5;sfx.fanfare();
+    if(typeof isVorlan9==='function'&&isVorlan9()){
+      // He broke the same cube. Nobody is naming an academy after him for it, and he would not
+      // want one. The Accord does not get to hand the Emperor a medal for tidying up its sky.
+      say('\u2620\u2620 THE CUBE COMES APART. Not with a scream: with a SIGH, a billion voices let go at once, and you did not free them, you simply found something else in the sky that was collecting people and you do not share. \u2620\u2620','#e86ad9');
+      say('Across the core worlds the alarms stop one by one, and into that silence comes a worse sound, which is three hundred billion people working out, all at the same moment, who is actually holding the light now. Nobody sends a commendation. Several governments send terms. (+5,000 cr)','#c07ae8');
+      try{dreadAdd9(8);}catch(e9){}
+      try{S.standing=Math.max(0,(S.standing||50)-4);}catch(e9){}
+      closeEnc();
+      return;
+    }
     showEnc('THE TIDE BREAKS',
       'The cube comes apart not with a scream but with a SIGH \u2014 a billion voices released at once. Across the core worlds, alarms fall silent one by one. They will name academies after this day. They will name CHILDREN after your ship.',
       [{label:'"Stand down from red alert. All hands... well done."',fn:()=>{say('\u2605 SAVIOR OF THE ACCORD \u2014 standing MAXIMUM, +5,000 cr, and a fragment of the thing that almost ate the light. \u2605','#ffd86b');closeEnc();startEpilogue('fed');}}]);
@@ -18070,7 +18118,8 @@ function drawShipStatus(){
       ty9=wrapText(td.desc,214,ty9,206,8,'#8899bb')+26;
     });
     const eps=[];
-    if(S.invWon)eps.push('SAVIOR OF THE ACCORD');
+    // The Emperor broke the same cube. The Accord does not get to put its word on it.
+    if(S.invWon)eps.push((typeof isVorlan9==='function'&&isVorlan9())?'THE CUBE-BREAKER':((typeof isSaint9==='function'&&isSaint9())?'WHO STILLED THE TIDE':'SAVIOR OF THE ACCORD'));
     if(S.miniRift)eps.push('WORLD-EATER SLAYER');
     if(S.renWon)eps.push('SOVEREIGN OF THE FRINGE');
     if(eps.length)txtFit('\u2605 '+eps.join(' \u2022 '),214,R2Y+206,'#ffd86b',9,206,'left','normal');
@@ -22539,6 +22588,38 @@ function buildEpilogue(side){
     P9.push({t:'THE HEADING',a:4,l:[
       nm9+'. Sovereign of the Fringe. Kings need castles. You need only a heading and a running start.',
       'The throne is a chair on a bridge, pointed at open stars and somebody else\'s money. It always was. Now go spend the legend.']});
+  } else if(side==='vor'){
+    /* THE CROWN HAD NO SEND-OFF AT ALL. buildEpilogue handled fed, ren and saint, and fell off the
+       end for 'vor' with an empty panel array, so finishing the campaign as the Emperor gave you a
+       blank screen and dropped you back into space. Wolf finished the whole arc and got somebody
+       else's medal ceremony and no ship. This is his. */
+    const held0=(typeof heldCount9==='function')?heldCount9():0;
+    const dread0=(typeof dread9==='function')?Math.round(dread9()):0;
+    const mon0=S.monuments9||0;
+    P9.push({t:'THE SILENCE AFTER',a:0,l:[
+      'It ends the way these things end, which is not with a battle. It ends on an ordinary afternoon when the last channel that was still arguing about you stops arguing about you, because there is no longer a side to argue for.',
+      'Nobody announces it. That is how you know it is finished. There is no announcement because there is no one left whose announcement would mean anything.']});
+    P9.push({t:'THE TALLY THEY WILL NOT READ',a:2,l:[
+      held0+' systems answer to the throne tonight. '+charted9+' skies charted, '+kills9+' hulls put down, '+mon0+' monument'+(mon0===1?'':'s')+' standing where somebody else’s flag used to.',
+      'No service will enter these numbers into a record, because the services that kept records now keep yours. The figure that actually moved is the other one, the one with no column and no ceiling: DREAD '+dread0+'.',
+      'History does not get written about you. History gets permission.']});
+    P9.push({t:'THE ONES WHO STAYED',a:1,l:[
+      'Your crew did not run. They changed with you and stayed, which was always the worse of the two options and the one they took anyway.',
+      crew[2].name+' still runs the science station, still files the readings, still says the numbers out loud at the top of every watch. Nobody has asked for those numbers in a long time. '+crew[2].name+' says them anyway, into a bridge where nothing answers, and you have never once told them to stop.']});
+    P9.push({t:'WHAT IS NOT IN THE SKY ANY MORE',a:4,l:[
+      'The couriers fly. The lanes are busy. The freight moves on time, every time, and nobody is robbed on the rim any more, and nobody has been hungry in a conquered system in eleven months.',
+      'You did that. It is not a joke and it is not a trick and the people living in it are not pretending. You made the sky safe by becoming the only thing left in it worth being afraid of, and the arithmetic works, and that is the part nobody has a good answer for, including you.']});
+    P9.push({t:'ORSON, AT THE BACK',a:3,l:[
+      'Orson came for the spectacle. He has been to every coronation worth attending in eleven thousand years and he came to this one expecting the usual.',
+      '"I wanted to be disappointed in you," he says, from the dark at the back of a throne room the size of a moon. "I had the line ready and everything." He does not deliver it. He leaves early, which he has never once done, and the door he does not use closes anyway.']});
+    P9.push({t:'THE DREAD CROWN',a:7,l:[
+      'The yards that used to build dreadnoughts for the Accord build one thing now, and they built it without being asked, which is the most frightened thing anyone has ever done.',
+      'Obsidian and blood. A hull that does not reflect light so much as decline it. THE DREAD CROWN, and every plate of her came off a ship that was sent to stop you.',
+      '(She is yours now, and stays yours. Fly her from any shipyard, or keep the throne hull you took it all in. Both wait in your berth.)']});
+    P9.push({t:'AND THEN TOMORROW',a:8,l:[
+      'There is no step after this one. That is the thing nobody warns you about: the conquering was the easy half, because the conquering had an end in it, and this does not.',
+      'The rift keeps its own counsel. Somewhere out past the deeps, something older than the throne has noticed that the sky has one owner now, and is taking its time deciding how it feels about that.',
+      'You have all the time there is. You are going to need it.']});
   } else if(side==='saint'){
     P9.push({t:'THE UNUSUAL HONOR',a:6,l:[
       'They canonize you while you are still alive, which everyone agrees is unusual, and no one agrees is wise, and which happens anyway because there is no longer any argument left that can stand in front of what you did.',
@@ -23712,7 +23793,7 @@ function drawRecord(){
     ry9+=ROWH9;
   }
   const eps9=[];
-  if(S.invWon)eps9.push('SAVIOR OF THE ACCORD');
+  if(S.invWon)eps9.push((typeof isVorlan9==='function'&&isVorlan9())?'THE CUBE-BREAKER':((typeof isSaint9==='function'&&isSaint9())?'WHO STILLED THE TIDE':'SAVIOR OF THE ACCORD'));
   if(S.miniRift)eps9.push('WORLD-EATER SLAYER');
   if(S.renWon)eps9.push('SOVEREIGN OF THE FRINGE');
   let fy9=ry9+10;
@@ -24739,6 +24820,16 @@ const CAP_FLIGHT9=8;
 // should never be the reason the enemy cannot launch.
 const FIG_BOARD9=34;
 function isCapital(e){return !!(e&&e.et&&e.et.deploys);}
+// Which hulls the dark will allow the Emperor to keep. The throne always, and THE DREAD CROWN once
+// he holds the sky, because a reward the frame lock erases one tick later is not a reward.
+function vorHullOk9(k9){
+  try{
+    if(k9==null)return false;
+    if(typeof throneSkin9==='function'&&k9===throneSkin9())return true;
+    if(S.vorDom9&&typeof FINALE_HULL9!=='undefined'&&k9===FINALE_HULL9.vor)return true;
+  }catch(e){}
+  return false;
+}
 // A capital that flies under YOUR colours: a corrupted hull, Korvaan whether he knelt or is held in
 // thrall, anything charmed, and the Lucky Lady once the casino is yours. These used to sit there
 // with their bays welded shut, because the charmed/friendly branch of the enemy update returns
@@ -27903,7 +27994,12 @@ function frameInner(now){
   if(!muted)musicTick9();
   vorInit9();saintInit9();   // both arcs' state is always present, in every build
   teachTick9();              // explain each acquired ability the first moment it becomes usable
-  if(isVorlan9()){if(S.hullTemp){S.hullTemp=null;}const ts9=throneSkin9();if(ts9>=0&&S.hullSkin!==ts9){const had9=S.hullSkin;S.hullSkin=ts9;S.vorHull9=ts9;S.citadel=false;   // the Vorlan hull stays the Vorlan hull, no matter what set it otherwise (including any temp shimmer)
+  // THE HULL LOCK. The Emperor's hull is the throne hull and the dark puts it back every frame. This
+  // is why grantFinaleHull9 refused to hand him a ship: anything it set was reverted on the next
+  // tick with a line about the plating. So dominion could never change his hull by assignment, which
+  // is exactly what Wolf hit ("the ship was the same"). The lock stays; it just learns a second
+  // legal hull. Once the sky is his, THE DREAD CROWN is as much the throne as the throne is.
+  if(isVorlan9()){if(S.hullTemp){S.hullTemp=null;}const ts9=throneSkin9();if(ts9>=0&&!vorHullOk9(S.hullSkin)){const had9=S.hullSkin;S.hullSkin=ts9;S.vorHull9=ts9;S.citadel=false;   // the Vorlan hull stays the Vorlan hull, no matter what set it otherwise (including any temp shimmer)
     if(had9!=null&&had9!==ts9){try{say('The hull does not stay what it was. The dark climbs the plating and it is the throne again.','#c9b7e8');}catch(e){}}}}
   applyDiff9();               // universal difficulty: keep MODE.take/give0 in step with the slider
   // a bad system index used to take the whole frame down. Clamp it, log once.
