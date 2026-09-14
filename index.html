@@ -575,7 +575,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc11';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc13';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -3569,6 +3569,30 @@ function saintCanonize9(){
   QSTATE.flash=Math.max(QSTATE.flash||0,3);S.shake=Math.max(S.shake||0,8);
   try{if(sfx.fanfare)sfx.fanfare();}catch(e9){}
   awardScore(20000);gainStanding(10);graceGain9(999);
+  // Wolf, twice: "when you become the saint and they canonize you you get that pretty hull with
+  // many angel drones. Guess what you can't get back in it if you go to the chapter house."
+  // Measured: canonization granted NO hull at all. THE DAWNMAKER was only ever handed over by
+  // startEpilogue('saint'), which needs all 25 works finished, so at 21/25 she had never actually
+  // been given it and it was correctly absent from the library. The hull he remembers flying is the
+  // one the game shows you in the canonization cutscene art. It is hers at canonization now, and it
+  // goes into earnedHulls9 in the same breath so the White Library can always hand it back.
+  try{
+    const dk9=(typeof FINALE_HULL9!=='undefined')?FINALE_HULL9.saint:27;
+    if(dk9!=null){
+      if(!S.earnedHulls9)S.earnedHulls9=[];
+      if(S.earnedHulls9.indexOf(dk9)<0)S.earnedHulls9.push(dk9);
+      const was9=S.hullSkin;
+      if(was9!=null&&was9!==dk9){
+        S.chapel9=S.chapel9||{};S.chapel9.skins9=S.chapel9.skins9||[];
+        if(S.chapel9.skins9.indexOf(was9)<0&&CHAPHULL9.some(h9=>h9.sk===was9))S.chapel9.skins9.push(was9);
+      }
+      S.hullSkin=dk9;
+      ship.hangar=true;S.wingWounds=0;
+      try{ship.fighters=wingSize();}catch(e9){}
+      say('\u2726\u2726 THE DAWNMAKER. White past the point of colour, ringed in her own light, winged in gold, and not one gun aboard her, because every plate of her was a weapon once. '+wingSize()+' drones on the racks. \u2726\u2726','#eaf3ff');
+      say('\u2726 She is yours and she stays yours. The WHITE LIBRARY will hand her back any time you take another hull out.','#cfe8ff');
+    }
+  }catch(e9){}
   try{setMusic('saint_peace');}catch(e9){}   // saintly victory music
   try{startCutscene9('saint_canon');}catch(e9){
     say('\u2726 You are canonized. THE MIRACLE is yours now \u2014 [R] in open space when your grace runs deep: still an entire sky and make it whole. Only the canonized can work it.','#eaf3ff');
@@ -5834,15 +5858,31 @@ function saintCourierBless9(t9){
   const nm9=(function(){try{return (COURIER_CLASSES[t9.cIdx||0]||COURIER_CLASSES[0]).nm;}catch(e9){return 'A COURIER';}})();
   const who9=EARTHWHO9[Math.floor(rnd(0,EARTHWHO9.length))];
   const ask9=EARTHASK9[Math.floor(rnd(0,EARTHASK9.length))];
+  // TRIBUTE TO THE SAINT. Wolf: "Couriers should pay sometimes on these scans." Measured over 200
+  // scans before this: zero paid anything. The blessing was its own reward and nothing else ever
+  // changed hands, so a hundred scans moved her economy not at all. Roughly one in four now presses
+  // something on her, and about one in twelve of those is a keepsake rather than credits. Not every
+  // time, because a thing that happens every time stops being a gift and becomes a toll.
+  const gift9=Math.random();
+  let purse9=0, keep9=null;
+  if(gift9<0.06){
+    try{keep9=LANE_SMALLCURIO9[Math.floor(rnd(0,LANE_SMALLCURIO9.length))];}catch(e9){keep9=null;}
+  } else if(gift9<0.26){
+    purse9=Math.round((240+rnd(0,520))*(1+Math.min(25,(typeof pacifiedCount9==='function')?pacifiedCount9():0)*0.05));
+  }
   showEnc('A COURIER ASKS',
     nm9+'. Your scan goes across her and the channel opens from the other end before you have finished.\n\n'+
     'Aboard, '+who9+' '+ask9+'. Then, while you are deciding, and as though it were the natural next thing to say:\n\n'+
     earthLine9(),
-    [{label:'Bless the ship and everyone in her.',col:'#16283e',tcol:'#cfe8ff',
+    [{label:'Bless the ship and everyone in her.'+(purse9?(' (they press '+purse9.toLocaleString()+' cr on you)'):(keep9?(' (they press something on you)'):'')),col:'#16283e',tcol:'#cfe8ff',
       fn:()=>{closeEnc();
         try{graceGain9(12);}catch(e9){}
         try{laneFeed9(0.06);}catch(e9){}
-        say('✦ You give it. It takes four seconds and costs nothing and they will talk about it for a year. The lane remembers things like that.','#cfe8ff');}},
+        if(purse9){ship.credits+=purse9;
+          say('✦ You give it. It takes four seconds and costs nothing and they will talk about it for a year. Then a tithe comes across the gap before you can decline it, counted out in a hand that has clearly been holding it ready the whole time. (+'+purse9.toLocaleString()+' cr)','#cfe8ff');}
+        else if(keep9){ship.curios.push({name:keep9[0],value:keep9[1]});
+          say('✦ You give it, and they give you '+keep9[0]+', which has been aboard longer than the pilot has, and they will not hear a word against the idea.','#cfe8ff');}
+        else say('✦ You give it. It takes four seconds and costs nothing and they will talk about it for a year. The lane remembers things like that.','#cfe8ff');}},
      {label:'Bless them, and ask what else they remember.',col:'#16283e',tcol:'#eaf3ff',
       fn:()=>{closeEnc();
         try{graceGain9(16);}catch(e9){}
@@ -6633,32 +6673,89 @@ function invTick(){
   if(!S.inv){
     if(S.completed.size>=15&&(S.standing||50)>=40&&Math.random()<.3&&['core','border','frontier'].includes(regionOf(ship.sys))&&!enemies.some(e=>e.alive)){
       S.inv={stage:1};
+      const vor1=(typeof isVorlan9==='function'&&isVorlan9());
+      const sai1=(typeof isSaint9==='function'&&isSaint9());
       showEnc('ACT I — THE SILENT LISTENING POST',
-        'An Accord listening post drifts dead ahead, every dish shredded, one transmitter looping a final message: "...mass readings beyond scale... they are coming for the CORE... tell the Accord THE NULL ARE COMING..." The loop repeats. The post does not.',
-        [{label:'Sound the alarm — priority channel to Accord High Command',fn:()=>{closeEnc();say('Fleet elements begin to rally across the core. Watch the border, Captain — the vanguard comes first. (ACT I of THE TIDE has begun.)','#9fd8ff');sfx.alert();}}]);
+        vor1
+        ? 'A listening post drifts dead ahead with every dish shredded, and it is still talking. "...mass readings beyond scale... they are coming for the CORE... tell the Accord THE NULL ARE COMING..." The loop repeats. The post does not.\n\nSomething is coming through your sky to take something that is yours, and it has not asked, and it does not appear to know that the question has an owner now.'
+        : sai1
+        ? 'A listening post drifts dead ahead, every dish shredded, one transmitter looping a final message: "...mass readings beyond scale... they are coming for the CORE... tell the Accord THE NULL ARE COMING..." The loop repeats. The post does not.\n\nThere were nine people on this station. The loop is in one of their voices, and she kept her voice steady all the way to the end of the sentence, which is the part you will not be able to put down.'
+        : 'An Accord listening post drifts dead ahead, every dish shredded, one transmitter looping a final message: "...mass readings beyond scale... they are coming for the CORE... tell the Accord THE NULL ARE COMING..." The loop repeats. The post does not.',
+        (vor1
+        ? [{label:'Put the word out on your own channels. Everything holding, still, and waiting.',fn:()=>{closeEnc();say('\u2620 The order goes out on the throne\u2019s frequencies and every held world begins moving hulls toward the border, which is not a rally, it is an inventory being protected. Watch the border. The vanguard comes first. (ACT I of THE TIDE has begun.)','#c9b7e8');try{dreadAdd9(2);}catch(e){}sfx.alert();}},
+           {label:'Say nothing. Let the Accord find out the way this post did.',fn:()=>{closeEnc();say('\u2620\u2620 You leave the loop running and you tell nobody. The core will learn about this when it arrives in orbit, and every hour they spend not knowing is an hour they are not spending rebuilding a fleet. Watch the border. (ACT I of THE TIDE has begun.)','#e86ad9');try{dreadAdd9(5);}catch(e){}sfx.alert();}}]
+        : sai1
+        ? [{label:'Carry her message on, in her own voice, to everyone in reach.',fn:()=>{closeEnc();say('\u2726 You relay the loop unedited, including the four seconds at the end where she is still breathing. Every hull in three regions hears a woman keep her voice level, and a great many of them turn toward the border instead of away from it. (ACT I of THE TIDE has begun.)','#cfe8ff');try{graceGain9(24);}catch(e){}sfx.alert();}},
+           {label:'Go aboard first. Nine people is not a number, it is nine people.',fn:()=>{closeEnc();say('\u2726 You board a dead station with a warning running in it and you bring out what can be brought out and you do the rites yourself, in a shredded dish array, before you relay anything. It costs you four hours. The warning still goes out. (ACT I of THE TIDE has begun.)','#eaf3ff');try{graceGain9(34);}catch(e){}try{mercySpare9&&mercySpare9();}catch(e){}sfx.alert();}}]
+        : [{label:'Sound the alarm \u2014 priority channel to Accord High Command',fn:()=>{closeEnc();say('Fleet elements begin to rally across the core. Watch the border, Captain \u2014 the vanguard comes first. (ACT I of THE TIDE has begun.)','#9fd8ff');sfx.alert();}},
+           {label:'Board her first. Nine people is not a number, it is nine people.',fn:()=>{closeEnc();try{gainStanding(3);}catch(e){}try{S.mercy=(S.mercy||0)+1;}catch(e){}say('You go aboard a dead station with a warning running in it, and you bring out what can be brought out, and the alarm goes up four hours late with nine names attached to it that would otherwise have been a mass reading. (+standing) (ACT I of THE TIDE has begun.)','#7fd98a');sfx.alert();}}]));
       return true;
     }
     return false;
   }
   if(S.inv.stage===1&&regionOf(ship.sys)==='border'&&Math.random()<.5&&!enemies.some(e=>e.alive)){
     S.inv.stage=2;
+    const vor2=(typeof isVorlan9==='function'&&isVorlan9());
+    const sai2=(typeof isSaint9==='function'&&isSaint9());
+    const engage2=()=>{closeEnc();
+      for(let i9=0;i9<3;i9++){const e9=spawnEnemy('null_seeker',{noTier:true});e9.detected=true;e9.idKnown=true;}
+      S.inv.waiting=true;
+      alarm(vor2?'THE VANGUARD IS HERE \u2014 THEY ARE IN YOUR SKY':(sai2?'THE VANGUARD IS HERE \u2014 STILL THEM':'THE VANGUARD IS HERE \u2014 clear them, Captain!'));};
     showEnc('ACT II — THE VANGUARD',
-      'They drop out of transrift in perfect, horrible silence: three probes, scouting the border for the Tide behind them. Whatever they learn here, the cube will know.',
-      [{label:'They learn NOTHING. Battle stations.',fn:()=>{closeEnc();
-        for(let i9=0;i9<3;i9++){const e9=spawnEnemy('null_seeker',{noTier:true});e9.detected=true;e9.idKnown=true;}
-        S.inv.waiting=true;alarm('THE VANGUARD IS HERE \u2014 clear them, Captain!');}}]);
+      vor2
+      ? 'They drop out of transrift in perfect, horrible silence: three probes, reading the border for the thing behind them. Whatever they learn here, the cube will know.\n\nThey are measuring your holdings. Not a border. Yours.'
+      : sai2
+      ? 'They drop out of transrift in perfect, horrible silence: three probes, reading the border for the Tide behind them. Whatever they learn here, the cube will know.\n\nThere is nobody inside them. You check twice, because you have been wrong about that before and you would rather be wrong this way round.'
+      : 'They drop out of transrift in perfect, horrible silence: three probes, scouting the border for the Tide behind them. Whatever they learn here, the cube will know.',
+      (vor2
+      ? [{label:'They learn NOTHING. Unmake them.',fn:engage2},
+         {label:'Let one live and follow what it reports to.',fn:()=>{closeEnc();
+           for(let i9=0;i9<2;i9++){const e9=spawnEnemy('null_seeker',{noTier:true});e9.detected=true;e9.idKnown=true;}
+           S.inv.waiting=true;S.invTail9=true;try{dreadAdd9(2);}catch(e){}
+           say('\u2620 Two of them come apart. The third is allowed to finish its reading and run, carrying an accurate account of exactly what is waiting, because you would rather the cube arrived informed. (+dread)','#c9b7e8');
+           alarm('TWO DOWN. THE THIRD IS ALLOWED TO LEAVE');}}]
+      : sai2
+      ? [{label:'Still them. Every one, unhurt, and read what they carry.',fn:engage2},
+         {label:'Stand between them and the border and simply refuse to move.',fn:()=>{closeEnc();
+           for(let i9=0;i9<3;i9++){const e9=spawnEnemy('null_seeker',{noTier:true});e9.detected=true;e9.idKnown=true;}
+           S.inv.waiting=true;try{graceGain9(20);}catch(e){}
+           say('\u2726 You put the white hull across their line and hold station. They do not understand it and they do not go around, and for eleven minutes nothing in this sky moves at all. Then they come at you, because that is all they have. (+grace)','#cfe8ff');
+           alarm('THEY WILL NOT GO AROUND YOU');}}]
+      : [{label:'They learn NOTHING. Battle stations.',fn:engage2}]));
     return true;
   }
   if(S.inv.stage===2&&S.inv.cleared&&SYSTEMS[ship.sys].base){
     S.inv.stage=3;
-    showEnc('ACT III — THE TIDE',
-      'The starbase\'s sirens are already singing when you arrive. On the long-range plot: a CUBE, escorted by spheres, ploughing toward the core at speeds that should not be possible. The fleet is scattered. The base is here. YOU are here.',
-      [{label:(typeof isVorlan9==='function'&&isVorlan9())?'"MINE. Say it to them in a language they compile." — MEET THE CUBE':'"This far. No further." — ALL HANDS, DEFEND THE STARBASE',fn:()=>{closeEnc();
+    const vor3=(typeof isVorlan9==='function'&&isVorlan9());
+    const sai3=(typeof isSaint9==='function'&&isSaint9());
+    const meet3=()=>{closeEnc();
         S.screen='space';setMusic('space');S.orbit=false;
         for(let i9=0;i9<3;i9++){const e9=spawnEnemy('null_seeker',{noTier:true});e9.detected=true;e9.idKnown=true;}
         for(let i9=0;i9<2;i9++){const e9=spawnEnemy('null_sphere',{noTier:true});e9.detected=true;e9.idKnown=true;}
         const cb=spawnEnemy('null_bastion',{noTier:true,boss:true});cb.detected=true;cb.idKnown=true;cb.hp*=1.6;cb.maxHp*=1.6;
-        alarm('THE TIDE HAS COME. The cube is HERE.');sfx.nullsig9();}}]);
+        alarm('THE TIDE HAS COME. The cube is HERE.');sfx.nullsig9();};
+    showEnc('ACT III — THE TIDE',
+      vor3
+      ? 'The base\u2019s sirens are already singing when you arrive. On the long-range plot: a CUBE, escorted by spheres, ploughing toward the core at a speed that should not be possible.\n\nThe fleet is scattered. The base is here. You are here, and you are the only thing in this sky that has ever successfully taken anything off anyone at this scale, and both you and the cube are about to find out which of you is the collector.'
+      : sai3
+      ? 'The base\u2019s sirens are already singing when you arrive. On the long-range plot: a CUBE, escorted by spheres, ploughing toward the core at a speed that should not be possible.\n\nThe fleet is scattered. The base is here. There are forty thousand people on it and they are watching a white hull with no guns turn toward the thing, and some of them have started to pray, and some of them have started to leave, and both of those are reasonable.'
+      : 'The starbase\'s sirens are already singing when you arrive. On the long-range plot: a CUBE, escorted by spheres, ploughing toward the core at speeds that should not be possible. The fleet is scattered. The base is here. YOU are here.',
+      (vor3
+      ? [{label:'"MINE. Say it to them in a language they compile." \u2014 MEET THE CUBE',fn:meet3},
+         {label:'Let it hit the core first. Then take what is left of both.',fn:()=>{closeEnc();
+           try{dreadAdd9(10);}catch(e){}
+           S.invHeld9=true;
+           say('\u2620\u2620 You hold your hulls back and you watch it go in, and the core learns what it is like to be collected by something that does not negotiate. You will arrive afterwards, and everything either of them still has will be yours, and nobody will ever be able to say you did not warn them, because you did not say anything at all. (+dread)','#e86ad9');
+           say('The cube does not stop at the core. It comes back out, fed, and it is still coming, and now it is bigger and there is nothing between it and you. Meet it at any base.','#c9b7e8');}}]
+      : sai3
+      ? [{label:'"This far. No further." \u2014 PUT THE WHITE BETWEEN IT AND THEM',fn:meet3},
+         {label:'Empty the base first. Every hull, every hold, everyone.',fn:()=>{closeEnc();
+           try{graceGain9(40);}catch(e){}try{mercySave9(40);}catch(e){}
+           try{award(6000);}catch(e){}
+           S.invEvac9=true;
+           say('\u2726 You do not turn to face it yet. You spend the hours you have filling every hull in the system with people and pointing them away, and the last transport clears as the plot goes red. Forty thousand. Then you turn round. (+6,000 cr in what they pressed on you, +grace)','#cfe8ff');
+           say('The cube is still coming and the base is still here and now it is empty, which is the only part of this you get to choose. Meet it at any base.','#eaf3ff');}}]
+      : [{label:'"This far. No further." \u2014 ALL HANDS, DEFEND THE STARBASE',fn:meet3}]));
     return true;
   }
   return false;
@@ -6939,10 +7036,242 @@ const SAINT_EVENTS9=[
       say('He goes. He tells it for years, and in his telling he is entirely right about you, and the worst part is that in that one particular he is.','#c98a8a');})])
 ];
 
+
+/* ===================== THE CROWN'S OWN SKY ==========================================
+   THE FINDING THAT PRODUCED THIS. Wolf, playing the Emperor, was shown an Accord distress
+   beacon and given one button reading "Sound the alarm, priority channel to Accord High
+   Command." He asked for an ecological check of all plot content across all three
+   personas. The audit ran the real game loop for two hours of play per persona and logged
+   every dialog that actually opened. The Emperor received EIGHT cards in 120 arrivals, and
+   every one of them belonged to somebody else: two acts of the Accord invasion arc and the
+   four Accord moral dilemmas, all paying standing.
+
+   The cause was not a leak. spaceEvent() returns early for him, so his deck was EMPTY, and
+   the only two plot tickers without a persona gate were both Accord content. He was not
+   getting the wrong events. He was getting the only events that could reach a vacuum.
+
+   So: the deck the white got in rc10, for the crown. Nothing here pays standing, nothing
+   here is addressed to a Captain, and nothing here asks his permission.
+   ==================================================================================== */
+function vDread9(n9){try{dreadAdd9(n9);}catch(e){}}
+function vPay9(c9){try{award(Math.round(c9));}catch(e){}}
+function vWin9(cr9,dr9,sc9){if(cr9)vPay9(cr9);if(dr9)vDread9(dr9);if(sc9)try{awardScore(sc9);}catch(e){}}
+
+const VOR_EVENTS9=[
+// ---------- WHAT TRIBUTE ACTUALLY IS ----------
+()=>showEnc('THE TRIBUTE IS SHORT',
+  'A hold opens on the dock and it is not full. The steward of a world that has paid on time for nine months stands beside it with his hands where you can see them and does not offer an excuse, because he has worked out that an excuse is a thing you do to someone who might be persuaded.\n\nThe harvest failed. That is all. There is no second half of the sentence.',
+  [O9('Take what is there. Say nothing about the rest.',()=>{
+      vWin9(4200,2,3000);
+      say('☠ You take the half and you turn and you go, and you do not say the thing everyone in that room is braced for. By nightfall the story has run three systems and in every telling it is more frightening than if you had burned the place, because nobody can work out the rule. (+4,200 cr)','#c9b7e8');}),
+   O9('Take the steward instead of the grain.',()=>{
+      vWin9(1800,6,4000);
+      say('☠☠ You take him. The harvest is not your problem and the accounting is not your problem, and what leaves that dock is one man who was standing where the number should have been. The world pays early for four years. (+1,800 cr)','#e86ad9');}),
+   O9('Forgive the year. Out loud. In front of them.',()=>{
+      vWin9(0,-4,8000);
+      try{laneFeed9(0.2);}catch(e){}
+      say('You forgive it, and the room does not understand, and that is worse for them than the other thing would have been. They will spend a decade trying to work out what it bought you. So will you. (−dread, and something you have not got a name for)','#c07ae8');})]),
+
+()=>showEnc('THEY ARE PAYING TWICE',
+  'An auditor of your own revenue, shaking badly, has found a discrepancy and has decided, against all of his instincts, that you would rather know: one of your governors has been taking a second tribute after yours, in your name, and keeping it.\n\nHe has brought the ledgers. He has also brought, unasked, a list of where the man sleeps.',
+  [O9('Unmake the governor where his own people can watch.',()=>{
+      vWin9(9000,7,9000);
+      say('☠☠ You do it in the square at noon and you do not explain, and the explanation arrives on its own within the hour because everyone there can do the arithmetic. Nobody steals in your name again for a long time. (+9,000 cr recovered)','#e86ad9');}),
+   O9('Leave him in place and take his whole second purse, forever.',()=>{
+      vWin9(14000,3,6000);
+      say('☠ You let him keep the job and the terror and the paperwork, and you take the money, all of it, every quarter, and he goes on collecting it for you with his own hands. A useful man is worth more than a warning. (+14,000 cr)','#c9b7e8');}),
+   O9('Promote the auditor into his chair.',()=>{
+      vWin9(6000,4,7000);
+      say('☠ You give the trembling accountant an empire to run and he takes it, because the alternative was standing there holding a ledger. He will be very good and very frightened for the rest of his life, which is the same thing in your service. (+6,000 cr)','#c07ae8');})]),
+
+// ---------- THE ONES WHO WILL NOT ----------
+()=>showEnc('THE WORLD THAT WILL NOT SAY IT',
+  'They have surrendered. They have opened the ports, stood down the guns, handed over the lists, and they will not say the words. The council sits in the hall with the document in front of them and will not read it aloud, and they have been sitting there for two days.\n\nThe thing they will not say is your name.',
+  [O9('Take the hall apart around them until somebody says it.',()=>{
+      vWin9(3000,8,5000);
+      say('☠☠ Somebody says it. Of course somebody says it. It takes most of an afternoon and afterwards you have a compliance you will have to keep buying, in that currency, forever. (+3,000 cr)','#e86ad9');}),
+   O9('Have the document read by a child of the house.',()=>{
+      vWin9(5000,9,11000);
+      say('☠☠☠ You do not touch one of them. You send for the youngest member of the family that has ruled there eleven generations, and she reads it out in a clear voice because nobody has told her not to, and the room breaks in a way that no amount of force could have managed. (+5,000 cr)','#e86ad9');}),
+   O9('Let them keep the silence. Take everything else.',()=>{
+      vWin9(11000,1,6000);
+      say('☠ You take the ports, the yards, the lanes and the revenue and you leave them their refusal, which costs you nothing and which they will discover, slowly, cost them everything else. (+11,000 cr)','#c9b7e8');})]),
+
+()=>showEnc('THE ONE WHO IS NOT AFRAID',
+  'A dock engineer looks up from the plating, works out exactly what has just walked onto her gantry, and goes back to the weld.\n\nShe is not being brave. Bravery has a tension in it and she does not have any. She has simply decided that her opinion of you is not interesting enough to stop working over, and this is the first time in a long while that anything has surprised you.',
+  [O9('Ask her what she is building.',()=>{
+      vWin9(2600,-1,7000);
+      say('She tells you. At length. With diagrams. She is not flattered and she is not frightened and she wants you to understand why the seam runs diagonally, and you stand there for forty minutes in a dock that has gone completely silent around the two of you. (+2,600 cr, and an hour you will think about)','#c07ae8');}),
+   O9('Take her. Every yard you own needs one of those.',()=>{
+      vWin9(0,3,6000);
+      try{S.vorWingBonus9=(S.vorWingBonus9||0)+1;}catch(e){}
+      say('☠ You take her, and she comes without visible feeling about it, and within a season your yards are turning out hulls a third faster. She still will not look up when you enter. (+1 to your wing, permanently)','#c9b7e8');}),
+   O9('Leave her alone and tell no one why.',()=>{
+      vWin9(0,-2,9000);
+      say('You walk out. Your own people spend a week trying to find out what she said to survive it, and the true answer, which is nothing, is the one they will never believe.','#c07ae8');})]),
+
+// ---------- WHAT IT IS LIKE TO BE OBEYED ----------
+()=>showEnc('NOBODY WILL TAKE YOUR MONEY',
+  'The yard has done the work. It is good work, it took nine days, and the yardmaster will not produce a bill. He does not refuse. He simply cannot be made to say a number, and when you press him a second time he begins, visibly, to come apart.\n\nThere is a whole world of transactions in which you no longer participate.',
+  [O9('Leave far too much on the bench and go.',()=>{
+      vWin9(-9000,-2,6000);
+      try{laneFeed9(0.25);}catch(e){}
+      say('You leave nine thousand on the bench, which is roughly triple, and you leave before anyone can work out how to give it back. The lane here gets busier for a season and nobody in the yard ever mentions it. (−9,000 cr, and the lanes remember)','#c07ae8');}),
+   O9('Accept it as the tribute it is.',()=>{
+      vWin9(0,3,4000);
+      say('☠ You let him give it to you, because that is what is happening, and you watch him be relieved about it, and that relief is the most expensive thing in the room and neither of you is paying for it. (+dread)','#c9b7e8');}),
+   O9('Order him to name a number and hold him to it.',()=>{
+      vWin9(-2200,1,5000);
+      say('☠ "A number." He gives you one. It is absurdly low and he is sweating and you pay it exactly, to the credit, and the lesson does not land, because the lesson you were trying to teach requires him not to be frightened of you and he is never going to manage that again. (−2,200 cr)','#c9b7e8');})]),
+
+()=>showEnc('THE MAN WHO KNEW YOU BEFORE',
+  'He comes up the ramp the way people used to, with his hand out and a story already started, and he gets four words into it before the rest of the dock sees who he is talking to and the noise goes out of the place like air out of a lock.\n\nHe served with you. Two postings, a long time ago. He has just realised, in public, that he is the only person in this system who was ever allowed to do that.',
+  [O9('Finish the story with him, in front of everybody.',()=>{
+      vWin9(3400,-3,8000);
+      say('You finish it. You even get the name of the third officer right, which he had wrong. He laughs before he can stop himself and the dock hears a sound it did not know could happen here, and for about four seconds you are a person who used to be somewhere. (+3,400 cr, and −dread you will not miss)','#c07ae8');}),
+   O9('Let him understand what he has done.',()=>{
+      vWin9(0,6,5000);
+      say('☠ You say nothing. You let him find the bottom of it on his own, in the open, in front of two hundred people, and he does, and he gets smaller the whole way down. Nobody will ever again approach you as a person. That was the point. (+dread)','#e86ad9');}),
+   O9('Give him a world to run and never speak to him again.',()=>{
+      vWin9(0,2,9000);
+      try{const k9=Object.keys(S.tribute9||{})[0];if(k9!=null&&S.tribute9[k9])S.tribute9[k9].loyal=100;}catch(e){}
+      say('☠ He gets a governorship, a title, and a permanent silence from the throne, and he will spend thirty years trying to decide whether it was a reward. It was both. Most things are.','#c9b7e8');})]),
+
+// ---------- THE ONES WHO COME TO SERVE ----------
+()=>showEnc('THE VOLUNTEERS',
+  'Nine of them at the foot of the ramp, and they are not conscripts and not petitioners. They have come from four systems to offer themselves, and they have rehearsed, and the one doing the talking uses the phrase "the necessary order" twice.\n\nThey are all much too pleased about it.',
+  [O9('Take the three who did not speak.',()=>{
+      vWin9(2000,3,6000);
+      say('☠ You take the quiet ones, which the talker does not understand and never will. Enthusiasm is a liability in this work; you need people who can do the thing and then go and have dinner. (+2,000 cr)','#c9b7e8');}),
+   O9('Take all nine and let the empire sort them.',()=>{
+      vWin9(5200,4,5000);
+      say('☠ All nine. Four of them will be useful, three will be a problem in about a year, and two will be dead of their own ambition before the season turns, and you have known which is which since the ramp. (+5,200 cr in the levies they bring)','#c9b7e8');}),
+   O9('Send them home. They are having too good a time.',()=>{
+      vWin9(0,-1,7000);
+      say('You turn nine eager people around on a dock and send them back to the lives they were trying to escape, and the one who was talking is still explaining his rehearsed line to somebody as the lock cycles. Whatever this is, it is not supposed to be fun.','#c07ae8');})]),
+
+()=>showEnc('THE INFORMER',
+  'She wants to sell you somebody. She has the shape of it ready: a name, a system, a specific and detailed grievance, and an offer to hand over the whole cell for a figure she has clearly agonised over and pitched low.\n\nHalf of what she is describing is real. The other half is a neighbour she has hated since before any of this.',
+  [O9('Buy the half that is true and let her keep the rest.',()=>{
+      vWin9(3800,2,7000);
+      say('☠ You pay for the part that checks out and you decline the neighbour, by name, out loud, so she knows exactly which half you believed. She will never try that again and she will never stop working for you. (+3,800 cr in what the cell was holding)','#c9b7e8');}),
+   O9('Take the list entire. Sort it later. Or not.',()=>{
+      vWin9(6400,7,4000);
+      say('☠☠ You take all of it and you act on all of it and one of the names was a grudge, and that is a thing you now know about yourself and have decided to keep moving past. The system is quieter. (+6,400 cr)','#e86ad9');}),
+   O9('Give the neighbour her name instead.',()=>{
+      vWin9(0,5,8000);
+      say('☠☠ You do not buy anything. You walk to the other house and you hand over the informer, free, as a gift, and you leave the two of them to it. Nobody informs in that system for eleven years. (+dread)','#e86ad9');})]),
+
+// ---------- GOVERNING, WHICH IS THE PART NOBODY WARNS YOU ABOUT ----------
+()=>showEnc('SOMEBODY NEEDS A DECISION',
+  'The empire has produced its first genuinely boring problem. Two of your held worlds share a water contract that predates all of this, both of them have kept it faithfully, and the aquifer has moved. Neither side has done anything wrong. Both are waiting for you.\n\nThere is nobody to be frightened of here. There is only an answer that has to be correct.',
+  [O9('Read the whole file and rule on the merits.',()=>{
+      vWin9(4600,0,9000);
+      try{laneFeed9(0.15);}catch(e){}
+      say('You read four hundred pages of hydrology and you get it right, and the ruling holds for decades, and not one person alive will ever describe this as the interesting part of your reign. It is, though. (+4,600 cr, and the lanes run better)','#c07ae8');}),
+   O9('Give it to whichever of them pays more.',()=>{
+      vWin9(9000,3,3000);
+      say('☠ The wealthier world gets the water. It is not a ruling, it is an auction, and both of them understand immediately that this is how it works now, and the arithmetic of your empire gets simpler and worse in the same hour. (+9,000 cr)','#c9b7e8');}),
+   O9('Take the aquifer. The dispute resolves itself.',()=>{
+      vWin9(12000,5,5000);
+      say('☠☠ You take the water. Both worlds now buy it from you at a price you set, they are no longer in dispute, and they are no longer in much of anything else either. Elegant, and everyone hates it, including the part of you that read the file. (+12,000 cr)','#e86ad9');})]),
+
+()=>showEnc('A MONUMENT YOU DID NOT ORDER',
+  'They have built you something. Sixty metres of local stone on a world you have never landed on, and it is not very good, and they have been at it for eight months with hand tools because the quarry machinery was requisitioned.\n\nThe face is wrong. Whoever carved it has never seen you and worked from a description given by somebody frightened.',
+  [O9('Accept it exactly as it is. Say the face is correct.',()=>{
+      vWin9(3000,4,8000);
+      try{const t9=S.tribute9&&S.tribute9[ship.sys];if(t9)t9.loyal=100;}catch(e){}
+      say('☠ You look at a face that is not yours and you say that it is, and the whole world exhales at once. It will be photographed for three hundred years and none of the photographs will look like you. (+3,000 cr)','#c9b7e8');}),
+   O9('Have it taken down. You did not ask for it.',()=>{
+      vWin9(0,2,6000);
+      say('☠ It comes down in a day, faster than it went up, and the world cannot decide whether it has been punished. Neither can you. You genuinely did not ask for it and that is genuinely why. ','#c9b7e8');}),
+   O9('Send them the quarry machinery back and say nothing.',()=>{
+      vWin9(-3400,-3,9000);
+      say('The requisition is reversed and the equipment arrives on a transport with no message attached, and they finish the second one properly, and the second one does look like you, which is somehow worse. (−3,400 cr)','#c07ae8');})]),
+
+// ---------- WHAT IS COMING FOR YOU ----------
+()=>showEnc('SOMETHING IS COUNTING YOUR SYSTEMS',
+  'A survey drone of no known manufacture has been through four of your held worlds in eleven days, taking readings, touching nothing, and answering no hail in any language you have.\n\nIt is not scouting for a raid. The pattern is wrong for that. It is doing an inventory.',
+  [O9('Let it finish. See what comes to collect.',()=>{
+      vWin9(0,3,9000);
+      try{S.vorCounted9=true;}catch(e){}
+      say('☠ You let it go. Whatever sent it now has a complete and accurate list of everything you hold, and will arrive, eventually, having done its homework. You would rather meet a thing that has done its homework. (+dread)','#c9b7e8');}),
+   O9('Unmake it and make sure the pieces are unreadable.',()=>{
+      vWin9(2400,4,7000);
+      say('☠☠ It comes apart without resisting and without transmitting, and in the wreck there is a storage lattice with four systems on it and room for two hundred and fifty. You are being surveyed by something that expected a bigger answer. (+2,400 cr)','#e86ad9');}),
+   O9('Feed it a false inventory and let it carry that home.',()=>{
+      vWin9(1800,2,11000);
+      say('☠ You let it finish an inventory you wrote. Somewhere out past the deeps, something is making a plan against an empire that does not exist, and when it comes it will bring exactly the wrong tools. (+1,800 cr)','#c07ae8');})]),
+
+()=>showEnc('THE PRETENDER’S WIDOW',
+  'She has come herself, unarmed, through four checkpoints that had orders to stop her, and every one of them let her through, which is a thing you will be looking into.\n\nShe does not want revenge and she does not want mercy. She wants the body, and she has brought a document listing, in a clerk’s hand, exactly which rites her family requires and what each one costs.',
+  [O9('Give her the body and pay for the rites yourself.',()=>{
+      vWin9(-5000,-2,10000);
+      say('You pay for all of it, including the part she could have afforded, and you do not attend. The story runs the whole rim inside a month and in every version you come out of it worse, which is the version you would have chosen. (−5,000 cr)','#c07ae8');}),
+   O9('Give her the body. Nothing else.',()=>{
+      vWin9(0,1,7000);
+      say('☠ She gets what she asked for and not one thing more, and she says thank you, in the correct form, and leaves through the same four checkpoints. It was a transaction. She came prepared for a transaction.','#c9b7e8');}),
+   O9('Refuse. There is no grave, and that is the point.',()=>{
+      vWin9(0,8,6000);
+      say('☠☠ No body, no grave, no rites, no place for anyone to stand. She does not argue. She looks at you for a while longer than is comfortable and then she goes, and four checkpoints let her out too. (+dread)','#e86ad9');})]),
+
+()=>showEnc('THE OLD WOMAN ON THE DOCK',
+  'She is selling fruit. She has been selling fruit on this dock since before there was an Accord to ignore her, and she looks at the throne hull and the escort and the cleared perimeter and holds up a pear.\n\n"Two credits," she says. "I do not do the other thing."',
+  [O9('Pay two credits. Eat the pear.',()=>{
+      vWin9(-2,-3,8000);
+      say('You pay two credits and you eat a pear on a dock while an entire security cordon has a crisis behind you. It is a very good pear. She does not ask what you thought of it. (−2 cr)','#c07ae8');}),
+   O9('Buy her entire stock at a hundred times the price.',()=>{
+      vWin9(-4000,1,6000);
+      say('☠ You buy all of it, absurdly, and she takes the money with the exact expression of somebody being made to do the other thing after all, and you have accidentally destroyed the only transaction on this dock that was real. (−4,000 cr)','#c9b7e8');}),
+   O9('Ask her what the other thing is.',()=>{
+      vWin9(0,-1,10000);
+      say('"Flinching," she says, and gives you the pear anyway, and goes back to her crates. You are still working on it. (−dread, and a sentence you will be carrying around for some time)','#c07ae8');})]),
+
+// ---------- ORSON, AND THE VIEW FROM UP HERE ----------
+()=>showEnc('ORSON HAS BROUGHT A CHAIR',
+  'He is sitting in the middle of your bridge in a chair that was not there, eating something that does not exist, watching you the way people watch weather.\n\n"I have been to eleven of these," he says. "Empires. I attend. It is a hobby." He gestures with the thing he is eating. "You are doing the boring one. The one where it WORKS. Do you have any idea how rare that is, and how little anybody will thank you for it?"',
+  [O9('"I did not do it to be thanked."',()=>{
+      vWin9(0,2,9000);
+      say('☠ "No," he agrees, delighted and slightly disappointed. "You did it because somebody was going to and you were the only one willing to be the answer to the question. Ugh. That is the boring one. I love the boring one." The chair goes away with him still in it.','#e86ad9');}),
+   O9('"Which of the eleven lasted?"',()=>{
+      vWin9(0,0,12000);
+      say('He stops eating. That has not happened before. "One," he says, and then, after a pause you could park a fleet in: "It stopped being an empire first. It just did not notice for about four centuries." He leaves without the usual flourish.','#c07ae8');}),
+   O9('Have him removed from the bridge.',()=>{
+      vWin9(0,3,4000);
+      say('☠ Your guard advance on a man who is not there in a chair that is not there and Orson is enormously pleased with all of it. "OH, you tried. Bless you. Bless you ENTIRELY." He is gone before anyone reaches him and the chair stays for a week.','#e86ad9');})]),
+
+()=>showEnc('THE LANE THAT RUNS AT NIGHT',
+  'Your revenue people have found a corridor moving freight through three of your systems without paying anything to anyone, and it has been running for two years, and it is not smugglers. It is a mutual aid route: eleven small worlds moving grain and medicine between themselves, badly, at a loss, to keep each other alive.\n\nThey are not hiding it from you. They have simply never once thought of you as a thing that would want a share.',
+  [O9('Tax it. Everything in your sky pays.',()=>{
+      vWin9(8800,4,4000);
+      try{laneDrain9(0.3);}catch(e){}
+      say('☠ It pays now. The route survives and it carries a third less, and somewhere in the arithmetic of that third is a number of people, and the number is not in any of the reports on your desk. (+8,800 cr)','#c9b7e8');}),
+   O9('Leave it alone. Take nothing. Tell nobody.',()=>{
+      vWin9(0,-2,10000);
+      try{laneFeed9(0.3);}catch(e){}
+      say('You strike it from the revenue file yourself and you do not explain the deletion to the officer who found it, and he will wonder about it for the rest of his career. The lanes here thicken. (the lanes remember)','#c07ae8');}),
+   O9('Fund it. Openly. With your own name on the manifests.',()=>{
+      vWin9(-11000,-5,13000);
+      try{laneFeed9(0.45);}catch(e){}
+      say('☠ You put the throne’s name on eleven worlds’ grain shipments and the rim does not know what to do with it. Half of them think it is a trap. It is not a trap. That is the part nobody can process. (−11,000 cr, and the lanes run rich)','#c07ae8');})]),
+
+()=>showEnc('THE QUIET AFTERNOON',
+  'Nothing is wrong. That is the report. Every held world has paid, no garrison has anything to add, the lanes are running, the yards are ahead of schedule, and your flag officer has come all this way to tell you that there is nothing to tell you and is plainly unsure whether this counts as a failure on his part.\n\nYou have four hours and nobody wants anything.',
+  [O9('Spend them on the bridge, doing nothing, in front of the crew.',()=>{
+      vWin9(0,-2,9000);
+      say('You sit in the chair for four hours and read nothing and decide nothing, and the bridge crew do not relax once, and by the end of it you understand that they have not had a normal afternoon since you took the crown and are not going to have one. (−dread)','#c07ae8');}),
+   O9('Invent something for them to do.',()=>{
+      vWin9(2600,3,5000);
+      say('☠ You invent a crisis, and they are visibly relieved, and it is handled with enormous competence inside two hours. Everyone feels much better. Nothing was wrong. (+2,600 cr in whatever that shook loose)','#c9b7e8');}),
+   O9('Go and look at a world you have never landed on.',()=>{
+      vWin9(0,-1,11000);
+      say('You take the shuttle down alone to a system you have held for a year and never seen, and you walk about for three hours, and nobody recognises you because nobody there has ever been given a reason to look up. It is the best four hours of the reign so far.','#c07ae8');})])
+];
+
 function spaceEvent(){
   if(S.whaleRun9)return; // the whales keep the sky quiet
-  if(typeof isVorlan9==='function'&&isVorlan9())return; // the crown does not get frontier-captain fate events (promotions, tribunals, amnesty)
-  const sai9e=(typeof isSaint9==='function'&&isSaint9());   // the white gets her OWN deck, not silence
+  const vor9e=(typeof isVorlan9==='function'&&isVorlan9());  // the crown gets his OWN deck now, not an empty sky
+  const sai9e=(typeof isSaint9==='function'&&isSaint9());     // the white gets hers
   if(typeof unmakerHere9==='function'&&unmakerHere9())return; // the Unmaker keeps the sky empty
   if(typeof ENC!=='undefined'&&ENC)return; // never stack an event on an open encounter
   S.dir=S.dir||{noev:0,streak:0};
@@ -6958,6 +7287,14 @@ function spaceEvent(){
   }
   S.dir.noev=0;S.dir.streak++;
   S.evCool=2;
+  if(vor9e){
+    // His deck only. The mortal deck is promotions, tribunals and gala dinners, and the audit found
+    // that refusing it without replacing it left the Emperor with an empty sky that only ungated
+    // Accord content could fill.
+    const VE9=VOR_EVENTS9[Math.floor(Math.random()*VOR_EVENTS9.length)];
+    try{VE9();}catch(e9){}
+    return;
+  }
   if(sai9e){
     // Her deck only. The mortal deck is promotions, tribunals and gala dinners and none of it is
     // addressed to a woman in a white stole who gave her whole account away at the first port.
@@ -10302,7 +10639,7 @@ function updateSpace(dt){
   if(enemies.some(e9=>e9.alive))hint('fight','Hostiles: [SPACE] fires lances (auto-aim), [X] torpedo, [S] scans them first. [H] hails — not every fight must happen.');
   if(!hostiles9()&&S.screen==='space'){
     S.dirQuiet=(S.dirQuiet||0)+dt;
-    if(S.dirQuiet>300){S.dirQuiet=0;S.dirForce=true;S.evCool=0;say('Long-range sensors flag something worth a look, Captain.','#9fd8ff');spaceEvent();}
+    if(S.dirQuiet>300){S.dirQuiet=0;S.dirForce=true;S.evCool=0;say('Long-range sensors flag something worth a look, '+((typeof honor9==='function')?honor9():'Captain')+'.','#9fd8ff');spaceEvent();}
   } else S.dirQuiet=0;
   if(!S.heatWarned&&S.heat>45){S.heatWarned=true;say('Long-range sensors: ships are vectoring toward our position, Captain. (Lingering draws heat — cloak or jump to shed it.)','#c98a8a');}
   if(S.heat>52&&!S.heatSpawned&&!S.invasion&&!(typeof unmakerHere9==='function'&&unmakerHere9())){
@@ -15054,7 +15391,12 @@ function baseItems(){
     noNeed9:()=>{
       if(!ship.hangar)return 'You need rank CAPTAIN and reputation 70 with either flag before a fighter wing is authorized.';
       if(flyingCitadel9())return 'The Citadel keeps her own bays full — you never have to buy replacements.';
-      if((S.wingUp||0)<2&&ship.fighters>=wingSize()&&!(typeof isVorlan9==='function'&&isVorlan9())&&!(typeof hullPerk9==='function'&&hullPerk9().wingAbs))return 'The next WING EXPANSION needs reputation '+[80,90][S.wingUp||0]+' with either flag.';
+      if((S.wingUp||0)<2&&ship.fighters>=wingSize()&&!(typeof isVorlan9==='function'&&isVorlan9())&&!(typeof hullPerk9==='function'&&hullPerk9().wingAbs)){
+        const rp9=Math.max(S.standing||50,fcv()), nd9=[80,90][S.wingUp||0];
+        return (rp9>=nd9)
+          ?('The next expansion is available: '+[5,7][S.wingUp||0]+' on the racks, '+[18000,32000][S.wingUp||0]+' cr plus riftium and duranium.')
+          :('The next WING EXPANSION needs reputation '+nd9+' with either flag. You have '+Math.round(rp9)+'.');
+      }
       const wnd9=Math.min((S.wingWounds||0),ship.fighters);
       if(wnd9>0)return 'Your racks are full ('+ship.fighters+'/'+wingSize()+'), but '+wnd9+' fighter'+(wnd9>1?'s are':' is')+' flying WOUNDED. REPAIR & REARM [1] mends them for free.';
       return 'Your wing is at full strength — '+ship.fighters+'/'+wingSize()+' fighters, all sound.';
@@ -24463,7 +24805,12 @@ function isCitadelSkin9(i9){
 }
 function flyingCitadel9(){return !!(S.citadel&&isCitadelSkin9(S.hullSkin));}
 function flyingVoid9(){try{return !!(HULLSKINS[S.hullSkin]&&/void trident/i.test(HULLSKINS[S.hullSkin].nm||''));}catch(e){return false;}}
-function wingSize(){if(typeof isVorlan9==='function'&&isVorlan9())return 16+((S.empire9&&S.empire9.bay||0)*2)+((S.vorWingBonus9)||0)+(((S.teleNodes9||{})[ship.sys]==='monument')?4:0);if(typeof FINALE_WING9!=='undefined'&&FINALE_WING9[S.hullSkin])return FINALE_WING9[S.hullSkin];const abs9=(typeof hullPerk9==='function'?(hullPerk9().wingAbs||0):0);if(abs9)return abs9;return flyingCitadel9()?(S.royalWed9?36:24):([3,5,7][(S.wingUp||0)]||3);}
+function wingSize(){if(typeof isVorlan9==='function'&&isVorlan9())return 16+((S.empire9&&S.empire9.bay||0)*2)+((S.vorWingBonus9)||0)+(((S.teleNodes9||{})[ship.sys]==='monument')?4:0);if(typeof FINALE_WING9!=='undefined'&&FINALE_WING9[S.hullSkin])return FINALE_WING9[S.hullSkin];const abs9=(typeof hullPerk9==='function'?(hullPerk9().wingAbs||0):0);if(abs9)return abs9;
+  // THE WING track in the Chapter House, and the starbase expansion, are two doors to the same
+  // number: whichever she has bought further is the one that counts.
+  if(typeof isSaint9==='function'&&isSaint9()&&!flyingCitadel9())
+    return Math.max([3,5,7][(S.wingUp||0)]||3, 3+(((S.chapel9&&S.chapel9.wing)||0)*2));
+  return flyingCitadel9()?(S.royalWed9?36:24):([3,5,7][(S.wingUp||0)]||3);}
 function rankIdx(){let n=0;for(const r9 of RANKS)if(ship.score>=r9[0])n++;return n;}
 function fighterDenied(si){return (((si+7)*2654435761)>>>0)%100<8;}
 function fighterHp(){return 12+(S.wingUp||0)*14+ship.up.shield*3+rankIdx()*3;}
@@ -24682,7 +25029,87 @@ const QLINES={
  gift:['"A trinket for the collection, Captain. Do not say Orson never gave you anything."','"Consider this a down payment on your continued amusement value."'],
  weird:['"I have rearranged three constellations into a rude gesture. No one will notice for ten thousand years."','"Your hull is now 2% more aesthetically pleasing. You are welcome."','"I taught your replicator to make soup that tastes like nostalgia. Only the soup knows why."']
 };
+/* THE CROSSROADS. The audit found this ticker completely ungated, so an Accord captain's four
+   moral problems (sealed orders from Accord Intelligence, a bounty on a surrendered pirate, both
+   paying STANDING) were the only recurring conscience the Emperor had. Three pools now. */
+const VOR_DILEMMA9=[
+()=>showEnc('THE PETITION',
+  'A delegation has been waiting on the dock for two days with a written request. They want a man released. He is nobody: a harbour clerk who said something in a bar that got repeated upward until it arrived at a garrison that had to be seen to act.\n\nThey know exactly what they are asking and they have brought money, which they cannot afford, and which is nowhere near enough.',
+  [O9('Release him and give the money back.',()=>{try{dreadAdd9(-3);awardScore(6000);}catch(e){}
+      say('He goes home. The purse goes back. The delegation does not know what to do with their faces and neither, on the walk back to the ship, do you.','#c07ae8');}),
+   O9('Release him and keep the money.',()=>{try{award(2200);dreadAdd9(1);}catch(e){}
+      say('☠ He goes home and the purse does not. Both halves of that will be told for years and the second half is the one that does the work. (+2,200 cr)','#c9b7e8');}),
+   O9('Keep him. A garrison that acts must be seen to have been right.',()=>{try{dreadAdd9(4);awardScore(3000);}catch(e){}
+      say('☠☠ He stays. Your garrison is upheld, your authority is not questioned, and a harbour clerk is the price of that, and you have stopped pretending this arithmetic troubles you. (+dread)','#e86ad9');})]),
+()=>showEnc('THE GOVERNOR WHO WENT FURTHER',
+  'One of yours has exceeded his orders. Substantially. The system is quiet, the tribute is early, and the method is in a report you now have to decide whether to have read.\n\nHe did not do it for you. He did it because nobody told him he could not, and he has discovered he has a talent for it.',
+  [O9('Remove him. There is a line and it is where you put it.',()=>{try{dreadAdd9(2);awardScore(7000);}catch(e){}
+      say('☠ He is removed, publicly, for doing more than he was told. Every other governor in your sky reads the correct lesson, which is not about cruelty, it is about who decides. (+dread)','#c9b7e8');}),
+   O9('Leave him. The tribute is early.',()=>{try{award(7000);dreadAdd9(5);}catch(e){}
+      say('☠☠ He keeps the chair. The number is good, the system is quiet, and somewhere in that quiet is a thing you have chosen not to have read to you. (+7,000 cr)','#e86ad9');}),
+   O9('Give him a second world and watch what he does with it.',()=>{try{award(3000);dreadAdd9(3);awardScore(4000);}catch(e){}
+      say('☠ You promote him, deliberately, into more rope. He will either find his own limit or arrive at yours, and either answer is worth knowing before he is anywhere near the throne. (+3,000 cr)','#c9b7e8');})]),
+()=>showEnc('THE HOSTAGE NOBODY IS COMING FOR',
+  'Your prize crew took a hull three months ago and there is a passenger on the manifest that nobody has claimed: no faction, no family, no ransom offered, and no side that wants him back.\n\nHe is not a threat and he is not an asset and he is still in a cell because removing him from the list requires somebody to make a decision, and nobody below you will.',
+  [O9('Put him down at the next port with money and no record.',()=>{try{dreadAdd9(-2);award(-800);awardScore(6000);}catch(e){}
+      say('He is set down on a dock with eight hundred credits and no paperwork trailing him, and he will never be able to explain to anyone why he is alive. (−800 cr)','#c07ae8');}),
+   O9('Conscript him. An empire always needs hands.',()=>{try{award(1200);dreadAdd9(1);}catch(e){}
+      say('☠ He goes onto a work roster. It is not a cell. It is adjacent to a cell, and he understands the distinction better than the people who drew it. (+1,200 cr in what his labour returns)','#c9b7e8');}),
+   O9('Leave him on the list. It is not a decision you need to make today.',()=>{try{dreadAdd9(2);}catch(e){}
+      say('☠ He stays on the manifest. This is the specific way that most of it actually happens: not an order, just nobody spending the four seconds. (+dread)','#c9b7e8');})]),
+()=>showEnc('THE CHILD ON THE THRONE ROAD',
+  'Your column has stopped. There is a child sitting in the middle of the road on a conquered world, not protesting, not frightened, simply sitting, and the officer at the front has sent back for instructions rather than make this his.\n\nEverything behind you is waiting.',
+  [O9('Go forward on foot and ask her what she wants.',()=>{try{dreadAdd9(-4);awardScore(9000);}catch(e){}
+      say('You walk the length of your own stopped column and crouch down in the road. She wants to know if it is true that you do not sleep. You tell her the truth, which is that you do, badly. She moves. The column goes on. Nobody who saw it will ever describe it accurately. (−dread)','#c07ae8');}),
+   O9('Have her moved. Gently. And go.',()=>{try{dreadAdd9(1);awardScore(3000);}catch(e){}
+      say('☠ Two of your people lift her out of the road and set her on the verge, carefully, and the column proceeds, and the whole thing takes nine seconds and is the correct decision and sits in you like a swallowed stone.','#c9b7e8');}),
+   O9('Go around. All of it. Every vehicle.',()=>{try{dreadAdd9(-1);awardScore(7000);}catch(e){}
+      say('Four hundred tonnes of armour reroutes through a field because a nine-year-old sat down. The story is out of your control inside the hour and there is no version of it that helps you, and you did it anyway. ','#c07ae8');})])
+];
+const SAINT_DILEMMA9=[
+()=>showEnc('THE ONE YOU CANNOT REACH',
+  'A man is holding a compartment and eleven people with a breaching charge and a grievance that is, as far as you can establish in the forty minutes you have, entirely legitimate.\n\nHe will not talk to you. He has been talked to by professionals his whole life and every one of them was buying time.',
+  [O9('Give him something true that costs you.',()=>{try{graceGain9(30);mercySpare9&&mercySpare9();}catch(e){}
+      say('✦ You tell him a thing about yourself that you have not said out loud, on an open channel, where his hostages can hear it. It is not a technique. That is why it works. (+grace)','#cfe8ff');}),
+   O9('Stop negotiating. Sit down where he can see you and wait.',()=>{try{graceGain9(22);}catch(e){}
+      say('✦ You sit down on the deck plating in his line of sight and stop doing anything at all, for two hours, and at the end of the second hour he asks you a question. That was the whole job. (+grace)','#eaf3ff');}),
+   O9('Still him through the bulkhead. It is over in a second.',()=>{try{graceGain9(6);}catch(e){}
+      say('The pacifier reaches him through the plating and it is over and nobody is hurt and eleven people go home, and he wakes up in custody having never once been spoken to, which is the thing he was holding a charge about. (+grace, and a smaller thing than you wanted)','#8899bb');})]),
+()=>showEnc('THE RELIEF THAT WILL NOT REACH BOTH',
+  'Two settlements, one hold, and the arithmetic does not divide. Split it and both starve slowly. Give it to one and the other has six days and a hope that somebody else is coming, and nobody else is coming.\n\nThe two councils are on the same channel and can hear each other breathing.',
+  [O9('Put the decision to the two of them and refuse to make it.',()=>{try{graceGain9(28);award(2400);}catch(e){}
+      say('✦ You will not choose which of them dies and you say so, and you leave the channel open, and it takes them nine hours and they arrive somewhere you would not have: the smaller settlement stands down in exchange for a thing the larger one will owe them for a generation. (+2,400 cr)','#cfe8ff');}),
+   O9('Give it all to the ones who can be reached in time.',()=>{try{graceGain9(18);mercySave9(200);}catch(e){}
+      say('✦ You make the call on reachability, which is the only honest criterion available, and you fly it yourself, and you do not let anyone else carry the message to the other council. (+grace)','#eaf3ff');}),
+   O9('Split it. Buy them both six more days and go looking.',()=>{try{graceGain9(24);award(-3000);}catch(e){}
+      say('✦ You split a hold that does not divide, you buy everybody six days out of your own pocket, and you spend those six days finding a third answer. You find one on the fifth. You will not always. (−3,000 cr)','#cfe8ff');})]),
+()=>showEnc('THEY WANT HIM PUNISHED',
+  'The world is at peace and it has a question. There is a man in it who did a great deal of harm under the old order, and he is still here, and the peace you built is the reason nobody has touched him.\n\nThey are not a mob. They have waited, and asked properly, and they are owed an answer.',
+  [O9('Sit with them until they have said all of it. Then decide together.',()=>{try{graceGain9(32);award(3200);}catch(e){}
+      say('✦ It takes three days and every person who wants to speak speaks, and what they arrive at is not what any of them walked in wanting and all of them can live inside it. That is what the word actually means. (+3,200 cr)','#cfe8ff');}),
+   O9('Take him with you. He is not safe here and neither is the peace.',()=>{try{graceGain9(16);mercySpare9&&mercySpare9();}catch(e){}
+      say('✦ You remove the problem rather than solve it, which keeps a peace and satisfies nobody, and a hundred people watch a ship leave carrying the thing they were owed. (+grace)','#eaf3ff');}),
+   O9('Hand him over. It is their world and their harm.',()=>{try{graceGain9(4);}catch(e){}
+      say('You give him up to the people he hurt and you do not stay to see it, and what happens after you leave is exactly what you knew would happen. The peace holds. You are not sure what you kept. (+grace, and less of it than usual)','#8899bb');})]),
+()=>showEnc('THE CREW WANT TO GO HOME',
+  'Nobody is mutinying. Three of them have simply come to say, carefully and together, that they signed on to a captain and have been following a saint for a long time now, and they are tired in a way that mending does not touch.\n\nThey are not asking to leave. They are asking whether they are allowed to.',
+  [O9('Tell them yes, and put them down at the next port with everything owed.',()=>{try{graceGain9(30);award(-4000);}catch(e){}
+      say('✦ They go, paid in full and blessed and thanked by name in front of the whole crew, and the ship is quieter and worse afterwards, and every person still aboard now knows that staying was a choice. (−4,000 cr)','#cfe8ff');}),
+   O9('Ask them to stay, and mean it, and let them refuse.',()=>{try{graceGain9(26);}catch(e){}
+      say('✦ You ask. Properly, once, without weight on it. Two of them stay. One does not, and you thank her hardest of all, because she is the one who made it a real question. (+grace)','#eaf3ff');}),
+   O9('Teach them the breath and send them back to their stations.',()=>{try{graceGain9(10);}catch(e){}
+      say('You give them a technique instead of an answer. It helps. It is not what they asked for and all four of you know it, and you will think about this one at odd hours. (+grace)','#8899bb');})])
+];
 function moralDilemma(){
+  // three pools, one ticker: the crossroads follow whoever is flying
+  if(typeof isVorlan9==='function'&&isVorlan9()){
+    try{VOR_DILEMMA9[Math.floor(rnd(0,VOR_DILEMMA9.length))]();}catch(e){}
+    return;
+  }
+  if(typeof isSaint9==='function'&&isSaint9()){
+    try{SAINT_DILEMMA9[Math.floor(rnd(0,SAINT_DILEMMA9.length))]();}catch(e){}
+    return;
+  }
   const roll=Math.floor(rnd(0,4));
   if(roll===0){
     if(typeof isSaint9==='function'&&isSaint9())showEnc('REFUGEE CONVOY',
@@ -24709,11 +25136,17 @@ function moralDilemma(){
      {label:'Refuse the order',col:'#2a281a',tcol:'#e8dfa0',fn:()=>{S.standing=Math.max(0,S.standing-1);ship.credits+=60;say('The trader presses 60 cr on you and swears an oath of friendship.','#7fd98a');closeEnc();}}]);
 }
 function qEvent(){
+  // THE CROWN IS NOT IN HIS COLLECTION. applyQ below has always refused to prank the two
+  // transformations; these four milestone cards were not gated and addressed the Emperor as "dear
+  // Captain" and as a "mortal". Vorlan is qLock9'd and can never take the powers anyway, so the
+  // whole stream is meaningless to him, and he has his own Orson card in VOR_EVENTS9. The Saint
+  // keeps the stream, because she CAN become Orson, but she is addressed correctly.
+  if(typeof isVorlan9==='function'&&isVorlan9())return;
   QSTATE.count++;QSTATE.flash=2.2;
   sfx.fanfare();
   if(QSTATE.count===1){
     showEnc('A STRANGER ON THE BRIDGE',
-      'A figure in an immaculate copy of your own uniform lounges in your chair, boots on the console. "Good evening, dear Captain! I am ORSON — curator, connoisseur, and collector of interesting mortals. The frontier is my gallery and you, just possibly, are worth exhibiting. Do try to stay interesting. The consequences of boring me are... creative."',
+      'A figure in an immaculate copy of your own uniform lounges in your chair, boots on the console. "Good evening, dear '+honor9()+'! I am ORSON — curator, connoisseur, and collector of interesting mortals. The frontier is my gallery and you, just possibly, are worth exhibiting. Do try to stay interesting. The consequences of boring me are... creative."',
       [{label:'"Get out of my chair." (he will not)',fn:()=>{closeEnc();applyQ();}}]);
     return;
   }
@@ -24727,7 +25160,7 @@ function qEvent(){
   if(QSTATE.count>=6&&!QSTATE.blessed){
     QSTATE.blessed=true;S.qBless=true;
     showEnc('ORSON, IMPRESSED (DO NOT TELL HIM)',
-      '"Six visits, and not once have you begged, wept, or exploded. Dear Captain, you are officially the least boring mortal in my collection. A parting gift: I have... adjusted your weapons. Slightly. Do not thank me; gratitude is unbearable." He snaps his fingers, and is gone. Mostly.',
+      '"Six visits, and not once have you begged, wept, or exploded. Dear '+honor9()+', you are officially the least boring thing in my collection. A parting gift: I have... adjusted your weapons. Slightly. Do not thank me; gratitude is unbearable." He snaps his fingers, and is gone. Mostly.',
       [{label:"Accept the Curator's Favor (+15% weapon damage, permanently)",fn:()=>{closeEnc();say("★ THE CURATOR'S FAVOR: weapons +15% — permanently. ★",'#ffd86b');sfx.fanfare();}}]);
     return;
   }
@@ -27127,10 +27560,25 @@ const CHAPHULL9=[
  {sk:20,nm:'THE SEVENTH MERCY',p:52000, d:'Mirror-silver, faintly luminous. The last one they built.'}];
 // the White Library also holds any HULL YOU EARNED — above all THE DAWNMAKER, the canonized saint's golden ship —
 // so a saint reclaims her trophy where she looks for her white hulls, not only in the general yard.
+// Which earned hulls belong in HER house. Wolf: "Why are vorlan's two hulls available to fly for
+// the saint." Because this function listed every entry in S.earnedHulls9 without asking whose it
+// was, and that array is not cleared when a run ends the way a save does, so a Saint following a
+// Vorlan playthrough inherited THE DREAD CROWN and THE UNMAKER'S THRONE and found them sitting in
+// the White Library under a line about the peace she kept. The Accord and Renegade trophies would
+// have done the same. They are all still hers in the general YARD, which is where a trophy from
+// another life belongs. The chapel shows white hulls and white hulls only.
+function whiteHull9(k9){
+  try{
+    if(CHAPHULL9.some(h9=>h9.sk===k9))return true;
+    if(typeof FINALE_HULL9!=='undefined'&&k9===FINALE_HULL9.saint)return true;
+  }catch(e){}
+  return false;
+}
 function chapHullList9(){
   const list9=CHAPHULL9.slice();
   if(S.earnedHulls9&&S.earnedHulls9.length){
     for(const k9 of S.earnedHulls9){
+      if(!whiteHull9(k9))continue;                 // the crown's hulls are not raised in a chapel
       if(list9.some(h9=>h9.sk===k9))continue;
       list9.push({sk:k9,nm:(HULLSKINS[k9]&&HULLSKINS[k9].nm)||'A HULL',p:0,trophy9:true,d:'Awarded for the peace you kept, not sold. She is yours, and she flies for nothing.'});
     }
@@ -27248,7 +27696,12 @@ const CHAPTRACK9=[
  {k:'hull', nm:'THE WARD',      d:'Reinforced white plating, and beds where the magazine used to be.', eff:'+8% hull integrity per tier'},
  {k:'ray',  nm:'THE PACIFIER',  d:'A wider, gentler beam. It subdues faster, which means fewer shots and fewer chances for someone else to fire.', eff:'+25% pacifier effect per tier'},
  {k:'choir',nm:'THE CHOIR',     d:'More voices. You can hold more of them at once, and they listen longer.', eff:'+1 charmed at a time per tier'},
- {k:'grace',nm:'THE WELL',      d:'A deeper well, and it fills faster when you are doing what you were called to do.', eff:'+30 max grace per tier'}
+ {k:'grace',nm:'THE WELL',      d:'A deeper well, and it fills faster when you are doing what you were called to do.', eff:'+30 max grace per tier'},
+ // Wolf: "Why can't I expand my saint wing beyond 3 drones." He could: the DRONE WING EXPANSION
+ // sits in the starbase shop under [9] and buys fine. He never found it, which is fair, because
+ // every other thing she grows is in this house and nothing in this house mentioned the drones.
+ // It lives here now, in LIGHT, alongside the rest of her. The starbase entry still works.
+ {k:'wing', nm:'THE WING',      d:'More drones on the racks. They mend, they carry, and they do not fire.', eff:'+2 mending drones per tier (3 \u2192 5 \u2192 7 \u2192 9)'}
 ];
 const CHAPPRICE9=[55,85,125];   // THE LIGHT, not credits and not the live pool. Her path does not run on money.
 function openChapel9(){
@@ -27281,6 +27734,8 @@ function chapBuy9(){
   if(!lightCost9(price9))return;
   S.chapel9[tr9.k]=cur9+1;
   if(tr9.k==='grace'){const g9=grace9();g9.graceMax=100+((S.chapel9.grace||0)*30);g9.grace=g9.graceMax;}
+  if(tr9.k==='wing'){ship.hangar=true;S.wingWounds=0;try{ship.fighters=Math.max(ship.fighters||0,wingSize());}catch(e9){}
+    say('\u2726 The bay is widened and the racks are filled: '+wingSize()+' drones, unarmed, every one of them built to carry somebody out.','#cfe8ff');}
   try{sfx.buy&&sfx.buy();}catch(e){}
   say('\u2726 '+tr9.nm+' \u2014 TIER '+(cur9+1)+'. '+tr9.eff,'#cfe8ff');
 }
@@ -27391,7 +27846,7 @@ function drawChapel9(){
   {const t9s=S.pacified9&&S.pacified9[ship.sys];
    if(pacified9(ship.sys))txt((t9s&&t9s.shrine9)?'\u2726 A SHRINE STANDS HERE \u2014 this peace is permanent, it can never be lost':('[S] CONSECRATE A SHRINE ('+shrineCost9()+' \u2726 light) \u2014 this world\u2019s peace becomes PERMANENT, never lost to war again'),W/2,H-76,(t9s&&t9s.shrine9)?'#eaf3ff':'#cfe8ff',12,'center','normal');}
   {const nd9=(typeof teleNodes9==='function')?teleNodes9():{};const almsHere9=(nd9[ship.sys]==='alms'||nd9[ship.sys]==='hospital');
-   txt('[H] THE WHITE LIBRARY \u2014 six hulls built for mending'+(pacified9(ship.sys)?(almsHere9?'   \u2022   \u2726 AN ALMSHOUSE STANDS HERE \u2014 fold straight to it from the map':('   \u2022   [A] ENDOW AN ALMSHOUSE ('+almsCost9()+' \u2726 light) \u2014 teleport here, no rift')):''),W/2,H-58,'#9fd8ff',12,'center','normal');}
+   txt('[H] THE WHITE LIBRARY \u2014 '+chapHullList9().length+' hulls built for mending'+(pacified9(ship.sys)?(almsHere9?'   \u2022   \u2726 AN ALMSHOUSE STANDS HERE \u2014 fold straight to it from the map':('   \u2022   [A] ENDOW AN ALMSHOUSE ('+almsCost9()+' \u2726 light) \u2014 teleport here, no rift')):''),W/2,H-58,'#9fd8ff',12,'center','normal');}
   {const t9r=S.pacified9&&S.pacified9[ship.sys];
    const rl9=(t9r&&t9r.relic9);
    txtFit(rl9?('\u2726 A RELIQUARY STANDS HERE \u2014 ships mend in this sky, and every world you keep sends more'):
