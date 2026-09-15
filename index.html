@@ -180,6 +180,39 @@ function touchAbilities9(){
   }catch(e){}
   return out;
 }
+// THE LOG GLYPH: a sheet of parchment with a curled top edge, a quill laid across it, and a small
+// compass rose in the corner. Drawn rather than lettered, because 'LOG' in a circle reads as one
+// more system button and the whole point is that this one is the thing you reach for when a line
+// of text went past too fast to catch.
+function drawLogGlyph9(cx9,cy9,r9){
+  const k9=r9/26;                                   // the rail buttons are r26; scale from that
+  ctx.save();ctx.translate(cx9,cy9);ctx.scale(k9,k9);
+  // the sheet
+  ctx.beginPath();
+  ctx.moveTo(-9,-13);ctx.lineTo(6,-13);
+  ctx.quadraticCurveTo(10,-13,10,-9);
+  ctx.lineTo(10,12);ctx.lineTo(-9,12);ctx.closePath();
+  ctx.fillStyle='#f4ecd8';ctx.fill();
+  // the curled corner
+  ctx.beginPath();ctx.moveTo(6,-13);ctx.quadraticCurveTo(6,-8,10,-9);ctx.closePath();
+  ctx.fillStyle='#d8caa8';ctx.fill();
+  // ruled lines
+  ctx.strokeStyle='rgba(90,76,52,.55)';ctx.lineWidth=1;
+  for(let i9=0;i9<4;i9++){ctx.beginPath();ctx.moveTo(-6,-6+i9*5);ctx.lineTo(4,-6+i9*5);ctx.stroke();}
+  // the quill, laid across the sheet
+  ctx.strokeStyle='#2b3a4a';ctx.lineWidth=1.6;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-11,13);ctx.lineTo(7,-6);ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(7,-6);ctx.quadraticCurveTo(12,-13,13,-15);
+  ctx.quadraticCurveTo(9,-13,5,-9);ctx.closePath();
+  ctx.fillStyle='#eaf3ff';ctx.fill();
+  // the compass rose, lower left
+  ctx.strokeStyle='#7fc4ff';ctx.lineWidth=1.1;
+  ctx.beginPath();ctx.arc(-6,7,4.2,0,TAU);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-6,2.6);ctx.lineTo(-4.6,7);ctx.lineTo(-6,11.4);ctx.lineTo(-7.4,7);ctx.closePath();
+  ctx.fillStyle='#7fc4ff';ctx.fill();
+  ctx.restore();
+}
 function touchCtx(){
   // Returns a LIST, because orbit legitimately offers two things at once. It used to return a
   // single action, so in orbit you got LAND only when an away mission was waiting in this system,
@@ -271,6 +304,12 @@ function drawTouch(){
   // hard invariant on touch: the ONLY thing that holds the trigger is a finger on FIRE. No finger tracked => trigger off.
   if(IS_TOUCH&&FIREHOLD9===null&&keys[' '])keys[' ']=false;
   if(!IS_TOUCH||S.menu)return;
+  // THE THRONE AND THE COMMUNION ARE MODAL. Wolf, on the Communion: "the controls are still along
+  // the right." They were: the overlay is drawn by drawSpace's caller and then this function ran
+  // anyway, painting the whole flight rail and the ability panel at full opacity on top of it. The
+  // ability panel already stood down for Orson mode; nothing stood down for these two. Their own
+  // cards carry their own hit rects, so the flight controls have nothing to do here.
+  if(S.screen==='space'&&(S.scomm9||S.vthrone9))return;
   ctx.save();
   if(['map','market','base','missions','shipstat','keyref','record','boardlog','settings','victory','rvictory'].includes(S.screen)){
     const e9={k:'escape',l:'\u2715',x:W-34,y:36,r:24};
@@ -333,13 +372,19 @@ function drawTouch(){
         {k:'m',l:'MAP',x:W-40,y:H-300,r:26},
         {k:'i',l:'SHIP',x:W-40,y:H-364,r:26},
         {k:'escape',l:'MENU',x:W-40,y:H-428,r:26},
+        // THE SHIP'S LOG. Wolf: "the text always goes away too fast and most people won't think to
+        // look in the menu for it." It was two levels deep (Esc for the menu, then [L]), which is
+        // exactly where a thing nobody finds lives. It has its own always-present button now, drawn
+        // as a parchment with a quill and a compass rose so it reads as a log and not another gun.
+        // Second column, beside MENU. x=W-40 above JOBS is where the radar lives, which is the exact
+        // spot the ORSON button had to be moved out of for the same reason.
+        {l:'LOG',x:W-108,y:H-428,r:26,logIcon9:true,act9:()=>{S.menu=true;S.logBig=true;S.logScroll=0;}},
         // BE ORSON. Wolf, playing a Saint: "I'm orsoned with no button." It lived in the MORTAL
         // branch of the ability panel only, so the Saint and anyone else who had earned it in space
-        // had the [Q] key and nothing else. It belongs on the rail rather than in the ability panel:
-        // it is a mode you enter, not a gun you fire, her panel is already eight deep, and a ninth
-        // entry would have run off the bottom of the screen. Vorlan is qLock9'd and gets nothing.
+        // had the [Q] key and nothing else. Moved off x=W-40 because at H-492 it sat on top of the
+        // radar: "the orson button in the radar isn't a good look." Second column, beside JOBS.
         ...((S.qUnlocked&&!S.qLock9&&!(typeof isVorlan9==='function'&&isVorlan9()))
-            ?[{k:'q',l:'ORSON',x:W-40,y:H-556,r:26}]:[]),
+            ?[{k:'q',l:'ORSON',x:W-108,y:H-492,r:26}]:[]),
         // MISSION JOURNAL was [J] only: on a phone there was NO way to see active missions,
         // their progress, the trade whisper or Orson's errand. 'JOBS' matches the status line.
         {k:'j',l:'JOBS',x:W-40,y:H-492,r:26}];
@@ -374,7 +419,8 @@ function drawTouch(){
     ctx.beginPath();ctx.arc(b9.x,b9.y,b9.r,0,TAU);
     ctx.fillStyle=b9.cx9?'#7fd98a':(b9.hold?'#ff8c8c':'#8fd0ff');ctx.fill();
     ctx.globalAlpha=.92;
-    txt(b9.l,b9.x,b9.y+5,'#fff',b9.r>40?15:10,'center');
+    if(b9.logIcon9)drawLogGlyph9(b9.x,b9.y,b9.r);
+    else txt(b9.l,b9.x,b9.y+5,'#fff',b9.r>40?15:10,'center');
     // a count badge on JOBS, so you can see whether the journal has anything in it WITHOUT opening it
     if(b9.k==='j'){
       const nJ9=(S.missions?S.missions.length:0)+((S.tradeTip?1:0))+((S.treasureTip?1:0));
@@ -575,7 +621,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc13';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc14';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -2253,7 +2299,7 @@ function saintVorHunt9(){
 function saintVorTick9(e){
   if(!e||!e.saintVor9||!e.alive)return;
   if(e.hp<=e.maxHp*0.20&&!e.svStop9){
-    e.svStop9=true;e.holdFire=true;e.neutral9=true;e.disabledBySaint9=true;
+    e.svStop9=true;e.holdFire=true;e.neutral9=true;e.disabledBySaint9=true;try{taoOutcast9(e);}catch(er9){}
     try{let f9c=0;for(const f9 of enemies){if(f9&&f9.alive&&f9!==e&&(f9.type==='fighter'||f9.parent===e)){f9.alive=false;f9.detected=false;f9c++;}}if(f9c)say('His wing goes dark with him — the throne cannot hold them once it kneels.','#cfe8ff');}catch(er9){}   // when the Emperor is brought low, his fighters fall silent too (no more shooting a beaten, quiet ship)
     try{setMusic('saint_space');}catch(err){}
     showEnc('EMPEROR VORLAN, BROUGHT LOW',
@@ -2736,6 +2782,7 @@ function saintVeil9(){
 function saintVeilTick9(dt){
   if(!S.veil9)return;
   if(!graceSpend9(4*dt,null)){S.veil9=false;ship.cloaked=false;say('The veil thins to nothing. You are seen.','#8899bb');return;}
+  /* IX THE STILL POINT and XLV THE CROOKED STRAIGHT are read in the sites they change, below. */
   if(S.screen==='space')ship.cloaked=true;
   if(AW&&AW.foes)for(const f9 of AW.foes){if(f9&&f9.hp>0&&!f9.charmed9&&f9.st==='aggro'){f9.st='alert';f9.wp=null;}}
 }
@@ -2794,12 +2841,25 @@ function graceMourn9(x,y){
     }
   }catch(e){}
 }
+// XXVII NO OUTCAST (twenty-seven understood). There is no one he will not save, so every hull she
+// stills counts as a mending whether or not she stays to mend it, and the Book pays for it.
+function taoOutcast9(e9){
+  try{
+    if(!taoMile9('outcast'))return;
+    if(!e9||e9.taoPaid9)return;
+    e9.taoPaid9=true;
+    const lp9=(typeof isSaint9==='function'&&isSaint9())?6:2;
+    lightGain9(lp9);
+    if(!S.taoOutSay9||S.t>S.taoOutSay9){S.taoOutSay9=S.t+14;
+      say('\u2726 There is no outcast to her. The stilling counts as a mending, and the LIGHT answers. (+'+lp9+')','#cfe8ff');}
+  }catch(er9){}
+}
 function saintNoKill9(e,dmg){
   // the hard rule: her hand cannot end anything. At 1 hp a ship is DISABLED.
   if(!isSaint9())return dmg;
   if(e&&(e.hp-dmg)<=0){
     if(!e.disabledBySaint9){
-      e.disabledBySaint9=true;e.holdFire=true;e.fire=999;e.spd0_9=e.et&&e.et.spd;try{mercySpare9();}catch(er9){}
+      e.disabledBySaint9=true;e.holdFire=true;e.fire=999;e.spd0_9=e.et&&e.et.spd;try{mercySpare9();}catch(er9){}try{taoOutcast9(e);}catch(er9){}
       taoHook9('spare');
       if(e.et)e.et=Object.assign({},e.et,{spd:0,dmg:0});
       say((e.nm||(e.et&&e.et.nm)||'The ship')+' goes dark and quiet \u2014 DISABLED, crew alive. [C] charm her onto your wing, [G] board and mend, or [SPACE] again to SEND her home.','#cfe8ff');
@@ -3206,6 +3266,389 @@ const TAO9={
 // so the trigger map can be written ahead of the text without ever showing a blank.
 const TAOTRIG9={death:[31],charmkill:[31,30],veil:[8,78],yield:[8,78],spare:[67,27],
   mend:[51,54],peace:[57,60],renounce:[9,44],stole:[19,22,44],freed:[13,49]};
+
+/* ===================== THE BOOK, AND WHAT IT IS WORTH =================================
+   Wolf: "I want reading comprehension answers not just requoting. I want the understanding
+   to tao to be the most rewarding thing for the player."
+
+   Both halves of that were broken.
+
+   THE QUIZ was recognition. taoQuizStart9 offered the chapter's own `key` lines against two
+   OTHER chapters' key lines, and since `key` is a verbatim quote out of the `full` text you
+   had just read, the right answer was always the one you recognised. It tested nothing.
+   TAOQ9 replaces it: one written question per chapter, an answer that states the idea in
+   other words, and two distractors that are real misreadings OF THAT CHAPTER rather than
+   sentences from somewhere else. You cannot pass by recognising a line, because no line on
+   offer is in the text.
+
+   THE REWARD was +3 max grace and +0.1/s regen per chapter. Since rc10 split the currencies
+   grace is only the pacifier's ammunition, so the deepest content in the game paid in ammo
+   for a gun that cannot kill. Mastery now pays THE LIGHT, which is her actual currency, and
+   at thresholds it pays powers nothing else in the game reaches.
+   ==================================================================================== */
+const TAOQ9={
+ 1:{q:'A scholar announces she has finally defined the Tao precisely. What does this chapter say about her definition?',
+    a:'Whatever she has defined, the act of defining it has already made it something smaller than the thing itself.',
+    w:['That she is lying, because there is nothing there to define.',
+       'That her definition is correct but she should keep it secret from the unworthy.']},
+ 2:{q:'A shipwright builds a hull, refuses to put her name on it, and moves to the next yard. Why does this chapter approve?',
+    a:'The work stays whole and useful because she does not stay attached to being the one who made it.',
+    w:['Because anonymous work cannot be criticised, which protects her reputation.',
+       'Because unclaimed work is worthless, and worthlessness is the goal.']},
+ 3:{q:'A governor bans luxury goods and then fills the square with posters about how virtuous the ban is. Where has he gone wrong by this chapter?',
+    a:'He removed the objects but installed a new thing to want, so the wanting simply changed address.',
+    w:['He should have banned more goods; the list was too short.',
+       'He was right to advertise; people need to be told what to desire.']},
+ 4:{q:'This chapter says the Tao dulls its own sharpness and softens its own brightness. What is it describing?',
+    a:'Something so complete that it has no need to display any of its edges.',
+    w:['Something worn down and diminished by long use.',
+       'Something hiding its power so it can strike from cover.']},
+ 5:{q:'The space between heaven and earth is called a bellows: empty, but it does not collapse. What is the point of the image?',
+    a:'The emptiness is what lets it work; a bellows full of anything would push nothing.',
+    w:['That emptiness is a flaw the world is patiently enduring.',
+       'That heaven and earth are hollow and will eventually cave in.']},
+ 6:{q:'The source is described as issuing endlessly AND without effort. Why does the chapter join those two?',
+    a:'What is truly generative does not strain, and what strains is not the source.',
+    w:['Because anything done without effort must be small.',
+       'Because effort is forbidden, so nothing should ever be attempted.']},
+ 7:{q:'Heaven and earth endure because they do not live for themselves. What does this imply about a captain who wants to last?',
+    a:'The surest way to persist is to stop making your own continuation the point of everything.',
+    w:['That she should not care about anything, since caring shortens life.',
+       'That self-neglect is the goal and she should ruin herself deliberately.']},
+ 8:{q:'Goodness is compared to water, which seeks the LOWEST place. What is being praised?',
+    a:'A usefulness that goes wherever it is needed rather than wherever it would be seen.',
+    w:['Humiliation for its own sake, as a spiritual discipline.',
+       'Yielding to whoever has the most power in the room.']},
+ 9:{q:'A merchant keeps pouring into a pail that is already full. What is the chapter warning about?',
+    a:'Past a certain point, more is not more, and continuing to add is how you begin to lose.',
+    w:['That pails are a poor way to carry water.',
+       'That wealth is evil and should be destroyed on principle.']},
+10:{q:'"He will persuade, but not compel by force." What distinction is being drawn?',
+    a:'Between a result someone arrives at and keeps, and a result imposed on them that needs holding down.',
+    w:['Between fast methods and slow methods; the chapter prefers slow ones.',
+       'Between arguing and staying silent; the chapter prefers silence.']},
+11:{q:'A wheel has thirty spokes, but the chapter points at the hub. What is the actual claim?',
+    a:'The part that is nothing is doing indispensable work, so what is absent can be as functional as what is present.',
+    w:['That the spokes are decorative and could be removed.',
+       'That wheels are a bad design and should be replaced.']},
+12:{q:'A captain refits her bridge with beautiful displays and cannot say what any of them are for. Which line of this chapter is she failing?',
+    a:'Attend to what a thing actually is, not to how it presents.',
+    w:['Never enjoy anything you look at; beauty is a trap.',
+       'Buy the best instruments; appearance is a reliable guide to quality.']},
+13:{q:'"If he who administers the empire esteems it as his own body." What does that measure?',
+    a:'Whether he feels its injuries as injuries rather than as items in a report.',
+    w:['Whether he owns it outright, without partners.',
+       'Whether he is willing to die defending its borders.']},
+14:{q:'The Tao is called the form of the formless and has been nameless forever. What is the chapter doing with language here?',
+    a:'Using words deliberately at the edge of their reach, to point past them.',
+    w:['Confessing that the writer does not know his subject.',
+       'Claiming that words are evil and should not be used.']},
+15:{q:'"We can clarify troubled waters by slowly quieting them." What is the method being taught?',
+    a:'Stop stirring and let the thing settle, rather than reaching in to fix it.',
+    w:['Filter the water through cloth as quickly as possible.',
+       'Accept that the water is ruined and drink it dirty.']},
+16:{q:'Plants blossom only to return to the root. What is this saying about endings?',
+    a:'Returning is not failure; it is the shape the whole process was always going to take.',
+    w:['That blossoming is pointless because it does not last.',
+       'That decay should be prevented by any means available.']},
+17:{q:'Under the best rulers, people think they are ruling themselves. What makes that the highest rank?',
+    a:'The governing worked so well that it left no marks the governed had to notice.',
+    w:['The ruler is deceiving them, which is the cleverest technique.',
+       'The ruler is absent and has abandoned the job.']},
+18:{q:'"When the great Tao is lost sight of, we still have the idea of benevolence." Is the chapter praising benevolence?',
+    a:'It is noting that we had to name it only once it stopped happening on its own.',
+    w:['Yes, it is ranking benevolence as the highest virtue available.',
+       'No, it is calling benevolence a vice that should be abandoned.']},
+19:{q:'"Abandon the show of saintliness." Which is the chapter actually against?',
+    a:'The performance, not the thing itself; the display is what it wants dropped.',
+    w:['Holiness itself, which it regards as a superstition.',
+       'Other people, who should be avoided entirely.']},
+20:{q:'"Avoid learning if you would have no anxiety." How should this be read alongside the rest of the book?',
+    a:'As a warning about accumulating cleverness you then have to defend, not a ban on understanding.',
+    w:['As a straightforward instruction to remain ignorant.',
+       'As advice to learn in secret so nobody can test you.']},
+21:{q:'"Unfathomable and obscure, indeed, but at its heart is all spirit." What is the chapter insisting on?',
+    a:'That being unable to see to the bottom of a thing is not evidence that it is empty.',
+    w:['That obscurity is itself a virtue and clarity is suspect.',
+       'That nothing can be known, so inquiry is a waste.']},
+22:{q:'"Not asserting himself he will become distinguished." Is this a technique for getting noticed?',
+    a:'No; it says the distinction arrives as a by-product, and chasing it is what prevents it.',
+    w:['Yes, it is a reliable method for attracting admiration.',
+       'No, because being noticed is shameful and should be avoided.']},
+23:{q:'A whirlwind never outlasts the morning. What is the lesson for someone acting with great force?',
+    a:'Intensity and duration trade against each other; what arrives hardest leaves soonest.',
+    w:['That storms are dangerous and one should stay indoors.',
+       'That nothing lasts, so effort of any kind is futile.']},
+24:{q:'"One who displays himself is not bright." Why would display DIM someone?',
+    a:'Because the effort of being seen consumes the attention the work itself needed.',
+    w:['Because light is finite and showing it uses it up literally.',
+       'Because other people are envious and will sabotage him.']},
+25:{q:'"The Great is evasive, the evasive is the distant, the distant is ever coming near." What does the sequence describe?',
+    a:'A circle: what seems to withdraw furthest is what returns, so distance and nearness are one motion.',
+    w:['A ranking, in which greatness is the least useful quality.',
+       'A warning that great things are deceitful and will trick you.']},
+26:{q:'"The heavy is the root of the light; the quiet is master of motion." What follows for a commander in a crisis?',
+    a:'Her steadiness is not a delay before acting; it is the thing that makes the action good.',
+    w:['She should move slowly at all times, including emergencies.',
+       'She should be physically heavy and avoid exercise.']},
+27:{q:'"The wise man trusting in goodness always saves men, for there is no outcast to him." What is the claim?',
+    a:'The category of people not worth saving does not exist for him, which is why his reach is total.',
+    w:['He saves everyone because he cannot tell good people from bad.',
+       'He saves only those who have proven they deserve it.']},
+28:{q:'"He who knows his innocence and recognizes his sin becomes the world’s model." Why does it require BOTH?',
+    a:'Because holding both keeps him honest without making him despair, and either alone distorts him.',
+    w:['Because sin cancels innocence, so the two add to nothing.',
+       'Because a model must be flawless and he is claiming to be.']},
+29:{q:'"The Empire is a divine thing that cannot be remade. He who attempts it will only mar it." What kind of ruler is this aimed at?',
+    a:'The one who believes a society is raw material for his design.',
+    w:['The one who is too lazy to reform anything at all.',
+       'The one who believes in the divine right of kings.']},
+30:{q:'"Briars and thorns grow rank where an army camps." What is the chapter counting?',
+    a:'The costs that arrive after the fighting stops and never appear in the account of the victory.',
+    w:['The tactical disadvantage of camping in overgrown ground.',
+       'The moral purity of soldiers, which it says is high.']},
+31:{q:'"Even when victorious he does not rejoice." Why not?',
+    a:'Because celebrating the win means celebrating the killing that produced it.',
+    w:['Because he is worried the enemy will return for revenge.',
+       'Because victory is always temporary, so joy is premature.']},
+32:{q:'Tao is like brooks and streams in relation to the great rivers and the ocean. What is the relation?',
+    a:'Everything smaller is already running toward it without being commanded to.',
+    w:['The ocean dominates the streams and forces them into itself.',
+       'The streams are inferior versions of the ocean and should be ashamed.']},
+33:{q:'"He who is able to conquer others has force, but he who is able to control himself is mighty." What separates the two?',
+    a:'Force needs something outside itself to act on; might does not, so it never runs out of ground.',
+    w:['Self-control is easier than conquest, so it is the sensible option.',
+       'Conquering others is forbidden, so self-control is the only choice left.']},
+34:{q:'It nourishes everything but claims no ownership. What is the chapter separating?',
+    a:'Giving, from the right to direct what you gave.',
+    w:['Generosity, from wealth; only the poor can truly give.',
+       'Love, from responsibility; caring means never intervening.']},
+35:{q:'"Music and dainties attract the passing people, while Tao’s reality seen, is insipid." What is being admitted?',
+    a:'That the true thing is genuinely less exciting at first, and will lose every contest for attention.',
+    w:['That music and food are sinful and should be renounced.',
+       'That the Tao is boring and therefore not worth pursuing.']},
+36:{q:'"The tender and yielding conquer the rigid and strong." Is this about being weak?',
+    a:'No; it is about the kind of strength that survives contact, because what cannot bend breaks.',
+    w:['Yes; weakness is morally superior to strength.',
+       'No; it means you should pretend to yield and then strike.']},
+37:{q:'"Tao is apparently inactive and yet nothing remains undone." What does wu wei mean here?',
+    a:'Not the absence of action, but action with nothing forced in it.',
+    w:['Doing literally nothing and waiting for events to resolve.',
+       'Doing everything, but very quietly so nobody notices.']},
+38:{q:'"Essential teh makes no show of virtue, and therefore it is really virtuous." What is the test?',
+    a:'Whether the good would still be done with nobody watching and no credit attached.',
+    w:['Whether the good was difficult; easy virtue does not count.',
+       'Whether the person believes themselves to be virtuous.']},
+39:{q:'"The high is always founded upon the low." What is a ruler being told?',
+    a:'Her position is made of the people beneath it, so contempt for them is contempt for her own footing.',
+    w:['That the low will inevitably overthrow the high.',
+       'That she should lower herself socially to seem approachable.']},
+40:{q:'"Existence comes from nonexistence." What is the chapter asking you to accept?',
+    a:'That the empty and the unformed are where things come from, not a shortage to be corrected.',
+    w:['That the universe is an illusion and nothing is real.',
+       'That something can be produced from nothing by sufficient effort.']},
+41:{q:'"The greatest square has no corner, the largest vessel is never filled." Why describe perfection by what it LACKS?',
+    a:'Because a thing at full extent stops having the edges we use to recognise smaller versions of it.',
+    w:['Because perfect things are defective in ways we must forgive.',
+       'Because nothing is ever actually perfect, so the terms are empty.']},
+42:{q:'"There are some things which it is a gain to lose, and a loss to gain." Give the shape of it.',
+    a:'Some acquisitions cost more than they bring, and some losses free up more than they take.',
+    w:['Trade is immoral because every gain injures someone.',
+       'Losses and gains are identical, so choices do not matter.']},
+43:{q:'"The most tender things of creation race over the hardest." What is the mechanism?',
+    a:'What has no fixed shape can enter where the solid cannot follow, so softness gets in everywhere.',
+    w:['Soft things move faster because they weigh less.',
+       'Hard things are fragile and shatter on contact with anything.']},
+44:{q:'"One who knows when to stop is not endangered." What is the skill?',
+    a:'Recognising the point where continuing starts costing more than it returns, and stopping there.',
+    w:['Never starting anything, so there is nothing to stop.',
+       'Stopping as early as possible, before any risk appears.']},
+45:{q:'"Extreme straightness appears crooked; great skill, clumsy." What is being warned against?',
+    a:'Judging mastery by how polished it looks, when real mastery often looks wrong from outside.',
+    w:['Trusting anyone who appears competent, since all skill is fake.',
+       'Practising until your technique looks beautiful to spectators.']},
+46:{q:'"There is no misfortune greater than discontent." Is this a claim about circumstances?',
+    a:'No; it locates the misfortune in the wanting rather than in what is or is not had.',
+    w:['Yes; it says poverty is the worst thing that can happen.',
+       'No; it says one should never try to improve anything.']},
+47:{q:'"Not going out of the door I have knowledge of the world." What is the claim?',
+    a:'That the same patterns run through everything, so understanding one thing deeply reaches the rest.',
+    w:['That travel is pointless and other places are all identical.',
+       'That reports and hearsay are as good as seeing for yourself.']},
+48:{q:'"He practices non-doing and yet there is nothing left undone." How is that not a contradiction?',
+    a:'What is dropped is the forcing, not the doing, and the work goes better without it.',
+    w:['It is a contradiction, offered to show that reason fails.',
+       'He delegates everything, so others do it while he rests.']},
+49:{q:'"The not-good he also treats with goodness, for teh is goodness." Why treat both alike?',
+    a:'Because the goodness is a property of him, not a reward he issues based on their conduct.',
+    w:['Because he cannot tell the difference between them.',
+       'Because being kind to bad people reliably converts them.']},
+50:{q:'"Life is a going forth; death is a returning home." What does the framing change?',
+    a:'It makes death a direction rather than an interruption, which changes how you hold the going.',
+    w:['It promises a specific afterlife with a location and inhabitants.',
+       'It says life is a mistake and death corrects it.']},
+51:{q:'"Teh raises them but does not rule them." What is being distinguished?',
+    a:'Nurture, from control; the raising creates something that then belongs to itself.',
+    w:['Parents, from rulers; only rulers may give orders.',
+       'Kindness, from discipline; the chapter forbids all correction.']},
+52:{q:'"He who closes his mouth and shuts his sense gates will be free from trouble." Is this a rule of silence?',
+    a:'It is about not spending yourself outward through every opening at once; the closing is rest, not refusal.',
+    w:['Yes; speaking at all is the source of every trouble.',
+       'Yes; one should seal the senses permanently and withdraw.']},
+53:{q:'"The great Way is very plain, but people prefer the bypaths." Why would anyone prefer the bypath?',
+    a:'Because the plain way offers nothing to be clever about, and cleverness is what we like about ourselves.',
+    w:['Because the bypaths are shorter and arrive sooner.',
+       'Because the great Way is hidden and hard to locate.']},
+54:{q:'"The thing that is well planted is not easily uprooted." What is the chapter recommending?',
+    a:'Putting the work into the root, where it is invisible, because that is what holds in a storm.',
+    w:['Planting in hard ground so that nothing can be moved.',
+       'Never changing anything once it has been established.']},
+55:{q:'The essence of teh is compared to a young child. Which quality is meant?',
+    a:'Wholeness without effort: nothing in the child is being held together by will.',
+    w:['Ignorance; the chapter praises knowing nothing at all.',
+       'Helplessness; the chapter says one should depend on others.']},
+56:{q:'"The one who knows does not speak; the one who speaks does not know." Is this a rule against teaching?',
+    a:'No; it is a warning that fluency about a thing is not the same as being changed by it.',
+    w:['Yes; anyone who explains anything is a fraud.',
+       'Yes; knowledge must be kept secret from the unworthy.']},
+57:{q:'"If a ruler practices wu wei the people will reform of themselves." What is assumed about people?',
+    a:'That they already tend toward order, and most disorder is produced by the interference meant to prevent it.',
+    w:['That people are incapable of reform and should be left to rot.',
+       'That people are naturally wicked and must be watched.']},
+58:{q:'"Misery supports happiness. Happiness conceals misery." What should you do with a good run?',
+    a:'Hold it lightly, since the two are phases of one motion rather than opposite territories.',
+    w:['Refuse to enjoy it, because enjoyment causes the reversal.',
+       'Assume the reversal is a punishment you have earned.']},
+59:{q:'"In governing the people and in worshipping heaven nothing surpasses moderation." Why the same virtue for both?',
+    a:'Because both fail in the same way: by too much zeal spent too fast on too narrow a thing.',
+    w:['Because governing and worship are really the same activity.',
+       'Because moderation means caring about neither very much.']},
+60:{q:'"Govern a great state as one fries small fish: do not scale or clean them." What does the cook know?',
+    a:'That the more he handles them, the more they fall apart, so restraint IS the technique.',
+    w:['That cooking should be done quickly and at high heat.',
+       'That small states are easier to govern than large ones.']},
+61:{q:'"Some stoop to conquer, and others stoop and conquer." What is the difference?',
+    a:'One lowers himself as a tactic and one simply is low, and only the second is reliably followed.',
+    w:['There is no difference; the line is a poetic repetition.',
+       'Both are dishonest; the chapter condemns them equally.']},
+62:{q:'"The Tao is the good man’s treasure, the bad man’s last resort." Why mention the bad man at all?',
+    a:'To say the door is never actually shut, however late someone arrives at it.',
+    w:['To warn that bad men will exploit the Tao for their own ends.',
+       'To rank people, so the good know they are ahead.']},
+63:{q:'"He should respond to hatred with kindness." What makes this practical rather than merely nice?',
+    a:'It is the only response that does not feed the thing, so it ends the exchange instead of extending it.',
+    w:['It shames the other person, which is a superior form of revenge.',
+       'It guarantees the other person will become kind in return.']},
+64:{q:'"A journey of three thousand miles begins with one step." Which half is the chapter emphasising?',
+    a:'That the enormous thing is only ever approached at the scale of the small thing in front of you.',
+    w:['That long journeys are inadvisable and should be shortened.',
+       'That the first step is the hardest and the rest is easy.']},
+65:{q:'"To govern a people with guile is a curse; with simplicity, a blessing." Why is guile the curse?',
+    a:'Because it teaches the governed to be cunning back, and then nothing can be plainly settled again.',
+    w:['Because guile is difficult and most rulers are bad at it.',
+       'Because simple people cannot understand complicated policy.']},
+66:{q:'"Rivers and seas are kings of the valley because they keep below them." What is the principle?',
+    a:'What positions itself lowest is what everything else naturally flows toward.',
+    w:['Water is powerful because it is heavy and crushes obstacles.',
+       'Kings should live in valleys rather than on hills.']},
+67:{q:'"The first treasure is compassion. A man that is compassionate can be truly brave." How does compassion produce courage?',
+    a:'It gives him something worth the risk, so the courage has a reason instead of needing bravado.',
+    w:['Compassion makes him careless of danger because he is distracted.',
+       'Compassion is a substitute for courage in those who lack it.']},
+68:{q:'"He who excels as a soldier is the one who is not warlike." What is the chapter claiming about skill?',
+    a:'That the one who does not want the fight sees it clearly, and the eager one is already losing to his own appetite.',
+    w:['That soldiers should refuse to fight under any circumstances.',
+       'That skill in war is impossible and all soldiers are equal.']},
+69:{q:'"I hesitate to advance an inch, but am willing to withdraw a foot." What is being described?',
+    a:'A refusal to be drawn, which keeps the initiative with him even while he gives ground.',
+    w:['Cowardice, which the chapter recommends as a way of life.',
+       'A trap, in which the retreat is faked to lure the enemy.']},
+70:{q:'"The wise man wears wool and keeps his gems out of sight." Why hide them?',
+    a:'Because displaying them changes who comes to you and why, and he would rather be met plainly.',
+    w:['Because he is ashamed of having anything valuable.',
+       'Because he is hoarding them and does not want to share.']},
+71:{q:'"The wise man is wise because he understands his ignorance and is GRIEVED over it." Why the grief?',
+    a:'Because he takes his not-knowing seriously enough to feel it, which is what keeps him learning.',
+    w:['Because ignorance is shameful and he is humiliated by it.',
+       'Because knowledge is impossible and he despairs of it.']},
+72:{q:'"He discards flattery and prefers regard." What is the difference?',
+    a:'Flattery is about the giver’s need; regard is about you actually being seen.',
+    w:['There is none; both are forms of praise and both are good.',
+       'Flattery is public and regard is private; otherwise identical.']},
+73:{q:'"Heaven’s net is vast. Its meshes are wide but it loses nothing." What is the reassurance?',
+    a:'That consequence does not require anyone to be watching closely, so you need not police the world yourself.',
+    w:['That heaven punishes everyone eventually, so fear is warranted.',
+       'That escape is possible because the gaps in the net are large.']},
+74:{q:'"If the people do not fear death, how can one frighten them with death?" What has the ruler lost?',
+    a:'His last instrument, because he spent it until it stopped meaning anything.',
+    w:['His army, which has deserted him for a braver leader.',
+       'Nothing; he should simply find a worse punishment than death.']},
+75:{q:'"The people make light of death because they are so absorbed in life’s interests." What is the diagnosis?',
+    a:'That an existence stuffed with pursuits leaves no room to reckon with the ending it is heading toward.',
+    w:['That people enjoy life too much and should be made miserable.',
+       'That the people are brave and this is praise.']},
+76:{q:'"The strong and the great stay below; the tender and weak rise above." Where does the image come from?',
+    a:'A growing thing: the living shoots are soft and at the top, and the hard wood is underneath.',
+    w:['A battlefield, where the strong are killed first.',
+       'A social ladder, which the chapter says should be inverted.']},
+77:{q:'"Tao of heaven resembles the stretching of a bow. The mighty it humbles, the lowly it exalts." What is the bow doing?',
+    a:'Bringing both ends toward the middle at once, which is what evening out actually looks like.',
+    w:['Firing arrows at the mighty as punishment.',
+       'Breaking under tension, which is what happens to the proud.']},
+78:{q:'"Nothing is more fragile than water, and yet nothing surpasses it against hard substances." What accounts for the result?',
+    a:'It never contests directly and never stops, and the hard thing has no answer to either.',
+    w:['Water is secretly harder than stone and the fragility is an illusion.',
+       'The stone eventually chooses to yield out of respect.']},
+79:{q:'"They who have virtue keep their obligations, they who have no virtue insist on their rights." What is the distinction?',
+    a:'One asks what he owes and the other asks what he is owed, and only one of those builds anything.',
+    w:['Rights are illegitimate and no one should ever claim one.',
+       'Obligations are a trick used by the powerful to extract labour.']},
+80:{q:'A small contented state: proud of plain clothes, content with plain dwellings. What is the chapter praising?',
+    a:'Sufficiency that is actually felt as sufficiency, rather than measured against somewhere else.',
+    w:['Poverty, which it says is morally superior to comfort.',
+       'Isolation, and the refusal to ever meet outsiders.']},
+81:{q:'"Faithful words are often not pleasant; pleasant words are often not faithful." What is the practical warning?',
+    a:'Ease of hearing is not evidence of truth, and often runs against it.',
+    w:['Never say anything kind, since kindness indicates dishonesty.',
+       'Unpleasant speech is always true, so be as harsh as possible.']},
+82:{q:'"I am like a sailor far beyond a place of anchorage, adrift on a boundless ocean." Why close the book here?',
+    a:'Because arriving at understanding does not feel like arriving; it feels like this, and the book will not pretend otherwise.',
+    w:['Because the writer has given up and is confessing failure.',
+       'Because the sea is a metaphor for death, which comes next.']},
+};
+// What one chapter is worth. The white reads it as her own book; a mortal captain can read it
+// too (the Quiet Road has always pointed at this) and gets a smaller share, which also makes the
+// Book a real road toward the calling instead of something you only find after transforming.
+// The crown cannot: he is the striving, and this is a book about not striving.
+function taoCanRead9(){return !(typeof isVorlan9==='function'&&isVorlan9());}
+function taoLightPer9(){return (typeof isSaint9==='function'&&isSaint9())?26:9;}
+const TAOMILE9=[
+ {n:9,  k:'still', nm:'THE STILL POINT',
+  d:'Chapter IX. Knowing when the pail is full.',
+  e:'Your pacifier no longer costs grace on a hull that has already stopped firing.'},
+ {n:27, k:'outcast', nm:'NO OUTCAST',
+  d:'Chapter XXVII. There is no one he will not save.',
+  e:'Every hull you still, anywhere, adds to the LIGHT as though you had mended it yourself.'},
+ {n:45, k:'crooked', nm:'THE CROOKED STRAIGHT',
+  d:'Chapter XLV. Great skill looks clumsy.',
+  e:'The veil no longer breaks when you are struck, only when YOU raise a hand.'},
+ {n:63, k:'kindness', nm:'HATRED WITH KINDNESS',
+  d:'Chapter LXIII. Respond to hatred with kindness.',
+  e:'A hostile you have never fired on may simply stand down when you come near. Sometimes it brings its wing with it.'},
+ {n:81, k:'faithful', nm:'THE FAITHFUL WORD',
+  d:'Chapter LXXXI. Faithful words are not pleasant.',
+  e:'THE MIRACLE recharges twice as fast, and the Book pays double from here on.'}
+];
+function taoMile9(k9){
+  const m9=TAOMILE9.find(x9=>x9.k===k9);
+  return !!(m9&&taoMastered9()>=m9.n);
+}
+function taoNextMile9(){
+  const c9=taoMastered9();
+  for(const m9 of TAOMILE9)if(c9<m9.n)return m9;
+  return null;
+}
+
 function taoInit9(){
   if(!S.tao9)S.tao9={seen:[],read:[],mastered:[],cur:null,t:0,sel:0};
   if(!S.tao9.seen)S.tao9.seen=[];
@@ -3277,7 +3720,10 @@ function taoDraw9(){
   ctx.restore();
 }
 function openTaoLedger9(){
-  if(typeof isSaint9!=='function'||!isSaint9()){say('There is no book. You are not carrying one.','#8899bb');return;}
+  // Wolf's ruling: the white AND a mortal captain. The Quiet Road has always hinted at this book
+  // for someone who has not taken the stole; refusing to open it for them made the hint a dead end.
+  // The crown cannot: he is the striving, and this is a book about not striving.
+  if(!taoCanRead9()){say('You reach for it and your hand will not close on it. That book is not addressed to what you have become.','#c9b7e8');return;}
   const T9=taoInit9();
   if(!taoSeen9().length){say('✦ The book is still closed. It opens on its own, when something you do calls for it.','#8899bb');return;}
   T9.sel=0;S.taoBack9=S.screen;S.screen='taoledger';
@@ -3292,31 +3738,32 @@ function drawTaoLedger9(){
   txt('Goddard, 1919',W/2,74,'#6a8098',11,'center','normal');
   const n9=list9[T9.sel];
   // On touch the bottom row carries the buttons, so the list shows fewer rows and every chapter row is itself tappable.
-  const VIS9=IS_TOUCH?9:12;
+  const VIS9=IS_TOUCH?11:13;
   let top9=0;
   if(list9.length>VIS9)top9=Math.min(Math.max(0,T9.sel-Math.floor(VIS9/2)),list9.length-VIS9);
   for(let vi9=0;vi9<VIS9&&(top9+vi9)<list9.length;vi9++){
     const i9=top9+vi9;
     const m9=list9[i9],sel9=(i9===T9.sel),md9=T9.mastered.indexOf(m9)>=0;
-    rr(40,104+vi9*36,268,30,8,sel9?'#16202e':'#101620');
-    txt(taoNum9(m9),54,124+vi9*36,sel9?'#cfe8ff':'#8899bb',11,'left',sel9?'bold':'normal');
-    txtFit(TAO9[m9].t,98,124+vi9*36,sel9?'#c9d4e2':'#7a8a9a',13,178,'left','normal');
-    txt(md9?'✓':'?',296,124+vi9*36,md9?'#7fd98a':'#ffe9b0',13,'right','normal');
+    rr(34,102+vi9*38,286,32,8,sel9?'#16202e':'#101620');
+    txt(taoNum9(m9),48,124+vi9*38,sel9?'#cfe8ff':'#8899bb',13,'left',sel9?'bold':'normal');
+    txtFit(TAO9[m9].t,94,124+vi9*38,sel9?'#c9d4e2':'#7a8a9a',15,190,'left','normal');
+    txt(md9?'✓':'?',308,124+vi9*38,md9?'#7fd98a':'#ffe9b0',15,'right','normal');
     // tap a row to select it; tap the row you already have selected to answer for understanding
-    taoRects9.push({x:40,y:104+vi9*36,w:268,h:30,fn:(function(idx9,was9){return function(){
+    taoRects9.push({x:34,y:102+vi9*38,w:286,h:32,fn:(function(idx9,was9){return function(){
       if(was9)taoRead9(list9[idx9]); else T9.sel=idx9;
     };})(i9,sel9)});
   }
-  if(top9>0)txt('▲ '+top9+' more',165,98,'#6a8098',10,'center','normal');
-  if(top9+VIS9<list9.length)txt('▼ '+(list9.length-top9-VIS9)+' more',165,104+VIS9*36+6,'#6a8098',10,'center','normal');
+  if(top9>0)txt('▲ '+top9+' more',177,96,'#6a8098',11,'center','normal');
+  if(top9+VIS9<list9.length)txt('▼ '+(list9.length-top9-VIS9)+' more',177,102+VIS9*38+8,'#6a8098',11,'center','normal');
   if(n9&&TAO9[n9]){
-    txtFit(taoNum9(n9)+'  ·  '+TAO9[n9].t,320,126,'#cfe8ff',18,W-372,'left');
-    let y9=166;
-    // This is the one screen in the game whose whole job is READING, and it carried the smallest
-    // body text in the game. 12 -> 15, with the line spacing and the panel opened up to match.
+    txtFit(taoNum9(n9)+'  ·  '+TAO9[n9].t,336,126,'#cfe8ff',20,W-380,'left');
+    let y9=170;
+    // This is the one screen in the game whose whole job is READING. Wolf: "The text is too small in
+    // the tao." 15 -> 18, with the line spacing opened to match, because a body of scripture set at
+    // caption size is telling the player it is not the point.
     for(const pg9 of TAO9[n9].full.split('\n\n')){
       if(y9>H-(IS_TOUCH?112:76))break;
-      y9=wrapText(pg9,320,y9,W-360,15,'#d6e0ec')+20;
+      y9=wrapText(pg9,336,y9,W-372,18,'#dce6f2')+22;
     }
   }
   if(IS_TOUCH){
@@ -3330,9 +3777,9 @@ function drawTaoLedger9(){
     mk9(188,196,(n9&&T9.mastered.indexOf(n9)>=0)?'✓ READ AGAIN':'ANSWER',
         dis9?'#55606c':'#ffe9b0', dis9?'#141a22':'#2a2418', ()=>{if(n9)taoRead9(n9);});
     mk9(396,128,'✕ CLOSE','#e8a8a8','#2a1820',()=>closeTaoLedger9());
-    txtFit('tap a chapter to select it, tap it again to answer  •  ✓ raises your grace ceiling and regen, forever  •  '+taoMastered9()+' of '+Object.keys(TAO9).length+' mastered',
+    txtFit('tap a chapter to select it, tap it again to answer  •  ✓ pays '+taoLightPer9()+' LIGHT and deepens your grace, forever  •  '+taoMastered9()+' of '+Object.keys(TAO9).length+' understood'+(taoNextMile9()?('  •  next: '+taoNextMile9().nm+' at '+taoNextMile9().n):''),
            W/2,H-76,'#6a7a8a',11,W-80,'center','normal');
-  } else txt('[↑↓] choose  •  [E] answer for understanding (✓ raises grace ceiling + regen, forever)  •  '+taoMastered9()+' of '+Object.keys(TAO9).length+' mastered  •  [Esc] close',W/2,H-24,'#6a7a8a',12,'center','normal');
+  } else txt('[↑↓] choose  •  [E] answer for understanding (✓ '+taoLightPer9()+' LIGHT + deeper grace, forever)'+(taoNextMile9()?('  •  next: '+taoNextMile9().nm+' at '+taoNextMile9().n):'')+'  •  '+taoMastered9()+' of '+Object.keys(TAO9).length+' mastered  •  [Esc] close',W/2,H-24,'#6a7a8a',12,'center','normal');
 }
 function taoRead9(n9){
   // reading is not enough: the Tao asks you to UNDERSTAND. Pass a comprehension check and your grace deepens (ceiling + regen), permanently.
@@ -3340,35 +3787,88 @@ function taoRead9(n9){
   if(!TAO9[n9])return;
   if(T9.read.indexOf(n9)<0)T9.read.push(n9);
   if(T9.mastered.indexOf(n9)>=0){say('✦ You read ' + taoNum9(n9) + ' again. Its meaning is already yours.','#cfe8ff');return;}
+  if(T9.shut9&&T9.shut9[n9]){say('✦ ' + taoNum9(n9) + ' is closed to you for now. Answer another chapter and it opens again.','#8899bb');return;}
   taoQuizStart9(n9);
 }
 function taoKeyFull9(n9){return ((TAO9[n9]&&TAO9[n9].key)||[]).join(' ').trim();}  // the WHOLE thought, never a cut-off first line
 function taoQuizStart9(n9){
-  if(!TAO9[n9]||!TAO9[n9].key)return;
-  const correct9=taoKeyFull9(n9);
-  const others9=Object.keys(TAO9).map(Number).filter(k9=>k9!==n9&&TAO9[k9].key&&TAO9[k9].key.length&&taoKeyFull9(k9)!==correct9);
-  const d9=[];let guard9=0;
-  while(d9.length<2&&guard9++<60&&others9.length){
-    const line9=taoKeyFull9(others9[Math.floor(rnd(0,others9.length))]);
-    if(d9.indexOf(line9)<0)d9.push(line9);
+  const Q9=TAOQ9[n9];
+  if(!Q9){ // no written question for this chapter: reading it is enough
+    taoMaster9(n9);return;
   }
-  const opts9=[correct9].concat(d9);
+  if(!taoCanRead9()){say('The book does not open for you.','#8899bb');return;}
+  const opts9=[{t:Q9.a,ok:true}].concat((Q9.w||[]).map(w9=>({t:w9,ok:false})));
   for(let i9=opts9.length-1;i9>0;i9--){const j9=Math.floor(rnd(0,i9+1));const tmp9=opts9[i9];opts9[i9]=opts9[j9];opts9[j9]=tmp9;}
-  const options9=opts9.map(line9=>({label:'“'+line9+'”',fn:()=>{
-    if(line9===correct9)taoMaster9(n9);
-    else say('✦ Not quite the heart of ' + taoNum9(n9) + '. Sit with it and read again.','#8899bb');
+  const options9=opts9.map(o9=>({label:o9.t,fn:()=>{
     ENC=null;S.screen='taoledger';
+    if(o9.ok){taoMaster9(n9);return;}
+    // Wolf's ruling: no cost, but no instant retry either. With three options a free retry means
+    // the comprehension check is decorative, because you will always have it inside three taps.
+    const T9=taoInit9();
+    T9.shut9=T9.shut9||{};T9.shut9[n9]=true;
+    say('✦ That is a way the chapter is commonly misread. It is not what it says. ' + taoNum9(n9) + ' closes for now. Read something else, and come back to it.','#8899bb');
   }}));
   showEnc('THE BOOK ASKS — ' + taoNum9(n9) + '  ·  ' + TAO9[n9].t,
-    'You have read it. Now show you understood. Which line is the HEART of this passage?',
+    Q9.q,
     options9);
 }
 function taoMaster9(n9){
   const T9=taoInit9();
   if(T9.mastered.indexOf(n9)>=0)return;
+  const before9=T9.mastered.length;
   T9.mastered.push(n9);
+  // answering one chapter re-opens every chapter that had closed on you
+  T9.shut9={};
   try{const g9=grace9();g9.grace=g9.graceMax;}catch(e9){}   // the new, higher ceiling, filled
-  say('✦ You feel your grace capacity and regeneration rate increase with your understanding. (' + taoNum9(n9) + ' mastered — ' + T9.mastered.length + ' of ' + Object.keys(TAO9).length + '.)','#ffe9b0');
+  // THE LIGHT. This is the change that makes the Book worth reading: understanding is now the
+  // single best-paying thing she can do with an hour, and it is the only income that cannot be
+  // taken, spent down, revolted against or lost with a hull.
+  let pay9=taoLightPer9();
+  if(taoMile9('faithful'))pay9*=2;                       // LXXXI doubles the Book from there on
+  try{lightGain9(pay9);}catch(e9){}
+  say('✦ ' + taoNum9(n9) + ' is yours. You understand it, which is different from having read it. (+' + pay9 + ' LIGHT · ' + T9.mastered.length + ' of ' + Object.keys(TAO9).length + ' · grace ceiling and regen up)','#ffe9b0');
+  // and the thresholds
+  const after9=T9.mastered.length;
+  for(const m9 of TAOMILE9){
+    if(before9<m9.n&&after9>=m9.n){
+      try{sfx.fanfare&&sfx.fanfare();}catch(e9){}
+      QSTATE.flash=Math.max(QSTATE.flash||0,2.2);
+      say('✦✦ ' + m9.nm + ' — ' + m9.n + ' CHAPTERS UNDERSTOOD. ' + m9.d + ' ✦✦','#eaf3ff');
+      say('✦ ' + m9.e,'#cfe8ff');
+    }
+  }
+}
+// LXIII HATRED WITH KINDNESS (sixty-three understood). Respond to hatred with kindness: a hull you
+// have never once fired on may simply stop, because nothing in the encounter has fed it. Rare, and
+// it requires a clean record with THAT ship, so it cannot be farmed by shooting and apologising.
+function taoKindness9(){
+  try{
+    if(!taoMile9('kindness'))return;
+    if(S.screen!=='space')return;
+    if(S.t<(S.taoKindCd9||0))return;
+    for(const e9 of enemies){
+      if(!e9||!e9.alive||!e9.detected||e9.cloaked)continue;
+      if(e9.friendly9||e9.charmed9||e9.neutral9||e9.holdFire||e9.disabledBySaint9||e9.bork9)continue;
+      if(e9.taoTouched9)continue;             // you have fired on this one; the chapter does not apply
+      if(e9.boss||e9.unique9||(e9.et&&e9.et.noSurrender))continue;
+      if(dist(ship,e9)>300)continue;
+      if(Math.random()>0.010)continue;
+      S.taoKindCd9=S.t+26;
+      e9.holdFire=true;e9.neutral9=true;e9.disarmed=true;e9.fire=999;
+      try{mercySpare9();}catch(er9){}
+      try{taoOutcast9(e9);}catch(er9){}
+      let wing9=0;
+      for(const o9 of enemies){
+        if(o9===e9||!o9||!o9.alive||o9.taoTouched9)continue;
+        if(o9.boss||o9.unique9)continue;
+        if(o9.parent!==e9&&dist(e9,o9)>220)continue;
+        if(Math.random()<0.5){o9.holdFire=true;o9.neutral9=true;o9.disarmed=true;o9.fire=999;wing9++;try{taoOutcast9(o9);}catch(er9){}}
+      }
+      say('\u2726\u2726 '+((e9.nm||(CLS&&CLS[e9.type])||'A hull'))+' stops. You never fired on her, and nothing in this encounter ever gave her a reason to keep going, and she has run out of her own momentum.'+(wing9?(' '+wing9+' more go quiet with her.'):''),'#eaf3ff');
+      try{sfx.ding&&sfx.ding();}catch(er9){}
+      return;
+    }
+  }catch(e9){}
 }
 function saintCalling9(){
   // at standing 85, the offer comes — from people, not from a god
@@ -3545,7 +4045,7 @@ function saintMiracle9(){
     const g9=grace9();
     if((g9.grace||0)<g9.graceMax*0.7){say('A miracle asks a deep well. Let the grace gather nearer to full.','#8899bb');try{if(sfx.fail)sfx.fail();}catch(e9){}return true;}
     g9.grace=Math.max(0,g9.grace-g9.graceMax*0.7);
-    S.miracleCd9=S.t+70;
+    S.miracleCd9=S.t+((typeof taoMile9==='function'&&taoMile9('faithful'))?35:70);   // LXXXI halves the wait
   }
   QSTATE.flash=Math.max(QSTATE.flash||0,4);S.shake=Math.max(S.shake||0,5);
   try{if(sfx.fanfare)sfx.fanfare();}catch(e9){}
@@ -7507,7 +8007,7 @@ function drawWhisper9(){
 }
 function arriveSystem(){
   // the veil is a HELD stillness for mending in place, not a traveling cloak: a rift jump strains it to nothing, so you arrive seen and must raise it again
-  if(S.veil9){S.veil9=false;ship.cloaked=false;if(typeof isSaint9==='function'&&isSaint9())say('The jump strains the veil to nothing — you arrive seen. [X] to raise it again.','#8899bb');}
+  if(S.veil9&&!(typeof taoMile9==='function'&&taoMile9('crooked'))){S.veil9=false;ship.cloaked=false;if(typeof isSaint9==='function'&&isSaint9())say('The jump strains the veil to nothing — you arrive seen. [X] to raise it again.','#8899bb');}
   ship.fighters=Math.min(wingSize(),ship.fighters+pFighters.length);pFighters=[];
   enemies=[];bolts=[];torpedoes=[];pickups=[];mines=[];friendly=null;ally=null;civ=null;defFleet=[];fleet=null;S.noHostiles=false;S.invasion=null;ambientT=rnd(18,26);
   BC('arrive sys='+ship.sys);
@@ -8937,7 +9437,21 @@ function fireLance(){
   if(isSaint9()){
     // THE PACIFIER RAY — costs grace, not reactor power, and never kills
     if(S.lanceCd>0)return;
-    if(!graceSpend9(6,'The pacifier will not answer. Rest, Captain.'))return;
+    // IX THE STILL POINT (nine chapters understood). Knowing when the pail is full: the beam costs
+    // her nothing when it lands on something that has already stopped. The grace was being spent
+    // finishing a thing that was finished.
+    let pcost9=6;
+    try{
+      if(taoMile9('still')){
+        const LRq9=(340+(ship.up.lance-1)*25)*(saintTier9()>=2?1.2:1);
+        for(const eq9 of enemies){
+          if(!eq9||!eq9.alive||eq9.cloaked)continue;
+          if(!(eq9.disabledBySaint9||eq9.holdFire||eq9.neutral9||eq9.disarmed))continue;
+          if(Math.abs(angDiff(ship.ang,angTo(ship,eq9)))<.42&&dist(ship,eq9)<LRq9){pcost9=0;break;}
+        }
+      }
+    }catch(e9){}
+    if(pcost9>0&&!graceSpend9(pcost9,'The pacifier will not answer. Rest, Captain.'))return;
     S.lanceCd=.22;
     if(ship.cloaked&&!S.veil9){ship.cloaked=false;ship.cloakCd=30;}
     try{sfx.lance();}catch(e){}
@@ -9234,6 +9748,7 @@ function fireTorpedo(){
   else if(volley>1)say(volley+'-torpedo volley away!','#ffd86b');
 }
 function hurtEnemy(e,dmg){
+  try{if(e)e.taoTouched9=true;}catch(er9){}   // LXIII only applies to a hull you have NEVER fired on
   dmg=saintNoKill9(e,dmg);
   if(e.liner&&e.owned9){e.hp=Math.min(e.maxHp,e.hp+dmg);return;} // you cannot damage a casino you own
   if(e.bork9){if(!S.borkGuardT9||S.t>S.borkGuardT9){S.borkGuardT9=S.t+3;say('Orson blinks into your gunner\u2019s seat, delighted. "Ah ah AH. Not Bork. Bork is UNDER MY PROTECTION, and frankly he is funnier than you." Your weapons will not answer.','#ff8ce8');}return;}
@@ -10453,17 +10968,29 @@ function sPower9(k9){
   try{p9.fn();}catch(e9){}
 }
 function drawSComm9(){
-  ctx.fillStyle='rgba(240,246,252,.93)';ctx.fillRect(0,0,W,H);
-  rr(W/2-230,10,460,44,14,'rgba(255,255,255,.85)');
-  txtFit(sFullComm9()?'✦ THE COMMUNION  —  YOU NEED NOT BE THERE':'✦ THE WORKS ARE DONE  —  '+pacifiedCount9()+' / '+DOM_SYSTEMS9+' AT PEACE',W/2,38,'#3a5a7a',15,440,'center');
-  txt('WHAT THE LIGHT REACHES'+(IS_TOUCH?'  (tap one)':'  (press the key)'),24,80,'#3a5a7a',13,'left');
+  // Wolf: "Why is the saint Orson screen white like that? looks terrible, only screen like that."
+  // It was a 93% white wash over the whole canvas, which left the entire space HUD and the right
+  // rail ghosting through it at four per cent and made the one transcendent screen in her arc look
+  // like a print preview. Every other overlay in the game is dark ground with light on it. This one
+  // is now the same: a deep blue-black, a cold white bloom behind the cards, and the sky underneath
+  // showing through as depth rather than as interference.
+  ctx.fillStyle='rgba(3,7,14,.93)';ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const bl9=ctx.createRadialGradient(W/2,H*0.42,20,W/2,H*0.42,Math.max(W,H)*0.62);
+  bl9.addColorStop(0,'rgba(190,222,255,.20)');bl9.addColorStop(.45,'rgba(140,190,240,.07)');bl9.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=bl9;ctx.fillRect(0,0,W,H);
+  ctx.restore();
+  rr(W/2-230,10,460,44,14,'rgba(20,34,54,.92)');
+  ctx.strokeStyle='rgba(159,216,255,.35)';ctx.lineWidth=1;ctx.strokeRect(W/2-229.5,10.5,459,43);
+  txtFit(sFullComm9()?'✦ THE COMMUNION  —  YOU NEED NOT BE THERE':'✦ THE WORKS ARE DONE  —  '+pacifiedCount9()+' / '+DOM_SYSTEMS9+' AT PEACE',W/2,38,'#eaf3ff',15,440,'center');
+  txt('WHAT THE LIGHT REACHES'+(IS_TOUCH?'  (tap one)':'  (press the key)'),24,80,'#9fd8ff',13,'left');
   qRects9=[];
   const sv9=ctx.fillStyle;
   qCards9(sPowerList9().map(p9=>Object.assign({},p9,{need:0})),100,92,H-56);
   ctx.fillStyle=sv9;
-  rr(W-176,10,152,44,10,'#dfe8f2');txt('✕ DESCEND',W-100,38,'#3a5a7a',13,'center');
+  rr(W-176,10,152,44,10,'#16283e');txt('✕ DESCEND',W-100,38,'#9fd8ff',13,'center');
   qRects9.push({x:W-176,y:10,w:152,h:44,k:'q'});
-  txtFit(IS_TOUCH?'tap DESCEND to return':'[Q] descend',W/2,H-14,'#5a7a96',11,W-80,'center','normal');
+  txtFit(IS_TOUCH?'tap DESCEND to return':'[Q] descend',W/2,H-14,'#8fb4d8',11,W-80,'center','normal');
 }
 function toggleQMode(){
   if(typeof isVorlan9==='function'&&isVorlan9()){
@@ -16934,7 +17461,7 @@ addEventListener('keydown',e=>{
     if(k==='escape'){if(CF.room9){exitRoom9();return;}
       cfSay9(CF.brawl9?'Not while house security is on you, Captain. Fight your way to the BEAM PAD.':'No shortcuts off the floor, Captain. Walk to the BEAM PAD and energize out.');return;}
   }
-  if(k==='t'&&S.screen==='space'&&!S.orbit&&typeof isSaint9==='function'&&isSaint9()&&!ENC&&!S.menu){openTaoLedger9();return;}   // in orbit [T] is the EXCHANGE; the book opens with [T] only in open space
+  if(k==='t'&&S.screen==='space'&&!S.orbit&&taoCanRead9()&&(typeof taoSeen9==='function'&&taoSeen9().length)&&!ENC&&!S.menu){openTaoLedger9();return;}   // in orbit [T] is the EXCHANGE; the book opens with [T] only in open space
   if(k==='escape'&&S.screen==='encounter'&&ENC&&ENC.title==='ASSEMBLE THE AWAY TEAM'){closeEnc();say('Transport bay stands by, Captain.','#8899bb');return;}
   if(k==='escape'&&S.screen!=='splash'&&S.screen!=='story'&&S.screen!=='keyref'&&S.screen!=='shipstat'&&S.screen!=='market'&&S.screen!=='away'&&S.screen!=='map'&&S.screen!=='missions'&&S.screen!=='base'&&S.screen!=='encounter'&&S.screen!=='intro'&&S.screen!=='persona'&&S.screen!=='chess'&&S.screen!=='record'&&S.screen!=='boardlog'&&S.screen!=='epilogue'){S.menu=!S.menu;sfx.ding();return;}
   if(k==='escape'&&S.screen==='encounter')return; // choices must be made, not escaped
@@ -17256,6 +17783,7 @@ addEventListener('keydown',e=>{
       } else say('No fighters docked. Rebuild at any starbase for credits, or let the hangar MILL one in flight (plasma coils + duranium).','#ff8c8c');
       if(ship.hangar)return;
     }
+    if(k==='l'&&!S.orbit){S.menu=true;S.logBig=true;S.logScroll=0;return;}   // the log, one key, from the sky
     if(k==='j'){S.screen='missions';return;}
     if(k==='c'){
       if(!ship.hasCloak){}
@@ -19295,6 +19823,22 @@ function loadGame(n){
   // A save written before the racks were taken off her can still carry live rounds. maxTorps() is 0
   // for the white, so those rounds are unspendable, unsellable and invisible: clear them on load.
   try{ if(typeof noTorp9==='function'&&noTorp9()){ship.torps=0;ship.torpProg=0;} }catch(e9){}
+  // THE DAWNMAKER, FOR A SAVE THAT WAS ALREADY CANONIZED. rc13 made canonization hand the hull over,
+  // but saintCanonize9() opens with `if(S.canonized9)return;`, so a save where she was canonized
+  // BEFORE that build never re-runs it and never gets the ship. Wolf, on rc13: "The best Saint ship
+  // is still not available." Granting it here is the migration that fix needed.
+  try{
+    if(typeof isSaint9==='function'&&isSaint9()&&S.canonized9){
+      const dk9=(typeof FINALE_HULL9!=='undefined')?FINALE_HULL9.saint:27;
+      if(dk9!=null){
+        if(!S.earnedHulls9)S.earnedHulls9=[];
+        if(S.earnedHulls9.indexOf(dk9)<0){
+          S.earnedHulls9.push(dk9);
+          say('\u2726 THE DAWNMAKER is entered in the yard register under your name, where she should have been the day they canonized you. She is waiting in THE WHITE LIBRARY.','#eaf3ff');
+        }
+      }
+    }
+  }catch(e9){}
   ship.mats=d.ship.mats||{dur:0,plasma:0,bio:0,nul:0};
   // v0.9.93 renamed the Null material key off a trademarked word. Old saves carry the old key;
   // carry the count across rather than silently zeroing somebody's 4000-credit material.
@@ -24566,7 +25110,7 @@ function whaleTick9(dt){
     S.beamFx.push({x1:bw.x,y1:bw.y,x2:e.x,y2:e.y,t:.3,hit:true,col:'rgba(150,225,255,.95)'});
     if(saintNow9){
       // the whales that swim with a saint MEND, they do not unmake: the hull that raised weapons goes dark and quiet, crew alive
-      e.disabledBySaint9=true;e.holdFire=true;e.fire=999;e.spd0_9=e.et&&e.et.spd;
+      e.disabledBySaint9=true;e.holdFire=true;e.fire=999;e.spd0_9=e.et&&e.et.spd;try{taoOutcast9(e);}catch(er9){}
       if(e.et)e.et=Object.assign({},e.et,{spd:0,dmg:0});
       e.hp=e.maxHp||e.hp;
       try{mercySpare9();}catch(_){}
@@ -27831,15 +28375,21 @@ function drawChapel9(){
     txt('[\u2191\u2193] choose \u2022 [E] build or fly \u2022 [H] back to the tracks \u2022 [Esc] leave',W/2,H-24,'#8899bb',12,'center','normal');
     return;
   }
+  // THE WING made this five rows and the fifth ran under the shrine/almshouse footer lines. Pitch
+  // is computed from the space actually available now, so a sixth track would fit too.
+  const trN9=CHAPTRACK9.length;
+  const trTop9=196, trBot9=H-124;
+  const trP9=Math.min(84,Math.max(58,Math.floor((trBot9-trTop9)/Math.max(1,trN9))));
+  const trH9=Math.min(74,trP9-8);
   for(let i=0;i<CHAPTRACK9.length;i++){
-    const tr=CHAPTRACK9[i],y=200+i*84,sel=(i===S.chapSel9),lv=(S.chapel9[tr.k]||0);
-    rr(70,y-26,W-140,74,10,sel?'#16202e':'#101620');
-    txt(tr.nm,92,y,sel?'#cfe8ff':'#c9d4e2',17,'left',sel?'bold':'normal');
+    const tr=CHAPTRACK9[i],y=trTop9+i*trP9,sel=(i===S.chapSel9),lv=(S.chapel9[tr.k]||0);
+    rr(70,y-26,W-140,trH9,10,sel?'#16202e':'#101620');
+    txt(tr.nm,92,y,sel?'#cfe8ff':'#c9d4e2',Math.min(17,trH9*0.26),'left',sel?'bold':'normal');
     for(let t=0;t<3;t++){ctx.fillStyle=t<lv?'#8fd0ff':'#243040';ctx.fillRect(W-260+t*26,y-14,20,14);}
     txt(lv>=3?'MAX':(CHAPPRICE9[lv]+' \u2726'),W-100,y,lv>=3?'#6a7a8a':(light9()>=CHAPPRICE9[lv]?'#ffe9b0':'#8a6a6a'),14,'right');
-    txt(tr.d,92,y+22,'#8899bb',12,'left','normal');
-    txt(tr.eff,92,y+40,'#6a8098',11,'left','normal');
-    if(IS_TOUCH)uiRects9.push({x:70,y:y-26,w:W-140,h:74,fn:(function(ix,was){return function(){
+    txtFit(tr.d,92,y+Math.round(trH9*0.30),'#8899bb',12,W-370,'left','normal');
+    txtFit(tr.eff,92,y+Math.round(trH9*0.54),'#6a8098',11,W-370,'left','normal');
+    if(IS_TOUCH)uiRects9.push({x:70,y:y-26,w:W-140,h:trH9,fn:(function(ix,was){return function(){
       if(was)chapBuy9(); else S.chapSel9=ix;
     };})(i,sel)});
   }
@@ -28464,7 +29014,7 @@ function frameInner(now){
   }
   if(S.prizeCourt9){try{openPrizeCourt9();}catch(e){}}
   if(isVorlan9()){try{vorTitleCheck9();capitalGrowth9();throneCheck9();ruleFrame9();korvVassalTick9();}catch(e){}}   // the vassal tick sits OUTSIDE ruleFrame9: that function stops running once the reign consolidates, and an oath should outlive the endgame that produced it
-  if(!isVorlan9()){try{saintCalling9();}catch(e){}}
+  if(!isVorlan9()){try{saintCalling9();}catch(e){}try{taoKindness9();}catch(e){}}
   if(isSaint9()&&S.screen==='space'){try{saintPacifySys9();}catch(e){}}
   if(isSaint9()&&S.canonized9){try{saintReignFrame9();}catch(e){}try{saintMendFrame9();}catch(e){}}
   if(isSaint9()){try{saintTierCheck9();}catch(e){} if(S.miracleCd9&&(S.miracleCd9-S.t)>70)S.miracleCd9=0;}   // self-heal a stale absolute cooldown from an old save (S.t resets on reload)
