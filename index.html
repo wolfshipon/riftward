@@ -621,7 +621,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc14';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc15';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -3738,33 +3738,49 @@ function drawTaoLedger9(){
   txt('Goddard, 1919',W/2,74,'#6a8098',11,'center','normal');
   const n9=list9[T9.sel];
   // On touch the bottom row carries the buttons, so the list shows fewer rows and every chapter row is itself tappable.
-  const VIS9=IS_TOUCH?11:13;
+  // THE SPACING. Wolf: "look at the spacing on the Tao screen." Two dead zones. The chapter list
+  // stopped two thirds of the way down and said '30 more' with clear space underneath it, and a
+  // short chapter left the reading pane three quarters empty because the text was pinned to the top.
+  // The list now sizes itself to the column it actually has, and the reading block is centred in the
+  // space it actually has, so neither side has a hole in it.
+  const LIST_TOP9=102;
+  const LIST_BOT9=H-(IS_TOUCH?104:56);
+  const AVAIL9=LIST_BOT9-LIST_TOP9-14;
+  const VIS9=Math.max(6,Math.floor(AVAIL9/40));
+  const ROWH9=Math.max(34,Math.floor(AVAIL9/VIS9));   // and then the rows GROW to fill it exactly
   let top9=0;
   if(list9.length>VIS9)top9=Math.min(Math.max(0,T9.sel-Math.floor(VIS9/2)),list9.length-VIS9);
   for(let vi9=0;vi9<VIS9&&(top9+vi9)<list9.length;vi9++){
     const i9=top9+vi9;
     const m9=list9[i9],sel9=(i9===T9.sel),md9=T9.mastered.indexOf(m9)>=0;
-    rr(34,102+vi9*38,286,32,8,sel9?'#16202e':'#101620');
-    txt(taoNum9(m9),48,124+vi9*38,sel9?'#cfe8ff':'#8899bb',13,'left',sel9?'bold':'normal');
-    txtFit(TAO9[m9].t,94,124+vi9*38,sel9?'#c9d4e2':'#7a8a9a',15,190,'left','normal');
-    txt(md9?'✓':'?',308,124+vi9*38,md9?'#7fd98a':'#ffe9b0',15,'right','normal');
+    const ry9=LIST_TOP9+vi9*ROWH9;
+    rr(34,ry9,286,ROWH9-6,8,sel9?'#16202e':'#101620');
+    // XXXVIII is eight characters wide and the numeral column was 46px, so the long numerals ran
+    // straight into the titles. Its own clamped column, and the title starts clear of it.
+    txtFit(taoNum9(m9),46,ry9+Math.round(ROWH9*0.6),sel9?'#cfe8ff':'#8899bb',14,58,'left',sel9?'bold':'normal');
+    txtFit(TAO9[m9].t,110,ry9+Math.round(ROWH9*0.6),sel9?'#c9d4e2':'#7a8a9a',16,172,'left','normal');
+    txt(md9?'✓':'?',308,ry9+Math.round(ROWH9*0.6),md9?'#7fd98a':'#ffe9b0',16,'right','normal');
     // tap a row to select it; tap the row you already have selected to answer for understanding
-    taoRects9.push({x:34,y:102+vi9*38,w:286,h:32,fn:(function(idx9,was9){return function(){
+    taoRects9.push({x:34,y:ry9,w:286,h:ROWH9-6,fn:(function(idx9,was9){return function(){
       if(was9)taoRead9(list9[idx9]); else T9.sel=idx9;
     };})(i9,sel9)});
   }
   if(top9>0)txt('▲ '+top9+' more',177,96,'#6a8098',11,'center','normal');
-  if(top9+VIS9<list9.length)txt('▼ '+(list9.length-top9-VIS9)+' more',177,102+VIS9*38+8,'#6a8098',11,'center','normal');
+  if(top9+VIS9<list9.length)txt('▼ '+(list9.length-top9-VIS9)+' more',177,LIST_TOP9+VIS9*ROWH9+12,'#6a8098',11,'center','normal');
   if(n9&&TAO9[n9]){
-    txtFit(taoNum9(n9)+'  ·  '+TAO9[n9].t,336,126,'#cfe8ff',20,W-380,'left');
-    let y9=170;
-    // This is the one screen in the game whose whole job is READING. Wolf: "The text is too small in
-    // the tao." 15 -> 18, with the line spacing opened to match, because a body of scripture set at
-    // caption size is telling the player it is not the point.
-    for(const pg9 of TAO9[n9].full.split('\n\n')){
-      if(y9>H-(IS_TOUCH?112:76))break;
-      y9=wrapText(pg9,336,y9,W-372,18,'#dce6f2')+22;
-    }
+    txtFit(taoNum9(n9)+'  ·  '+TAO9[n9].t,340,128,'#cfe8ff',21,W-384,'left');
+    // Wolf: "The text size is better. Maybe little bigger." 18 -> 20. But the longest chapters do not
+    // fit at 20, and the old code only tested y BEFORE each paragraph, so a paragraph that started
+    // near the bottom drew its whole self straight through the footer. Measure first, step the size
+    // down until the WHOLE chapter fits, then place it. Nothing is ever cut off and nothing overruns.
+    const PT9=158, PB9=H-(IS_TOUCH?106:62), PH9=PB9-PT9;
+    const pgs9=TAO9[n9].full.split('\n\n');
+    const measure9=(sz9,gap9)=>{let t9=0;for(const pg9 of pgs9){t9+=(wrapText(pg9,340,-99999,W-376,sz9,'rgba(0,0,0,0)')+99999)+gap9;}return t9-gap9;};
+    let sz9=20,gap9=24,need9=measure9(sz9,gap9);
+    while(need9>PH9&&sz9>14){sz9-=1;gap9=Math.max(12,gap9-2);need9=measure9(sz9,gap9);}
+    // a short chapter sits a third of the way down rather than dead centre or jammed to the top
+    let y9=PT9+((need9<PH9)?Math.round((PH9-need9)*0.34):0);
+    for(const pg9 of pgs9){y9=wrapText(pg9,340,y9,W-376,sz9,'#dce6f2')+gap9;}
   }
   if(IS_TOUCH){
     const by9=H-62, mk9=(x9,w9,lab9,col9,bg9,fn9)=>{
@@ -19823,22 +19839,6 @@ function loadGame(n){
   // A save written before the racks were taken off her can still carry live rounds. maxTorps() is 0
   // for the white, so those rounds are unspendable, unsellable and invisible: clear them on load.
   try{ if(typeof noTorp9==='function'&&noTorp9()){ship.torps=0;ship.torpProg=0;} }catch(e9){}
-  // THE DAWNMAKER, FOR A SAVE THAT WAS ALREADY CANONIZED. rc13 made canonization hand the hull over,
-  // but saintCanonize9() opens with `if(S.canonized9)return;`, so a save where she was canonized
-  // BEFORE that build never re-runs it and never gets the ship. Wolf, on rc13: "The best Saint ship
-  // is still not available." Granting it here is the migration that fix needed.
-  try{
-    if(typeof isSaint9==='function'&&isSaint9()&&S.canonized9){
-      const dk9=(typeof FINALE_HULL9!=='undefined')?FINALE_HULL9.saint:27;
-      if(dk9!=null){
-        if(!S.earnedHulls9)S.earnedHulls9=[];
-        if(S.earnedHulls9.indexOf(dk9)<0){
-          S.earnedHulls9.push(dk9);
-          say('\u2726 THE DAWNMAKER is entered in the yard register under your name, where she should have been the day they canonized you. She is waiting in THE WHITE LIBRARY.','#eaf3ff');
-        }
-      }
-    }
-  }catch(e9){}
   ship.mats=d.ship.mats||{dur:0,plasma:0,bio:0,nul:0};
   // v0.9.93 renamed the Null material key off a trademarked word. Old saves carry the old key;
   // carry the count across rather than silently zeroing somebody's 4000-credit material.
@@ -19862,7 +19862,25 @@ function loadGame(n){
   S.saintWas9=d.swas||0;S.saintAsked9=d.askd||0;S.saintUpWas9=d.upwas||null;
   S.pacified9=d.pac||{};
   S.chapel9=d.chp||{hull:0,ray:0,choir:0,grace:0};
-  S.canonized9=!!d.can9;S.reign9=d.rgn9||null;S.reignDone9=!!d.rgd9;S.miracleCd9=0;/*cooldowns are S.t-relative; S.t resets on load, so never restore an absolute cd*/S.saintTier9=d.stier9||0;S.lostPeace9=d.lp9||{};   // canonization, reign, tier, and the chart's lost-peace marks now survive a reload
+  S.canonized9=!!d.can9;S.reign9=d.rgn9||null;S.reignDone9=!!d.rgd9;S.miracleCd9=0;
+  // THE DAWNMAKER, FOR A SAVE THAT WAS ALREADY CANONIZED. rc13 made canonization hand the hull over,
+  // but saintCanonize9() opens with `if(S.canonized9)return;`, so a save canonized BEFORE that build
+  // never re-runs it. rc14 added this migration and I put it forty lines too early, ABOVE the line
+  // that restores S.saint9 and S.canonized9, so isSaint9() was false every single time it ran and it
+  // never once fired. Wolf, twice: "The best Saint ship is still not available." It sits here now,
+  // after the state it reads actually exists.
+  try{
+    if(typeof isSaint9==='function'&&isSaint9()&&S.canonized9){
+      const dk9=(typeof FINALE_HULL9!=='undefined')?FINALE_HULL9.saint:27;
+      if(dk9!=null){
+        if(!S.earnedHulls9)S.earnedHulls9=[];
+        if(S.earnedHulls9.indexOf(dk9)<0){
+          S.earnedHulls9.push(dk9);
+          setTimeout(function(){try{say('\u2726 THE DAWNMAKER is entered in the yard register under your name, where she should have been the day they canonized you. She is waiting in THE WHITE LIBRARY.','#eaf3ff');}catch(e){}},600);
+        }
+      }
+    }
+  }catch(e9){}/*cooldowns are S.t-relative; S.t resets on load, so never restore an absolute cd*/S.saintTier9=d.stier9||0;S.lostPeace9=d.lp9||{};   // canonization, reign, tier, and the chart's lost-peace marks now survive a reload
   S.vorlan9=d.vor||{on:false,tier:0,dread:0,redeem:0,capital:false};
   S.tribute9=d.trb||{};
   S.empire9=d.emp||{cruiser:0,bay:0,fighter:0,wrath:0};
@@ -29017,7 +29035,22 @@ function frameInner(now){
   if(!isVorlan9()){try{saintCalling9();}catch(e){}try{taoKindness9();}catch(e){}}
   if(isSaint9()&&S.screen==='space'){try{saintPacifySys9();}catch(e){}}
   if(isSaint9()&&S.canonized9){try{saintReignFrame9();}catch(e){}try{saintMendFrame9();}catch(e){}}
-  if(isSaint9()){try{saintTierCheck9();}catch(e){} if(S.miracleCd9&&(S.miracleCd9-S.t)>70)S.miracleCd9=0;}   // self-heal a stale absolute cooldown from an old save (S.t resets on reload)
+  if(isSaint9()){try{saintTierCheck9();}catch(e){}
+    // BELT AND BRACES on the Dawnmaker. The load-order bug above proves a migration that runs once,
+    // in one place, at the wrong moment, fails silently and forever. This runs every frame, costs an
+    // array lookup, and cannot be defeated by ordering.
+    try{
+      if(S.canonized9){
+        const dk9=(typeof FINALE_HULL9!=='undefined')?FINALE_HULL9.saint:27;
+        if(dk9!=null){
+          if(!S.earnedHulls9)S.earnedHulls9=[];
+          if(S.earnedHulls9.indexOf(dk9)<0){
+            S.earnedHulls9.push(dk9);
+            say('\u2726 THE DAWNMAKER is entered in the yard register under your name, where she should have been the day they canonized you. She is waiting in THE WHITE LIBRARY.','#eaf3ff');
+          }
+        }
+      }
+    }catch(e9){} if(S.miracleCd9&&(S.miracleCd9-S.t)>70)S.miracleCd9=0;}   // self-heal a stale absolute cooldown from an old save (S.t resets on reload)
   wrathTick9(Math.min(.05,dt||.016));graceTick9(Math.min(.05,dt||.016));
   if(S.charmCd9>0)S.charmCd9-=Math.min(.05,dt||.016);
   saintVeilTick9(Math.min(.05,dt||.016));
