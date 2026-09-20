@@ -92,6 +92,7 @@ let IS_TOUCH=false;
 try{IS_TOUCH=(('ontouchstart' in window)||((navigator.maxTouchPoints||0)>0))&&(typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches);}catch(e){}
 const TB={id:null,cx:0,cy:0,dx:0,dy:0};
 let touchRects=[];
+let logRect9=null;   // the desktop ship's-log button: one circle, set by the HUD each frame, read by canvasPress
 let FIREHOLD9=null;   // which touch id is holding FIRE, so lifting it (or dying) reliably releases the trigger
 function cvPt(t9){const r9=cv.getBoundingClientRect();return{x:(t9.clientX-r9.left)*W/r9.width,y:(t9.clientY-r9.top)*H/r9.height};}
 function pressKey(k9){try{dispatchEvent(new KeyboardEvent('keydown',{key:k9}));dispatchEvent(new KeyboardEvent('keyup',{key:k9}));}catch(e){}}
@@ -621,7 +622,7 @@ window.onerror=function(msg9,src9,ln9){
   try{S._err=(''+msg9).slice(0,120)+' @'+ln9;}catch(e){}
   return false;
 };
-const VERSION9='v1.0.0-rc15';   // ONE place: splash, settings and stamp all read this
+const VERSION9='v1.0.0-rc16';   // ONE place: splash, settings and stamp all read this
 const BUILD_STAMP=(function(){try{return VERSION9+' \u2022 '+Object.keys(TRACKS).length+' tracks \u2022 '+Object.keys(AWE).length+' species \u2022 '+HULLSKINS.length+' hulls';}catch(e){return 'v0.9';}})();
 const LANGS=['en','es','pt'];   // only the three fully-supported languages appear in Settings
 const LANGNAMES={en:'ENGLISH',es:'ESPAÑOL',pt:'PORTUGUÊS'};
@@ -2128,6 +2129,37 @@ function vorSeed9(){
   }
 }
 function unmakerHere9(){try{return enemies.some(e9=>e9&&e9.alive&&e9.type==='vorlanship');}catch(e){return false;}}
+// ORSON DOES NOT GET TO DELETE YOUR FIGHT. Wolf, twice in a row, and he thinks once was the Vorlan
+// fight: "long fights I was about to win, Orson shows up makes everyone disappear because they're
+// beneath my quality. Poof. Gone. As the player I hate that." He is right, and it is worse than a
+// mood problem. applyQ's smite branch kills every hostile with boom() and never calls onKill(), so
+// four minutes of a capital fight pay out no salvage, no bounty, no kill credit and no mission
+// progress. The teleport branch is the same theft in a different coat: arriveSystem() empties the
+// field just as thoroughly. unmakerHere9 above was the ONLY shield either branch had, and it names
+// exactly one hull type, so THE UNMADE THRONE, a carrier, a citadel, the Lady, and the Unmaker's
+// own surviving escort were all fair game.
+function qBigFight9(){   // is the player committed to something he would hate to lose?
+  try{
+    if(typeof levi!=='undefined'&&levi&&(levi.hp==null||levi.hp>0))return true;
+    return enemies.some(e9=>{
+      if(!e9||!e9.alive)return false;
+      if(e9.friendly9||e9.charmed9||e9.corruptAlly9||e9.korvVassal9||e9.korvThrall9)return false;  // your own wing is not a fight
+      if(e9.neutral9||e9.disabledBySaint9||e9.bork9)return false;
+      if(e9.liner&&!e9.linerHostile9)return false;
+      if(e9.type==='fighter'||e9.allyFig9)return false;            // a launched wing is not the fight; its mother is
+      return !!(e9.boss||e9.unique9||e9.conq9||e9.type==='vorlanship'||e9.type==='leviathan'||
+                (e9.et&&(e9.et.deploys||e9.et.beh==='boss')));
+    });
+  }catch(er9){return false;}
+}
+function qLosing9(){   // the one state where clearing the board is a rescue and not a robbery
+  try{
+    const mx9=(typeof maxShields==='function')?maxShields():0;
+    const h9=Math.max(0,Math.min(1,(ship.hull||0)/100));
+    const s9=mx9>0?Math.max(0,Math.min(1,(ship.shields||0)/mx9)):0;
+    return (h9*.75+s9*.25)<.35;
+  }catch(er9){return false;}
+}
 // Something big enough that the lanes empty out: the Unmaker, any boss or unique hull, a capital
 // that launches its own wings, or the Leviathan. Freighters and couriers do not work a sky like that.
 function bossHere9(){
@@ -11199,7 +11231,13 @@ function updateSpace(dt){
   }
   // Orson watches. Orson meddles.
   QSTATE.t-=dt;
-  if(QSTATE.t<=0&&!(typeof unmakerHere9==='function'&&unmakerHere9())){QSTATE.t=QSTATE.blessed?rnd(460,640):rnd(260,420);qEvent();}
+  if(QSTATE.t<=0){
+    // He waits the big ones out now. A capital or a boss on the board means the player is committed,
+    // and the milestone cards are full-screen modals on top of that. Push it half a minute and ask
+    // again. He is immortal; he can be patient exactly once.
+    if((typeof qBigFight9==='function'&&qBigFight9())||(typeof unmakerHere9==='function'&&unmakerHere9()))QSTATE.t=rnd(24,40);
+    else{QSTATE.t=QSTATE.blessed?rnd(460,640):rnd(260,420);qEvent();}
+  }
   ship.shieldDelay-=dt;
   if(ship.shieldDelay<=0){
     const sbase9=(4+ship.up.shield*2)*(hasTrait('pilot')?1.3:1);
@@ -15858,14 +15896,22 @@ function landExpedition(){
         [{label:'Pay the 1,000 cr',col:'#2a281a',tcol:'#e8dfa0',fn:()=>{
             if(ship.credits<1000){say('The commander checks your ledger and laughs: "BROKE? Then we take it in scrap." — BATTLE STATIONS.','#ff5c5c');closeEnc();return;}
             ship.credits-=1000;
-            enemies.forEach(e=>{e.alive=false;});
+            // was enemies.forEach(e=>e.alive=false), which also deleted your own wing, your escort,
+            // Bork and a parked Lucky Lady along with the raiders who took the money
+            enemies.forEach(e=>{if(!e||!e.alive)return;
+              if(e.friendly9||e.charmed9||e.corruptAlly9||e.korvVassal9||e.korvThrall9||e.bork9||e.allyFig9)return;
+              if(e.liner&&!e.linerHostile9)return;
+              e.alive=false;});
             S.standing=Math.max(0,(S.standing||50)-2);
             say('Paid. They vanish with your money and a little of your pride.','#8899bb');closeEnc();}},
          {label:'Open fire',col:'#3a1c1c',tcol:'#ff9a9a',noSaint9:true,fn:()=>{
             gainStanding(2);
             say('Your answer: shields to full.','#ff9a9a');closeEnc();}},
          ...((typeof isSaint9==='function'&&isSaint9())?[{label:'Refuse. Let them look at the white.',col:'#1c2a3a',tcol:'#eaf3ff',fn:()=>{
-            if(Math.random()<0.62){enemies.forEach(e2=>{e2.alive=false;});gainStanding(3);
+            if(Math.random()<0.62){enemies.forEach(e2=>{if(!e2||!e2.alive)return;
+                if(e2.friendly9||e2.charmed9||e2.corruptAlly9||e2.bork9||e2.allyFig9)return;
+                if(e2.liner&&!e2.linerHostile9)return;
+                e2.alive=false;});gainStanding(3);
               try{graceGain9(14);}catch(e9){}   // through graceGain9 so it feeds the LIGHT too: this is an act, not a tick
               say('\u2726 The commander looks at the hull, and the markings, and the fact that you have not armed anything. The channel closes. They are gone. (+grace)','#eaf3ff');}
             else{say('\u2726 "A ship that will not shoot is a ship that is already ours." They come anyway. Stay gentle and stay alive.','#ffb56b');}
@@ -17378,6 +17424,9 @@ function canvasPress(p){
   if(S.screen==='market'){for(const r of marketRects)if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h){r.fn();return;}return;}
   if(S.screen==='encounter'){for(const r of encRects)if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h){r.fn();return;}return;}
   if(S.screen==='map'){mapDrag={sx:p.x,sy:p.y,cx:mapCam.x,cy:mapCam.y,moved:false};return;}
+  if(S.screen==='space'&&logRect9&&Math.hypot(p.x-logRect9.x,p.y-logRect9.y)<=logRect9.r+5){
+    S.menu=true;S.logBig=true;S.logScroll=0;return;
+  }
   if(S.screen==='away'){awayClick(p);return;}
 }
 cv.addEventListener('mousedown',e=>{initAudio();canvasPress(mouse);});
@@ -17732,9 +17781,14 @@ addEventListener('keydown',e=>{
       charDockLines();
       dockProceed();return;
     }
-    if(k==='l'&&!riftAnim){
+    // [L] IS THE SHIP'S LOG OUT HERE, AND LAND ONLY IN ORBIT. This branch used to claim every 'l'
+    // press in space and answer 'We need a stable orbit first, Captain', which made the ship's-log
+    // key added in rc13 twenty lines below UNREACHABLE: it reads `k==='l'&&!S.orbit`, and the only
+    // way to reach it was to already be in orbit. The log had a key that never once fired, a menu
+    // row nobody opens, and on desktop no button at all. Landing needs an orbit anyway, so the two
+    // never actually wanted the same key; this one simply asked first.
+    if(k==='l'&&!riftAnim&&S.orbit){
       if(realHostiles9()){say('Not while hostiles are on the board, Captain — clear them or break orbit first.','#ff8c8c');return;}
-      if(!S.orbit){say('We need a stable orbit first, Captain.','#ff8c8c');return;}
       if(S.noLand===ship.sys){noLandBust();return;}
       const awayHere=S.missions.some(m2=>m2.def.ty==='away'&&edef(m2).sys===ship.sys);
       if(awayHere){
@@ -21029,7 +21083,28 @@ function drawHud(){
   }
   txtFit(SYSTEMS[ship.sys].name+'  •  '+(fleetLadder9()?(renCtx()?('☠ '+frank()+'  ·  '+rank()):(rank()+(((S.infamy||0)>0||fcv()>55)?('  ·  ☠ '+frank()):''))):hudRank9())+'  •  '+ship.credits+' cr  •  STANDING '+Math.round(S.standing||50)+'  •  FRINGE '+Math.round(fcv())+'  •  '+missTally9()+((S.sideJobs9||0)>0?('  •  Side Jobs '+S.sideJobs9):''),14,H-64,'#8899bb',12,W-28,'left','normal');
   // Keyboard legend: irrelevant on touch (players use the on-screen buttons) and it's what crowds the bottom edge, so desktop only.
-  if(!IS_TOUCH)txt('I: STATUS  •  K: KEYS'+(S.miniRift?'  •  W: MINI-RIFT':'')+'  •  S: SCAN  •  G: TRACTOR  •  H: HAIL  •  ESC: MENU  •  J: JOURNAL'+((S.qUnlocked&&!(typeof isVorlan9==='function'&&isVorlan9()))?'  •  Q: BECOME ORSON':''),14,H-26,'#556',11,'left','normal');
+  if(!IS_TOUCH)txt('I: STATUS  •  K: KEYS'+(S.miniRift?'  •  W: MINI-RIFT':'')+'  •  S: SCAN  •  G: TRACTOR  •  H: HAIL  •  L: LOG  •  ESC: MENU  •  J: JOURNAL'+((S.qUnlocked&&!(typeof isVorlan9==='function'&&isVorlan9()))?'  •  Q: BECOME ORSON':''),14,H-26,'#556',11,'left','normal');
+  // THE SHIP'S LOG, FOR THE KEYBOARD PLAYER. Wolf: "I need a journal button on screen for the full
+  // screen keyboard player... clickable so they can see what happened, you know the ship's log like
+  // on touch." The parchment glyph was built in v1.0.0-rc13 and every line that draws it lives
+  // below `if(!IS_TOUCH||S.menu)return;` in the touch rail, so on a desktop the log was [L] and a
+  // buried menu row and nothing at all to look at. In fullscreen, where the legend along the bottom
+  // is the easiest thing on the screen to stop reading, that is the same problem we fixed on phones.
+  // Same glyph, same action, parked under the radar, which is the only quiet corner of this HUD.
+  logRect9=null;
+  if(!IS_TOUCH&&!S.qmode&&!S.orbit&&!S.scomm9&&!S.vthrone9){
+    const lg9={x:W-80,y:188,r:22};
+    logRect9=lg9;
+    const hot9=(typeof mouse!=='undefined')&&Math.hypot(mouse.x-lg9.x,mouse.y-lg9.y)<=lg9.r+5;
+    ctx.save();
+    ctx.globalAlpha=hot9?.40:.18;
+    ctx.beginPath();ctx.arc(lg9.x,lg9.y,lg9.r,0,TAU);ctx.fillStyle='#8fd0ff';ctx.fill();
+    ctx.globalAlpha=hot9?1:.85;
+    drawLogGlyph9(lg9.x,lg9.y,lg9.r);
+    ctx.globalAlpha=hot9?.95:.55;
+    txt('LOG  [L]',lg9.x,lg9.y+lg9.r+13,'#8fd0ff',10,'center');
+    ctx.restore();
+  }
   if(S.missions.length){
     // show the mission you can actually work HERE (this sector) first, not just the top of the list
     const hereM9=S.missions.find(m9=>{const d9=edef(m9);return d9&&(d9.sys===ship.sys||(d9.syss&&d9.syss.includes(ship.sys)));});
@@ -25731,15 +25806,24 @@ function qEvent(){
 function applyQ(){
   if((typeof isVorlan9==='function'&&isVorlan9())||(typeof isSaint9==='function'&&isSaint9()))return;   // Orson does not stir the pot for the crown or the white
   const alive=enemies.filter(e=>e.alive);
-  const roll=Math.random();
+  let roll=Math.random();
   const line=arr=>arr[Math.floor(rnd(0,arr.length))];
+  // Second belt to go with the braces above: even in a small skirmish he does not get to end it.
+  const fight9=(typeof hostiles9==='function')?hostiles9():(alive.length>0);
+  // The two outcomes that DELETE a fight are re-rolled into the two that cost the player nothing:
+  // the teleport becomes a piece of nonsense he says and leaves, the deaccession becomes a trinket.
+  // They deliberately do NOT fall through to DOUBLE and HAVOC, which is where the plain if-chain
+  // would have dropped them: measured, that pushed 'Orson turned up and made this harder' from 35%
+  // of visits to 58%, which is just the same theft with extra steps.
+  if(roll>=.12&&roll<.22&&fight9)roll=.88;                                        // teleport -> flavour only
+  if(roll>=.4&&roll<.53&&(!alive.length||qBigFight9()||!qLosing9()))roll=.76;     // deaccession -> a gift
   if(roll<.12){
     S.hullTemp={skin:(function(){try{const p9=HULLSHOP9.map(h=>h.k).filter(k=>k>0);return p9[Math.floor(rnd(0,p9.length))];}catch(e){return 1;}})(),jumps:2};
     say('ORSON: "Your ship offends my eye. THERE — the '+HULLSKINS[S.hullTemp.skin].nm+', for two jumps. You are WELCOME."','#ff8ce8');
     sfx.transporter();
     return;
   }
-  if(roll<.22){
+  if(roll<.22&&!fight9){
     say('ORSON: '+line(QLINES.tele),'#ff8ce8');
     const pool=SYSTEMS.map((s2,i)=>i).filter(i=>i!==ship.sys);
     const dest2=pool[Math.floor(rnd(0,pool.length))];
@@ -25748,11 +25832,18 @@ function applyQ(){
     say('The stars rearrange themselves. You are... somewhere else.','#ff8ce8');
   } else if(roll<.4&&alive.length){
     say('ORSON: '+line(QLINES.dbl),'#ff8ce8');
-    alive.slice(0,6).forEach(e=>{const n=spawnEnemy(e.type,{hp:e.maxHp,noTier:true});n.detected=true;});
+    // never clone a capital or a boss: 'he doubled it' should not mean a second dreadnought
+    alive.filter(e=>!(e.boss||e.unique9||(e.et&&(e.et.deploys||e.et.beh==='boss')))).slice(0,6)
+         .forEach(e=>{const n=spawnEnemy(e.type,{hp:e.maxHp,noTier:true});n.detected=true;});
     alarm('Orson has doubled the hostile force!');
-  } else if(roll<.53&&alive.length){
+  } else if(roll<.53&&alive.length&&!qBigFight9()&&qLosing9()){
+    // THE DEACCESSION now only lands where it reads as a rescue: small fry, and you losing. It will
+    // not touch a capital, a boss or a named hull at any hull percentage, ever.
     say('ORSON: '+line(QLINES.smite),'#ff8ce8');
-    alive.forEach(e=>{e.alive=false;boom(e.x,e.y,e.et.r*2);});
+    alive.forEach(e=>{
+      if(e.friendly9||e.charmed9||e.corruptAlly9||e.korvVassal9||e.korvThrall9||e.bork9||e.allyFig9)return;
+      if(e.liner&&!e.linerHostile9)return;
+      e.alive=false;boom(e.x,e.y,e.et.r*2);});
   } else if(roll<.7){
     say('ORSON: '+line(QLINES.havoc),'#ff8ce8');
     const types=['clan_raider','veil_raider','jackal_marauder','sarrqan','shardwing'];
